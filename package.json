@@ -1,0 +1,23 @@
+{
+  "name": "aurelian",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n web,realtime,worker -c blue,green,yellow \"npm run dev:web\" \"npm run dev:realtime\" \"npm run dev:worker\"",
+    "dev:web": "npm --prefix apps/web run dev",
+    "dev:realtime": "npm --prefix apps/realtime run dev",
+    "dev:worker": "npm --prefix apps/worker run dev",
+    "prisma:generate": "npx prisma generate",
+    "prisma:migrate": "npx prisma migrate dev"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.0",
+    "prisma": "^6.13.0"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.13.0"
+  }
+}
