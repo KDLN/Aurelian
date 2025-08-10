@@ -515,6 +515,9 @@ export default function CharacterViewerTest() {
         {/* Character Viewer Preview */}
         <div>
           <h2>Character Viewer (Top-Right Style)</h2>
+          <p style={{ fontSize: 12, opacity: 0.7 }}>
+            Note: Peasant hat (pfht) and Pointy hat (pnty) will hide hair to prevent clipping
+          </p>
           <div style={{ 
             position: 'relative',
             width: 160,

@@ -1,6 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { world, useWorld } from '../_shared/world';
+import CharacterViewer from '../../../components/CharacterViewer';
+
 export default function CraftingAE2(){
   const [, setT] = useState(0);
   useEffect(() => {
@@ -15,8 +17,22 @@ export default function CraftingAE2(){
     if (!world.craft(out, qty)) alert('Not enough inputs.');
   }
   function prog(c:any){ const minutes = ((window as any).__ae_day??1 - 1) * 1440 + ((window as any).__ae_min??360); const left=Math.max(0, c.eta - minutes); return Math.min(100, Math.round((1 - (left/(6*60))) * 100)); }
+  
+  // Show crafting animation when there are active crafting jobs
+  const isCrafting = world.crafting.length > 0;
+  
   return (
     <div className="ae wrap">
+      <CharacterViewer 
+        position="top-right"
+        activity={isCrafting ? 'crafting' : 'idle'}
+        location="Workshop"
+        outfit="fstr"
+        hair="dap1"
+        hat=""
+        mood={isCrafting ? 'neutral' : 'neutral'}
+      />
+      
       <div className="panel left">
         <h1>Crafting</h1>
         <div>

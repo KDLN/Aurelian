@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
+import CharacterViewer from '../../components/CharacterViewer';
 
 type MissionRisk = 'LOW' | 'MEDIUM' | 'HIGH';
 type JobStatus = 'queued' | 'running' | 'complete' | 'cancelled' | 'failed';
@@ -95,8 +96,27 @@ export default function MissionsPage(){
     setAcceptingId(null);
   }
 
+  // Determine character activity based on mission state
+  const activeMission = missions.find(m => m.status === 'running');
+  const hasCompletedMission = missions.some(m => m.status === 'complete');
+  const characterActivity = activeMission ? 'mission' : hasCompletedMission ? 'idle' : 'walking';
+  
+  // Determine hat based on mission risk
+  const characterHat = activeMission?.risk === 'HIGH' ? 'pnty' : ''; // Wizard hat for high risk missions
+
   return (
     <div className="ae">
+      <CharacterViewer 
+        position="top-right"
+        activity={characterActivity}
+        location={activeMission ? `On Mission: ${activeMission.itemName}` : 'Mission Board'}
+        outfit="fstr"
+        hair="dap1"
+        hat={characterHat}
+        weapon={activeMission ? 'sw01' : ''}
+        mood={activeMission ? 'alert' : 'neutral'}
+      />
+      
       <h1>Mission Board</h1>
       <div className="muted">Available delivery missions</div>
       <div className="panel board" aria-busy={loading}>

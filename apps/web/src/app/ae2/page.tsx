@@ -1,9 +1,31 @@
 'use client';
+import { useState } from 'react';
+import CharacterViewer from '../../components/CharacterViewer';
+
 export default function AE2Hub(){
+  const [activity, setActivity] = useState<'idle' | 'walking' | 'trading' | 'crafting'>('idle');
+  
   return (
     <div className="ae" style={{padding:16}}>
+      <CharacterViewer 
+        position="top-right"
+        activity={activity}
+        location="Hub: Verdant"
+        outfit="fstr"
+        hair="dap1"
+        hat=""
+      />
+      
       <h1>Aurelian — World-Backed Hub (/ae2)</h1>
       <p className="muted">Shared in-memory world. In DevTools: world.tick(10)</p>
+      
+      <div style={{marginBottom: 16}}>
+        <button onClick={() => setActivity('idle')} className="btn" style={{marginRight: 8}}>Idle</button>
+        <button onClick={() => setActivity('walking')} className="btn" style={{marginRight: 8}}>Walking</button>
+        <button onClick={() => setActivity('trading')} className="btn" style={{marginRight: 8}}>Trading</button>
+        <button onClick={() => setActivity('crafting')} className="btn">Crafting</button>
+      </div>
+      
       <ul>
         <li><a href="/ae2/auction">Auction</a></li>
         <li><a href="/ae2/scouts">Scouts</a></li>
