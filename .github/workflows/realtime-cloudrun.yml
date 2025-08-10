@@ -27,7 +27,7 @@ jobs:
           PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
         run: |
           IMAGE_URI="$REGION-docker.pkg.dev/$PROJECT_ID/aurelian/realtime:${GITHUB_SHA::7}"
-          docker build -t "$IMAGE_URI" apps/realtime
+          docker build -t "$IMAGE_URI" .
           docker push "$IMAGE_URI"
           echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
       - name: Deploy
