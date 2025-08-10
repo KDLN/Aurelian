@@ -60,6 +60,7 @@ export default function Home(){
         <li><a href="/layer-debug">Layer Debug</a></li>
         <li><a href="/sheet-debug">Sheet Debug</a></li>
         <li><a href="/sprite-analyzer">Sprite Analyzer</a></li>
+        <li><a href="/character-viewer-test">Character Viewer Test</a></li>
         <li><a href="/minimap">Minimap</a></li>
         <li><a href="/admin/sprites">Admin Sprites</a></li>
       </ul>
