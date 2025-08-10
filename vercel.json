@@ -1,0 +1,9 @@
+{
+  "buildCommand": "npm install && npm --prefix apps/web run build",
+  "outputDirectory": "apps/web/.next",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "settings": {
+    "nodeVersion": "20.x"
+  }
+}
