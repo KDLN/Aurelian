@@ -1,7 +1,12 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { CharacterSprite } from '../../lib/sprites/characterSprites';
-import { AnimationFrame } from '../../lib/sprites/types';
+
+interface AnimationFrame {
+  row: number;
+  col: number;
+  duration: number;
+}
 
 interface AnimationDefinition {
   name: string;
