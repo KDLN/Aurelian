@@ -1,5 +1,7 @@
 import colyseus from 'colyseus';
-const { Room, Client } = colyseus;
+import type { Client } from 'colyseus';
+
+const { Room } = colyseus;
 
 type Player = { id:string; x:number; y:number; color?:string; name?:string };
 

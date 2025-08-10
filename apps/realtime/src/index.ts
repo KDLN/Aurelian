@@ -1,13 +1,14 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import colyseus from 'colyseus';
-const { Server } = colyseus;
 import { WebSocketTransport } from '@colyseus/ws-transport';
+
+const { Server } = colyseus;
 import { createServer } from 'http';
 import { MovementRoom } from './rooms/movement.js';
 import { AuctionTickerRoom } from './rooms/ticker.js';
 
 const app = express();
-app.get('/', (_req, res)=> res.send('Aurelian Realtime OK'));
+app.get('/', (_req: Request, res: Response) => res.send('Aurelian Realtime OK'));
 const server = createServer(app);
 
 const gameServer = new Server({

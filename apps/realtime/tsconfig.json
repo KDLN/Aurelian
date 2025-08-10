@@ -4,8 +4,9 @@
     "lib": [
       "es2020"
     ],
-    "module": "commonjs",
+    "module": "es2020",
     "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
     "outDir": "dist",
     "strict": true,
     "esModuleInterop": true,

@@ -149,10 +149,10 @@ export default function CharacterViewer({
       }
 
       // Shield (for combat activities)
-      if (shield && page === 'pONE3') {
+      if (shield && page === 'pONE2') {
         spritesToLoad.push({ 
           key: 'shield', 
-          path: `${basePath}/char_a_pONE3/7tlb/char_a_pONE3_7tlb_${shield}.png` 
+          path: `${basePath}/char_a_pONE2/7tlb/char_a_pONE2_7tlb_${shield}.png` 
         });
       }
 
