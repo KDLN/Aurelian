@@ -1,6 +1,5 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { CharacterSprite } from '../../lib/sprites/characterSprites';
 
 interface AnimationFrame {
   row: number;
@@ -208,7 +207,7 @@ const ANIMATIONS: AnimationDefinition[] = [
 export default function CharacterViewerTest() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const viewerCanvasRef = useRef<HTMLCanvasElement>(null);
-  const spriteRef = useRef<CharacterSprite | null>(null);
+  const spritesRef = useRef<Map<string, HTMLImageElement>>(new Map());
   const animationFrameRef = useRef<number>(0);
   const lastTimeRef = useRef<number>(0);
   const currentFrameRef = useRef<number>(0);
@@ -222,6 +221,7 @@ export default function CharacterViewerTest() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [zoom, setZoom] = useState(3);
   const [showViewer, setShowViewer] = useState(true);
+  const [spritesLoaded, setSpritesLoaded] = useState(false);
 
   // Character customization
   const [outfit, setOutfit] = useState('fstr');
@@ -229,46 +229,129 @@ export default function CharacterViewerTest() {
   const [hat, setHat] = useState('');
   const [skinTone, setSkinTone] = useState('v00');
 
-  // Initialize sprite
+  // Load sprite sheets
   useEffect(() => {
-    const initSprite = async () => {
-      const sprite = new CharacterSprite();
-      await sprite.loadAssets();
-      spriteRef.current = sprite;
-      
-      // Set initial character
-      sprite.setCharacter({
-        base: skinTone,
-        outfit: outfit,
-        hair: hair ? `${hair}_${skinTone}` : undefined,
-        hat: hat || undefined,
-        weapon: showWeapon ? 'sw01' : undefined,
-        shield: showShield ? 'sh01' : undefined
+    const loadSprites = async () => {
+      const basePath = '/sprites/FREE Mana Seed Character Base Demo 2.0';
+      const spritesToLoad = [
+        // Base pages
+        { key: 'base_p1', path: `${basePath}/char_a_p1/char_a_p1_0bas_humn_v00.png` },
+        { key: 'base_pONE1', path: `${basePath}/char_a_pONE1/char_a_pONE1_0bas_humn_v00.png` },
+        { key: 'base_pONE2', path: `${basePath}/char_a_pONE2/char_a_pONE2_0bas_humn_v00.png` },
+        { key: 'base_pONE3', path: `${basePath}/char_a_pONE3/char_a_pONE3_0bas_humn_v00.png` },
+        // Outfits
+        { key: 'outfit_p1', path: `${basePath}/char_a_p1/1out/char_a_p1_1out_fstr.png` },
+        // Hair
+        { key: 'hair_p1', path: `${basePath}/char_a_p1/4har/char_a_p1_4har_dap1_v00.png` },
+        // Weapons
+        { key: 'weapon_pONE1', path: `${basePath}/char_a_pONE1/6tla/char_a_pONE1_6tla_sw01.png` },
+        { key: 'weapon_pONE2', path: `${basePath}/char_a_pONE2/6tla/char_a_pONE2_6tla_sw01.png` },
+        { key: 'weapon_pONE3', path: `${basePath}/char_a_pONE3/6tla/char_a_pONE3_6tla_sw01.png` },
+        // Shields
+        { key: 'shield_pONE3', path: `${basePath}/char_a_pONE3/7tlb/char_a_pONE3_7tlb_sh01.png` },
+      ];
+
+      const loadPromises = spritesToLoad.map(({ key, path }) => {
+        return new Promise<void>((resolve) => {
+          const img = new Image();
+          img.onload = () => {
+            spritesRef.current.set(key, img);
+            resolve();
+          };
+          img.onerror = () => {
+            console.warn(`Failed to load sprite: ${path}`);
+            resolve();
+          };
+          img.src = path;
+        });
       });
+
+      await Promise.all(loadPromises);
+      setSpritesLoaded(true);
     };
-    initSprite();
+
+    loadSprites();
   }, []);
 
-  // Update character when customization changes
-  useEffect(() => {
-    if (spriteRef.current) {
-      spriteRef.current.setCharacter({
-        base: skinTone,
-        outfit: outfit,
-        hair: hair ? `${hair}_${skinTone}` : undefined,
-        hat: hat || undefined,
-        weapon: showWeapon ? 'sw01' : undefined,
-        shield: showShield ? 'sh01' : undefined
-      });
+  // Draw sprite frame
+  const drawSpriteFrame = (
+    ctx: CanvasRenderingContext2D,
+    page: string,
+    row: number,
+    col: number,
+    x: number,
+    y: number,
+    scale: number
+  ) => {
+    const baseSprite = spritesRef.current.get(`base_${page}`);
+    if (!baseSprite) return;
+
+    const frameSize = 64;
+    const sx = col * frameSize;
+    const sy = row * frameSize;
+
+    // Draw base
+    ctx.drawImage(
+      baseSprite,
+      sx, sy, frameSize, frameSize,
+      x, y, frameSize * scale, frameSize * scale
+    );
+
+    // Draw outfit for p1 animations
+    if (page === 'p1' && outfit) {
+      const outfitSprite = spritesRef.current.get('outfit_p1');
+      if (outfitSprite) {
+        ctx.drawImage(
+          outfitSprite,
+          sx, sy, frameSize, frameSize,
+          x, y, frameSize * scale, frameSize * scale
+        );
+      }
     }
-  }, [outfit, hair, hat, skinTone, showWeapon, showShield]);
+
+    // Draw hair for p1 animations
+    if (page === 'p1' && hair && !hat) {
+      const hairSprite = spritesRef.current.get('hair_p1');
+      if (hairSprite) {
+        ctx.drawImage(
+          hairSprite,
+          sx, sy, frameSize, frameSize,
+          x, y, frameSize * scale, frameSize * scale
+        );
+      }
+    }
+
+    // Draw weapon for combat pages
+    if (showWeapon && (page === 'pONE1' || page === 'pONE2' || page === 'pONE3')) {
+      const weaponSprite = spritesRef.current.get(`weapon_${page}`);
+      if (weaponSprite) {
+        ctx.drawImage(
+          weaponSprite,
+          sx, sy, frameSize, frameSize,
+          x, y, frameSize * scale, frameSize * scale
+        );
+      }
+    }
+
+    // Draw shield for pONE3
+    if (showShield && page === 'pONE3') {
+      const shieldSprite = spritesRef.current.get('shield_pONE3');
+      if (shieldSprite) {
+        ctx.drawImage(
+          shieldSprite,
+          sx, sy, frameSize, frameSize,
+          x, y, frameSize * scale, frameSize * scale
+        );
+      }
+    }
+  };
 
   // Animation loop
   useEffect(() => {
-    if (!isPlaying) return;
+    if (!isPlaying || !spritesLoaded) return;
 
     const animate = (timestamp: number) => {
-      if (!canvasRef.current || !spriteRef.current) {
+      if (!canvasRef.current) {
         animationFrameRef.current = requestAnimationFrame(animate);
         return;
       }
@@ -294,12 +377,12 @@ export default function CharacterViewerTest() {
                            direction === 'north' ? 1 : 
                            direction === 'east' ? 2 : 3;
         
-        spriteRef.current.drawFrame(
+        drawSpriteFrame(
           ctx,
           currentAnimation.page,
           currentFrame.row + directionRow,
           currentFrame.col,
-          64, 64, zoom
+          0, 0, zoom
         );
       }
 
@@ -319,7 +402,7 @@ export default function CharacterViewerTest() {
                              direction === 'north' ? 1 : 
                              direction === 'east' ? 2 : 3;
           
-          spriteRef.current.drawFrame(
+          drawSpriteFrame(
             viewerCtx,
             currentAnimation.page,
             currentFrame.row + directionRow,
@@ -348,11 +431,25 @@ export default function CharacterViewerTest() {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [currentAnimation, direction, isPlaying, zoom, showViewer]);
+  }, [currentAnimation, direction, isPlaying, zoom, showViewer, spritesLoaded, outfit, hair, hat, showWeapon, showShield]);
 
   const filteredAnimations = selectedCategory === 'all' 
     ? ANIMATIONS 
     : ANIMATIONS.filter(a => a.category === selectedCategory);
+
+  if (!spritesLoaded) {
+    return (
+      <div style={{ 
+        padding: 16, 
+        background: '#231913', 
+        color: '#f1e5c8', 
+        minHeight: '100vh',
+        fontFamily: 'monospace'
+      }}>
+        <h1>Loading sprites...</h1>
+      </div>
+    );
+  }
 
   return (
     <div style={{ 
@@ -395,10 +492,10 @@ export default function CharacterViewerTest() {
           {/* Direction */}
           <div style={{ marginTop: 16 }}>
             <h3>Direction</h3>
-            <button onClick={() => setDirection('south')} style={{ marginRight: 4 }}>South</button>
-            <button onClick={() => setDirection('north')} style={{ marginRight: 4 }}>North</button>
-            <button onClick={() => setDirection('east')} style={{ marginRight: 4 }}>East</button>
-            <button onClick={() => setDirection('west')}>West</button>
+            <button onClick={() => setDirection('south')} style={{ marginRight: 4 }}>South ↓</button>
+            <button onClick={() => setDirection('north')} style={{ marginRight: 4 }}>North ↑</button>
+            <button onClick={() => setDirection('east')} style={{ marginRight: 4 }}>East →</button>
+            <button onClick={() => setDirection('west')}>West ←</button>
           </div>
 
           {/* Zoom */}
@@ -439,51 +536,9 @@ export default function CharacterViewerTest() {
           </button>
         </div>
 
-        {/* Character Customization */}
+        {/* Equipment Options */}
         <div>
-          <h2>Character Customization</h2>
-          
-          <div style={{ marginBottom: 8 }}>
-            <label>Skin Tone: </label>
-            <select value={skinTone} onChange={(e) => setSkinTone(e.target.value)}>
-              <option value="v00">Light</option>
-              <option value="v01">Medium</option>
-              <option value="v02">Dark</option>
-              <option value="v03">Pale</option>
-              <option value="v04">Green</option>
-              <option value="v05">Blue</option>
-            </select>
-          </div>
-
-          <div style={{ marginBottom: 8 }}>
-            <label>Outfit: </label>
-            <select value={outfit} onChange={(e) => setOutfit(e.target.value)}>
-              <option value="">None</option>
-              <option value="fstr">Farmer Shirt</option>
-              <option value="pfpn">Peasant Pants</option>
-              <option value="boxr">Boxers</option>
-              <option value="undi">Underwear</option>
-            </select>
-          </div>
-
-          <div style={{ marginBottom: 8 }}>
-            <label>Hair: </label>
-            <select value={hair} onChange={(e) => setHair(e.target.value)}>
-              <option value="">None</option>
-              <option value="bob1">Bob</option>
-              <option value="dap1">Dapper</option>
-            </select>
-          </div>
-
-          <div style={{ marginBottom: 8 }}>
-            <label>Hat: </label>
-            <select value={hat} onChange={(e) => setHat(e.target.value)}>
-              <option value="">None</option>
-              <option value="pfht">Peasant Hat</option>
-              <option value="pnty">Pointy Hat</option>
-            </select>
-          </div>
-
+          <h2>Equipment</h2>
           <div style={{ marginBottom: 8 }}>
             <label>
               <input 
@@ -491,10 +546,9 @@ export default function CharacterViewerTest() {
                 checked={showWeapon} 
                 onChange={(e) => setShowWeapon(e.target.checked)}
               />
-              Show Weapon
+              Show Weapon (combat animations)
             </label>
           </div>
-
           <div style={{ marginBottom: 8 }}>
             <label>
               <input 
@@ -502,9 +556,13 @@ export default function CharacterViewerTest() {
                 checked={showShield} 
                 onChange={(e) => setShowShield(e.target.checked)}
               />
-              Show Shield
+              Show Shield (pONE3 only)
             </label>
           </div>
+          <p style={{ fontSize: 12, opacity: 0.7, marginTop: 16 }}>
+            Note: Character customization (outfit, hair, hat) currently only works with p1 animations.
+            Combat animations show base character with weapons.
+          </p>
         </div>
       </div>
 
