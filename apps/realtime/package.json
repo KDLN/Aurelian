@@ -8,9 +8,9 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "colyseus": "^0.15.14",
+    "colyseus": "^0.16.4",
     "@colyseus/schema": "^2.0.30",
-    "@colyseus/ws-transport": "^0.15.14",
+    "@colyseus/ws-transport": "^0.16.5",
     "express": "^4.19.2",
     "ws": "^8.17.0",
     "jose": "^5.9.3",
