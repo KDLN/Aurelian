@@ -36,32 +36,32 @@ export default function Lobby(){
           </p>
           
           <div style={{marginTop:16, display:'grid', gridTemplateColumns:'1fr 1fr', gap:12}}>
-            <Link href="/game" className="nav-btn">
+            <Link href="/hub" className="nav-btn">
               🏛️ Trading Hub
               <div className="nav-desc">Overview & dashboard</div>
             </Link>
             
-            <Link href="/game/warehouse" className="nav-btn">
+            <Link href="/warehouse" className="nav-btn">
               📦 Warehouse
               <div className="nav-desc">Manage inventory</div>
             </Link>
             
-            <Link href="/game/auction" className="nav-btn">
+            <Link href="/auction" className="nav-btn">
               🔨 Auction House
               <div className="nav-desc">Buy & sell goods</div>
             </Link>
             
-            <Link href="/game/contracts" className="nav-btn">
+            <Link href="/contracts" className="nav-btn">
               📋 Trade Contracts
               <div className="nav-desc">Automated buying</div>
             </Link>
             
-            <Link href="/game/missions" className="nav-btn">
+            <Link href="/missions" className="nav-btn">
               🚛 Mission Control
               <div className="nav-desc">Send caravans</div>
             </Link>
             
-            <Link href="/game/crafting" className="nav-btn">
+            <Link href="/crafting" className="nav-btn">
               ⚒️ Crafting Workshop
               <div className="nav-desc">Transform materials</div>
             </Link>

@@ -31,12 +31,12 @@ export default function GameLayout({
   }, [subscribe]);
 
   const navigation = [
-    { href: '/game', label: 'Hub' },
-    { href: '/game/auction', label: 'Auction' },
-    { href: '/game/missions', label: 'Missions' },
-    { href: '/game/crafting', label: 'Crafting' },
-    { href: '/game/contracts', label: 'Contracts' },
-    { href: '/game/warehouse', label: 'Warehouse' },
+    { href: '/hub', label: 'Hub' },
+    { href: '/auction', label: 'Auction' },
+    { href: '/missions', label: 'Missions' },
+    { href: '/crafting', label: 'Crafting' },
+    { href: '/contracts', label: 'Contracts' },
+    { href: '/warehouse', label: 'Warehouse' },
     { href: '/play', label: 'World Map' },
   ];
 

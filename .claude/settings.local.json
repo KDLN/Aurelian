@@ -26,7 +26,8 @@
       "Bash(gh secret set:*)",
       "Bash(git add:*)",
       "Bash(git push:*)",
-      "Bash(gh run list:*)"
+      "Bash(gh run list:*)",
+      "Bash(mv:*)"
     ],
     "deny": []
   }

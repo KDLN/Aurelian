@@ -5,6 +5,7 @@ on:
     branches: [ master ]
     paths:
       - 'apps/realtime/**'
+      - 'prisma/**'
       - '.github/workflows/realtime-cloudrun.yml'
 jobs:
   deploy:

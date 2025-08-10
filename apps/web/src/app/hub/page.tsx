@@ -136,11 +136,11 @@ export default function GameHub() {
         <div className="game-card">
           <h3>Quick Actions</h3>
           <div className="game-grid-3">
-            <a href="/game/auction" className="game-btn">Visit Auction</a>
-            <a href="/game/missions" className="game-btn">Send Mission</a>
-            <a href="/game/crafting" className="game-btn">Start Crafting</a>
-            <a href="/game/contracts" className="game-btn">Trade Contracts</a>
-            <a href="/game/warehouse" className="game-btn">Manage Warehouse</a>
+            <a href="/auction" className="game-btn">Visit Auction</a>
+            <a href="/missions" className="game-btn">Send Mission</a>
+            <a href="/crafting" className="game-btn">Start Crafting</a>
+            <a href="/contracts" className="game-btn">Trade Contracts</a>
+            <a href="/warehouse" className="game-btn">Manage Warehouse</a>
             <a href="/lobby" className="game-btn">Return to Lobby</a>
           </div>
         </div>

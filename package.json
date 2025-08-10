@@ -10,14 +10,23 @@
     "dev:web": "npm --prefix apps/web run dev",
     "dev:realtime": "npm --prefix apps/realtime run dev",
     "dev:worker": "npm --prefix apps/worker run dev",
-    "build": "npm --prefix apps/web run build",
-    "build:web": "npm --prefix apps/web run build",
+    "build": "npm run prisma:generate && npm --prefix apps/web run build",
+    "build:web": "npm run prisma:generate && npm --prefix apps/web run build",
+    "build:realtime": "npm run prisma:generate && npm --prefix apps/realtime run build",
+    "build:worker": "npm run prisma:generate && npm --prefix apps/worker run build",
     "prisma:generate": "npx prisma generate",
-    "prisma:migrate": "npx prisma migrate dev"
+    "prisma:migrate": "npx prisma migrate dev",
+    "prisma:migrate:deploy": "npx prisma migrate deploy",
+    "postinstall": "npx prisma generate",
+    "prisma:seed": "tsx prisma/seed.ts"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "devDependencies": {
     "concurrently": "^9.2.0",
-    "prisma": "^6.13.0"
+    "prisma": "^6.13.0",
+    "tsx": "^4.20.3"
   },
   "dependencies": {
     "@prisma/client": "^6.13.0"

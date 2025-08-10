@@ -239,9 +239,9 @@ export default function WarehousePage() {
         <div className="game-card">
           <h3>Quick Actions</h3>
           <div className="game-grid-3">
-            <a href="/game/missions" className="game-btn">Send Mission</a>
-            <a href="/game/auction" className="game-btn">List Items</a>
-            <a href="/game/crafting" className="game-btn">Start Crafting</a>
+            <a href="/missions" className="game-btn">Send Mission</a>
+            <a href="/auction" className="game-btn">List Items</a>
+            <a href="/crafting" className="game-btn">Start Crafting</a>
           </div>
         </div>
       </div>

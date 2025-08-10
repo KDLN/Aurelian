@@ -5,6 +5,7 @@ on:
     branches: [ master ]
     paths:
       - 'apps/worker/**'
+      - 'prisma/**'
       - '.github/workflows/worker-cloudrun.yml'
 jobs:
   deploy:

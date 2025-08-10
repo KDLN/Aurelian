@@ -114,6 +114,20 @@
   border-color: #9a9840;
 }
 
+.game-btn-small {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+.game-btn-primary {
+  background: linear-gradient(135deg, #68b06e 0%, #4a8a4f 100%);
+  border-color: #3d6f42;
+}
+
+.game-btn-primary:hover {
+  background: linear-gradient(135deg, #7bc081 0%, #5a9a5f 100%);
+}
+
 /* Form elements */
 .game input,
 .game select,
