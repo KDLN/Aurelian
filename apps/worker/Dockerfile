@@ -6,13 +6,12 @@ RUN apk add --no-cache python3 make g++
 
 # Copy root package files
 COPY package*.json ./
-COPY tsconfig.json ./
 
 # Copy prisma schema
 COPY prisma ./prisma
 
 # Copy app-specific files
-COPY apps/worker/package*.json ./apps/worker/
+COPY apps/worker/package.json ./apps/worker/
 COPY apps/worker/tsconfig.json ./apps/worker/
 
 # Install all dependencies (including dev for building)
