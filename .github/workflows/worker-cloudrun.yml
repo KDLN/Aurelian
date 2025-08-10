@@ -2,7 +2,7 @@
 name: deploy-worker-cloudrun
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
     paths:
       - 'apps/worker/**'
       - '.github/workflows/worker-cloudrun.yml'

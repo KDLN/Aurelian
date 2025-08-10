@@ -2,7 +2,7 @@
 name: deploy-realtime-cloudrun
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
     paths:
       - 'apps/realtime/**'
       - '.github/workflows/realtime-cloudrun.yml'
