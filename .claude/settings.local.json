@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gcloud logging read:*)",
+      "Bash(gcloud run deploy:*)",
+      "Bash(--source . )",
+      "Bash(--project molten-muse-468512-v2 )",
+      "Bash(--region us-central1 )",
+      "Bash(--allow-unauthenticated )",
+      "Bash(--port 8787 )",
+      "Bash(--min-instances 0 )",
+      "Bash(--max-instances 3 )",
+      "Bash(--memory 512Mi )",
+      "Bash(--quiet)",
+      "Bash(--source . )",
+      "Bash(--project molten-muse-468512-v2 )",
+      "Bash(--region us-central1 )",
+      "Bash(--allow-unauthenticated )",
+      "Bash(--port 8787 )",
+      "Bash(--min-instances 0 )",
+      "Bash(--max-instances 3 )",
+      "Bash(--memory 512Mi )",
+      "Bash(gcloud projects add-iam-policy-binding:*)",
+      "Bash(--member=\"serviceAccount:github-actions@molten-muse-468512-v2.iam.gserviceaccount.com\" )",
+      "Bash(--role=\"roles/iam.serviceAccountUser\")",
+      "Bash(gh secret set:*)",
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(gh run list:*)"
+    ],
+    "deny": []
+  }
+}

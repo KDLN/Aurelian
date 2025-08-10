@@ -1,0 +1,250 @@
+'use client';
+
+import { useState } from 'react';
+import GameLayout from '@/components/GameLayout';
+import { useGameWorld } from '@/lib/game/world';
+
+export default function WarehousePage() {
+  const { world } = useGameWorld();
+  const [selectedItem, setSelectedItem] = useState('');
+  const [transferQty, setTransferQty] = useState(1);
+  const [transferTo, setTransferTo] = useState<'caravan' | 'escrow'>('caravan');
+
+  const warehouseItems = Object.entries(world.warehouse)
+    .filter(([, qty]) => qty > 0)
+    .sort(([a], [b]) => a.localeCompare(b));
+
+  const getTotalValue = () => {
+    return Object.entries(world.warehouse)
+      .reduce((sum, [item, qty]) => sum + (qty * world.priceOf(item)), 0);
+  };
+
+  const getStorageUsed = () => {
+    return Object.values(world.warehouse).reduce((sum, qty) => sum + qty, 0);
+  };
+
+  const handleTransfer = () => {
+    if (!selectedItem) {
+      alert('Please select an item to transfer');
+      return;
+    }
+
+    if (transferQty <= 0) {
+      alert('Transfer quantity must be greater than 0');
+      return;
+    }
+
+    if ((world.warehouse[selectedItem] || 0) < transferQty) {
+      alert('Not enough items in warehouse');
+      return;
+    }
+
+    // For now, just simulate the transfer with an alert
+    // In a real implementation, this would update caravan/escrow inventories
+    alert(`Transferred ${transferQty} ${selectedItem} to ${transferTo}`);
+    
+    // Reset form
+    setTransferQty(1);
+    setSelectedItem('');
+  };
+
+  const sidebar = (
+    <div>
+      <h3>Storage Guide</h3>
+      <p className="game-muted game-small">
+        Your warehouse stores all items safely. Transfer items to caravans for missions 
+        or to escrow for secure trading.
+      </p>
+      
+      <h3>Storage Limits</h3>
+      <div className="game-flex-col">
+        <div className="game-space-between">
+          <span className="game-small">Warehouse:</span>
+          <span className="game-good game-small">1000 items</span>
+        </div>
+        <div className="game-space-between">
+          <span className="game-small">Caravan:</span>
+          <span className="game-warn game-small">100 items</span>
+        </div>
+        <div className="game-space-between">
+          <span className="game-small">Escrow:</span>
+          <span className="game-good game-small">Unlimited</span>
+        </div>
+      </div>
+
+      <h3>Current Usage</h3>
+      <div className="game-progress">
+        <div 
+          className="game-progress-fill" 
+          style={{ 
+            width: `${(getStorageUsed() / 1000) * 100}%`,
+            background: getStorageUsed() > 800 ? '#d73a49' : '#b7b34d'
+          }}
+        >
+          {getStorageUsed()}/1000
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <GameLayout 
+      title="Warehouse Management" 
+      characterActivity="idle" 
+      characterLocation="Warehouse"
+      sidebar={sidebar}
+    >
+      <div className="game-flex-col">
+        <div className="game-card">
+          <h3>Storage Summary</h3>
+          <div className="game-grid-3">
+            <div className="game-space-between">
+              <span>Total Items:</span>
+              <span className="game-good">{getStorageUsed().toLocaleString()}</span>
+            </div>
+            <div className="game-space-between">
+              <span>Estimated Value:</span>
+              <span className="game-good">{getTotalValue().toLocaleString()}g</span>
+            </div>
+            <div className="game-space-between">
+              <span>Capacity Used:</span>
+              <span className={getStorageUsed() > 800 ? 'game-bad' : 'game-good'}>
+                {Math.round((getStorageUsed() / 1000) * 100)}%
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="game-card">
+          <h3>Transfer Items</h3>
+          <div className="game-grid-3">
+            <div>
+              <label className="game-small">Item</label>
+              <select 
+                value={selectedItem}
+                onChange={(e) => setSelectedItem(e.target.value)}
+                style={{ width: '100%' }}
+              >
+                <option value="">Select item...</option>
+                {warehouseItems.map(([item]) => (
+                  <option key={item} value={item}>
+                    {item} ({world.warehouse[item]} available)
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="game-small">Quantity</label>
+              <input
+                type="number"
+                value={transferQty}
+                onChange={(e) => setTransferQty(Number(e.target.value))}
+                min="1"
+                max={selectedItem ? world.warehouse[selectedItem] || 0 : 0}
+                style={{ width: '100%' }}
+              />
+            </div>
+            
+            <div>
+              <label className="game-small">Transfer To</label>
+              <select 
+                value={transferTo}
+                onChange={(e) => setTransferTo(e.target.value as 'caravan' | 'escrow')}
+                style={{ width: '100%' }}
+              >
+                <option value="caravan">Caravan (for missions)</option>
+                <option value="escrow">Escrow (for trading)</option>
+              </select>
+            </div>
+          </div>
+          
+          <button 
+            className="game-btn game-btn-primary"
+            onClick={handleTransfer}
+            disabled={!selectedItem || transferQty <= 0}
+            style={{ marginTop: '12px' }}
+          >
+            Transfer {transferQty} {selectedItem} to {transferTo}
+          </button>
+        </div>
+
+        <div className="game-card">
+          <h3>Current Inventory</h3>
+          {warehouseItems.length > 0 ? (
+            <table>
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Quantity</th>
+                  <th>Market Value</th>
+                  <th>Total Value</th>
+                  <th>% of Storage</th>
+                </tr>
+              </thead>
+              <tbody>
+                {warehouseItems.map(([item, qty]) => {
+                  const marketPrice = world.priceOf(item);
+                  const totalValue = qty * marketPrice;
+                  const storagePercent = Math.round((qty / 1000) * 100 * 10) / 10;
+                  
+                  return (
+                    <tr key={item}>
+                      <td>{item}</td>
+                      <td>{qty}</td>
+                      <td>{marketPrice}g</td>
+                      <td>{totalValue.toLocaleString()}g</td>
+                      <td className={storagePercent > 50 ? 'game-warn' : 'game-muted'}>
+                        {storagePercent}%
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          ) : (
+            <p className="game-muted">Warehouse is empty</p>
+          )}
+        </div>
+
+        <div className="game-card">
+          <h3>Storage by Category</h3>
+          <div className="game-grid-2">
+            <div>
+              <h4>Raw Materials</h4>
+              <div className="game-flex-col">
+                {['Iron Ore', 'Hide', 'Herb', 'Pearl', 'Relic Fragment'].map(item => (
+                  <div key={item} className="game-space-between">
+                    <span className="game-small">{item}:</span>
+                    <span className="game-pill">{world.warehouse[item] || 0}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div>
+              <h4>Crafted Goods</h4>
+              <div className="game-flex-col">
+                {['Iron Ingot', 'Leather Roll', 'Healing Tonic'].map(item => (
+                  <div key={item} className="game-space-between">
+                    <span className="game-small">{item}:</span>
+                    <span className="game-pill game-pill-good">{world.warehouse[item] || 0}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="game-card">
+          <h3>Quick Actions</h3>
+          <div className="game-grid-3">
+            <a href="/game/missions" className="game-btn">Send Mission</a>
+            <a href="/game/auction" className="game-btn">List Items</a>
+            <a href="/game/crafting" className="game-btn">Start Crafting</a>
+          </div>
+        </div>
+      </div>
+    </GameLayout>
+  );
+}
