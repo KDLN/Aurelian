@@ -7,6 +7,8 @@ import { getRTClient } from '@/lib/rtClient';
 import { supabase } from '@/lib/supabaseClient';
 import type { Room } from 'colyseus.js';
 
+// Prevent hydration mismatch by ensuring client-only rendering of dynamic content
+
 type Listing = {
   id: string;
   item: string;
@@ -29,14 +31,22 @@ export default function AuctionPage() {
   const [room, setRoom] = useState<Room | null>(null);
   const [user, setUser] = useState<any>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
   // Available items from local warehouse
   const availableItems = Object.entries(world.warehouse)
     .filter(([, qty]) => qty > 0)
     .map(([item]) => item);
 
+  // Set client-only flag to prevent hydration issues
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   // Connect to WebSocket room
   useEffect(() => {
+    if (!isClient) return;
+    
     let auctionRoom: Room | null = null;
 
     const connect = async () => {
@@ -112,7 +122,7 @@ export default function AuctionPage() {
         auctionRoom.leave();
       }
     };
-  }, []);
+  }, [isClient]);
 
   const handleList = async () => {
     if (!room || !user) {
@@ -191,6 +201,8 @@ export default function AuctionPage() {
     });
   };
 
+
+
   const getMarketPrice = (item: string) => marketPrices[item] || world.priceOf(item);
   
   const getPriceStatus = (listingPrice: number, marketPrice: number) => {
@@ -222,8 +234,18 @@ export default function AuctionPage() {
       <div className="game-pill game-pill-good" style={{ fontSize: '18px', textAlign: 'center' }}>
         {world.gold.toLocaleString()}g
       </div>
+
     </div>
   );
+
+  // Prevent hydration mismatch by not rendering until client-side
+  if (!isClient) {
+    return (
+      <GameLayout title="Auction House" sidebar={<div>Loading...</div>}>
+        <div>Loading auction house...</div>
+      </GameLayout>
+    );
+  }
 
   return (
     <GameLayout 

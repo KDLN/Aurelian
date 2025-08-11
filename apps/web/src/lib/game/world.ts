@@ -28,7 +28,7 @@ function nowMinutes(): number {
 
 class GameWorld {
   // Core state
-  gold = 2500;
+  gold = 0;
   day = 1;
   minute = 6 * 60;
   listeners: Set<Listener> = new Set();
