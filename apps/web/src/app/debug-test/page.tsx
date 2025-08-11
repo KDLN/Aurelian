@@ -276,8 +276,10 @@ export default function DebugTestPage() {
   };
 
   // Helper to get auth headers
-  const getAuthHeaders = async () => {
-    if (!supabaseClient) return {};
+  const getAuthHeaders = async (): Promise<Record<string, string>> => {
+    const defaultHeaders = { 'Content-Type': 'application/json' };
+    
+    if (!supabaseClient) return defaultHeaders;
     
     try {
       const { data: { session } } = await supabaseClient.auth.getSession();
@@ -291,7 +293,7 @@ export default function DebugTestPage() {
       console.warn('Failed to get auth headers:', error);
     }
     
-    return { 'Content-Type': 'application/json' };
+    return defaultHeaders;
   };
 
   // Simple connectivity test
