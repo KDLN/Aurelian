@@ -50,17 +50,6 @@ export default function GameLayout({
 
   return (
     <div className="game">
-      {showCharacterViewer && (
-        <CharacterViewer
-          position="top-right"
-          activity={characterActivity}
-          location={characterLocation}
-          outfit="fstr"
-          hair="dap1"
-          hat=""
-        />
-      )}
-
       <div className="game-container">
         <div className="game-panel game-panel-left">
           <div>
@@ -115,6 +104,21 @@ export default function GameLayout({
           {sidebar && (
             <div>
               {sidebar}
+            </div>
+          )}
+
+          {showCharacterViewer && (
+            <div>
+              <h3>Player Actions</h3>
+              <CharacterViewer
+                position="inline"
+                activity={characterActivity}
+                location={characterLocation}
+                outfit="fstr"
+                hair="dap1"
+                hat=""
+                size={120}
+              />
             </div>
           )}
 
