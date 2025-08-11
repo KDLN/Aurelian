@@ -141,9 +141,10 @@ export default function GameLayout({
                 background: '#1a1511',
                 border: '2px solid #533b2c',
                 borderRadius: '4px',
-                padding: '8px',
+                padding: '4px 0',
                 marginTop: '8px',
-                overflow: 'hidden'
+                overflow: 'hidden',
+                height: '108px'
               }}>
                 <CharacterViewer
                   position="inline"
@@ -153,9 +154,9 @@ export default function GameLayout({
                   outfit={characterAppearance.outfit}
                   hair={characterAppearance.hair}
                   hat={characterAppearance.hat || ''}
-                  size={64}
+                  size={100}
                   autoWalk={true}
-                  walkAreaWidth={240}
+                  walkAreaWidth={260}
                 />
               </div>
             </div>

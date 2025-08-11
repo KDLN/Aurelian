@@ -100,10 +100,10 @@ export default function CharacterViewer({
   const currentFrameRef = useRef<number>(0);
   const frameTimeRef = useRef<number>(0);
   const [spritesLoaded, setSpritesLoaded] = useState(false);
-  const [direction, setDirection] = useState<'south' | 'north' | 'east' | 'west'>('south');
-  const characterXRef = useRef<number>(walkAreaWidth / 2);
+  const [direction, setDirection] = useState<'south' | 'north' | 'east' | 'west'>('west');
+  const characterXRef = useRef<number>(walkAreaWidth);
   const walkDirectionRef = useRef<'left' | 'right'>('left');
-  const walkSpeedRef = useRef<number>(0.02); // pixels per millisecond
+  const walkSpeedRef = useRef<number>(0.03); // pixels per millisecond - increased for better visibility
 
   // Determine if hair should be hidden based on hat
   const shouldHideHair = hat && HATS_THAT_HIDE_HAIR.includes(hat);
@@ -204,15 +204,17 @@ export default function CharacterViewer({
         // Update position
         if (walkDirectionRef.current === 'left') {
           characterXRef.current -= walkSpeedRef.current * deltaTime;
-          if (characterXRef.current <= -size) {
-            characterXRef.current = -size;
+          // Walk completely off the left edge
+          if (characterXRef.current <= -size - 20) {
+            characterXRef.current = -size - 20;
             walkDirectionRef.current = 'right';
             setDirection('east');
           }
         } else {
           characterXRef.current += walkSpeedRef.current * deltaTime;
-          if (characterXRef.current >= walkAreaWidth) {
-            characterXRef.current = walkAreaWidth;
+          // Walk completely off the right edge
+          if (characterXRef.current >= walkAreaWidth + 20) {
+            characterXRef.current = walkAreaWidth + 20;
             walkDirectionRef.current = 'left';
             setDirection('west');
           }
