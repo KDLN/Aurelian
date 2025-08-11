@@ -41,8 +41,18 @@ const MissionTimer = memo(function MissionTimer({
         {isReady && onComplete && (
           <button 
             className="game-btn game-btn-small game-btn-primary"
-            onClick={() => onComplete(missionInstanceId)}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (!isCompleting) {
+                onComplete(missionInstanceId);
+              }
+            }}
             disabled={isCompleting}
+            style={{ 
+              opacity: isCompleting ? 0.6 : 1,
+              cursor: isCompleting ? 'not-allowed' : 'pointer'
+            }}
           >
             {isCompleting ? 'Completing...' : 'Complete Mission'}
           </button>

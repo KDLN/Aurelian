@@ -25,6 +25,7 @@ export default function MissionsPage() {
   
   const [selectedMission, setSelectedMission] = useState<string>('');
   const [completionMessage, setCompletionMessage] = useState<string>('');
+  const [completingMissions, setCompletingMissions] = useState<Set<string>>(new Set());
 
   // Extract data with safe defaults and proper typing
   const missionDefs = (data as MissionsData | undefined)?.missionDefs ?? [];
@@ -58,7 +59,17 @@ export default function MissionsPage() {
   }, [selectedMission, startMissionMutation]);
 
   const handleCompleteMission = useCallback(async (missionInstanceId: string) => {
+    // Prevent double-clicks by checking if mission is already being completed
+    if (completingMissions.has(missionInstanceId)) {
+      console.log('⚠️ Mission already being completed, ignoring duplicate click');
+      return;
+    }
+
     try {
+      // Mark mission as being completed
+      setCompletingMissions(prev => new Set(prev).add(missionInstanceId));
+      console.log('🎯 Starting completion for mission:', missionInstanceId);
+      
       const result = await completeMissionMutation.mutateAsync(missionInstanceId);
       if (result.success) {
         const rewards = result.rewards;
@@ -79,8 +90,16 @@ export default function MissionsPage() {
       console.error('Failed to complete mission:', error);
       setCompletionMessage('Failed to complete mission. Please try again.');
       setTimeout(() => setCompletionMessage(''), 5000);
+    } finally {
+      // Always remove from completing set, even on error
+      setCompletingMissions(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(missionInstanceId);
+        return newSet;
+      });
+      console.log('🏁 Completion finished for mission:', missionInstanceId);
     }
-  }, [completeMissionMutation]);
+  }, [completeMissionMutation, completingMissions]);
 
   // Memoize expensive calculations
   const activeMissionsWithStatus = useMemo(() => {
@@ -282,7 +301,7 @@ export default function MissionsPage() {
                     onComplete={handleCompleteMission}
                     missionInstanceId={mission.id}
                     riskColor={getRiskColor(mission.missionDef?.riskLevel || 'LOW')}
-                    isCompleting={completeMissionMutation.isPending}
+                    isCompleting={completingMissions.has(mission.id)}
                   />
                 </div>
               ))}
