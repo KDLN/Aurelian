@@ -31,6 +31,13 @@ export interface MissionsData {
   missionDefs: MissionDef[];
   activeMissions: MissionInstance[];
   debugTimestamp?: string;
+  performance?: {
+    totalMs: number;
+    authMs: number;
+    dbMs: number;
+    usedCache: boolean;
+    cacheAgeSeconds?: number | null;
+  };
 }
 
 export interface StartMissionResponse {

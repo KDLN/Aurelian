@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
       const cacheAge = missionDefsCache ? now - missionDefsCache.timestamp : Infinity;
       const usedCache = missionDefsCache && cacheAge < MISSION_DEFS_CACHE_TTL;
       
-      if (usedCache) {
+      if (usedCache && missionDefsCache) {
         console.log(`⚡ [Missions GET] Using cached mission definitions (age: ${Math.round(cacheAge/1000)}s)`);
         missionDefs = missionDefsCache.data;
       } else {
