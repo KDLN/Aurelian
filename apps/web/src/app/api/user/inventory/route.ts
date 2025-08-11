@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { createClient } from '@supabase/supabase-js';
 
+export const dynamic = 'force-dynamic';
+
 const prisma = new PrismaClient();
 
 export async function GET(request: NextRequest) {
@@ -29,6 +31,28 @@ export async function GET(request: NextRequest) {
     // Get query parameters for filtering
     const url = new URL(request.url);
     const location = url.searchParams.get('location') || 'warehouse';
+
+    // Check if database is configured
+    if (!process.env.DATABASE_URL) {
+      console.warn('DATABASE_URL not configured, returning default inventory data');
+      // Return mock inventory data
+      const mockInventory = [
+        { id: '1', itemId: '1', itemKey: 'iron_ore', itemName: 'Iron Ore', rarity: 'COMMON', quantity: 100, location },
+        { id: '2', itemId: '2', itemKey: 'herb', itemName: 'Herb', rarity: 'COMMON', quantity: 100, location },
+        { id: '3', itemId: '3', itemKey: 'hide', itemName: 'Hide', rarity: 'COMMON', quantity: 100, location },
+        { id: '4', itemId: '4', itemKey: 'pearl', itemName: 'Pearl', rarity: 'UNCOMMON', quantity: 100, location },
+        { id: '5', itemId: '5', itemKey: 'relic_fragment', itemName: 'Relic Fragment', rarity: 'RARE', quantity: 100, location },
+        { id: '6', itemId: '6', itemKey: 'iron_ingot', itemName: 'Iron Ingot', rarity: 'UNCOMMON', quantity: 100, location },
+        { id: '7', itemId: '7', itemKey: 'leather_roll', itemName: 'Leather Roll', rarity: 'UNCOMMON', quantity: 100, location },
+        { id: '8', itemId: '8', itemKey: 'healing_tonic', itemName: 'Healing Tonic', rarity: 'UNCOMMON', quantity: 100, location },
+      ];
+      
+      return NextResponse.json({
+        inventory: mockInventory,
+        location: location,
+        totalItems: mockInventory.reduce((sum, item) => sum + item.quantity, 0)
+      });
+    }
 
     // Get user's inventory from database
     const inventory = await prisma.inventory.findMany({

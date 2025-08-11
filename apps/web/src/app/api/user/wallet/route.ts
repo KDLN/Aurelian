@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { createClient } from '@supabase/supabase-js';
 
+export const dynamic = 'force-dynamic';
+
 const prisma = new PrismaClient();
 
 export async function GET(request: NextRequest) {
@@ -26,13 +28,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
+    // Check if database is configured
+    if (!process.env.DATABASE_URL) {
+      console.warn('DATABASE_URL not configured, returning default wallet data');
+      return NextResponse.json({
+        gold: 1000,
+        userId: user.id
+      });
+    }
+
     // Get user's wallet from database
     const wallet = await prisma.wallet.findUnique({
       where: { userId: user.id }
     });
 
     if (!wallet) {
-      return NextResponse.json({ error: 'Wallet not found' }, { status: 404 });
+      // Return default wallet if not found
+      return NextResponse.json({
+        gold: 1000,
+        userId: user.id
+      });
     }
 
     return NextResponse.json({
