@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { useMissions, useStartMission, useCompleteMission, useMissionHelpers } from '@/hooks/useMissionsQuery';
-import { MissionDef, MissionInstance } from '@/lib/api/missions';
+import { MissionDef, MissionInstance, MissionsData } from '@/lib/api/missions';
 
 // Lazy load the wallet component to improve initial page load
 const WalletDisplay = dynamic(() => import('./WalletDisplay'), {
@@ -37,8 +37,8 @@ export default function MissionPageOptimized({ initialData }: MissionPageOptimiz
   const [completionMessage, setCompletionMessage] = useState<string>('');
 
   // Use initial data if available, otherwise use query data
-  const missionDefs = data?.missionDefs ?? initialData?.missionDefs ?? [];
-  const activeMissions = data?.activeMissions ?? initialData?.activeMissions ?? [];
+  const missionDefs = (data as MissionsData | undefined)?.missionDefs ?? initialData?.missionDefs ?? [];
+  const activeMissions = (data as MissionsData | undefined)?.activeMissions ?? initialData?.activeMissions ?? [];
 
   const handleStartMission = useCallback(async () => {
     if (!selectedMission) {

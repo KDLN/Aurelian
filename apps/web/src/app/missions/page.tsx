@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import GameLayout from '@/components/GameLayout';
 import { useMissions, useStartMission, useCompleteMission, useMissionHelpers } from '@/hooks/useMissionsQuery';
-import { MissionDef, MissionInstance } from '@/lib/api/missions';
+import { MissionDef, MissionInstance, MissionsData } from '@/lib/api/missions';
 import { useUserDataQuery } from '@/hooks/useUserDataQuery';
 import MissionTimer from '@/components/MissionTimer';
 
@@ -26,9 +26,18 @@ export default function MissionsPage() {
   const [selectedMission, setSelectedMission] = useState<string>('');
   const [completionMessage, setCompletionMessage] = useState<string>('');
 
-  // Extract data with safe defaults
-  const missionDefs = data?.missionDefs ?? [];
-  const activeMissions = data?.activeMissions ?? [];
+  // Extract data with safe defaults and proper typing
+  const missionDefs = (data as MissionsData | undefined)?.missionDefs ?? [];
+  const activeMissions = (data as MissionsData | undefined)?.activeMissions ?? [];
+  
+  // Debug logging to track mission state changes
+  console.log('🎯 [MissionsPage] Current state:', {
+    isLoading,
+    hasData: !!data,
+    missionDefCount: missionDefs.length,
+    activeMissionCount: activeMissions.length,
+    activeMissionIds: activeMissions.map(m => ({ id: m.id, missionId: m.missionId }))
+  });
 
   const handleStartMission = useCallback(async () => {
     if (!selectedMission) {

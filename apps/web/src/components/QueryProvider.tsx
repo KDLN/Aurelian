@@ -10,6 +10,11 @@ interface QueryProviderProps {
 }
 
 export default function QueryProvider({ children }: QueryProviderProps) {
+  // Expose query client for debugging in development
+  if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+    (window as any).queryClient = queryClient;
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       {children}

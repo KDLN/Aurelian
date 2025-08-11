@@ -25,13 +25,16 @@ export function useMissions(options: UseMissionsOptions = {}) {
   const { refetchInterval = 30000, enabled = true } = options;
   const isPageVisible = usePageVisibility();
   
-  return useQuery({
+  const query = useQuery<MissionsData>({
     queryKey: missionKeys.missions(),
-    queryFn: () => missionsApi.getMissions(),
+    queryFn: () => {
+      console.log('🌐 [useMissions] Fetching missions from API...');
+      return missionsApi.getMissions();
+    },
     enabled,
     refetchInterval: isPageVisible ? refetchInterval : false, // Only poll when page is visible
     refetchIntervalInBackground: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 2 * 60 * 1000, // 2 minutes - shorter for debugging
     gcTime: 10 * 60 * 1000, // 10 minutes
     retry: (failureCount, error) => {
       // Don't retry authentication errors
@@ -41,6 +44,21 @@ export function useMissions(options: UseMissionsOptions = {}) {
       return failureCount < 3;
     },
   });
+
+  // Log query status changes (replaces onSuccess/onError)
+  if (query.isSuccess && query.data) {
+    console.log('✅ [useMissions] Query successful:', {
+      missionDefs: query.data.missionDefs?.length,
+      activeMissions: query.data.activeMissions?.length,
+      debugTimestamp: query.data.debugTimestamp
+    });
+  }
+  
+  if (query.isError) {
+    console.error('❌ [useMissions] Query failed:', query.error);
+  }
+
+  return query;
 }
 
 export function useStartMission() {
@@ -48,30 +66,60 @@ export function useStartMission() {
   
   return useMutation({
     mutationFn: (missionId: string) => missionsApi.startMission(missionId),
-    onSuccess: (data) => {
-      if (data.success) {
-        // Optimistically update the cache
+    onMutate: async (missionId) => {
+      console.log('🚀 [StartMission] Starting mutation for mission:', missionId);
+      
+      // Cancel any outgoing refetches so they don't overwrite our optimistic update
+      await queryClient.cancelQueries({ queryKey: missionKeys.missions() });
+      
+      // Snapshot the previous value
+      const previousMissions = queryClient.getQueryData<MissionsData>(missionKeys.missions());
+      
+      return { previousMissions, missionId };
+    },
+    onSuccess: (data, missionId, context) => {
+      console.log('✅ [StartMission] Mutation successful:', { 
+        success: data.success, 
+        missionId, 
+        instanceId: data.missionInstance?.id 
+      });
+      
+      if (data.success && data.missionInstance) {
+        // Update the cache with the actual server response
         queryClient.setQueryData<MissionsData>(
           missionKeys.missions(),
           (oldData) => {
-            if (!oldData || !data.missionInstance) return oldData;
+            if (!oldData) return oldData;
             
+            console.log('📝 [StartMission] Updating cache with server response');
             return {
               ...oldData,
-              activeMissions: [...oldData.activeMissions, data.missionInstance],
+              activeMissions: [...oldData.activeMissions, data.missionInstance!],
             };
           }
         );
         
-        // Invalidate more selectively to avoid unnecessary refetches
-        queryClient.invalidateQueries({ 
-          queryKey: missionKeys.missions(),
-          exact: true 
-        });
+        // DO NOT invalidate immediately - let the optimistic update persist
+        // Only invalidate after a short delay to allow UI to settle
+        setTimeout(() => {
+          console.log('🔄 [StartMission] Delayed cache invalidation');
+          queryClient.invalidateQueries({ 
+            queryKey: missionKeys.missions(),
+            exact: true 
+          });
+        }, 2000); // 2 second delay
       }
     },
-    onError: (error) => {
-      console.error('Failed to start mission:', error);
+    onError: (error, missionId, context) => {
+      console.error('❌ [StartMission] Mutation failed:', error);
+      
+      // On error, roll back to the previous state
+      if (context?.previousMissions) {
+        queryClient.setQueryData(missionKeys.missions(), context.previousMissions);
+      }
+    },
+    onSettled: (data, error, missionId) => {
+      console.log('🏁 [StartMission] Mutation settled:', { missionId, hasError: !!error });
     },
   });
 }

@@ -1,44 +1,78 @@
-const { PrismaClient } = require('@prisma/client');
+// Mission debugging script - run in browser console
+console.log('🔍 Starting mission debugging...');
 
-const prisma = new PrismaClient();
-
-async function debugMissions() {
-  console.log('🔍 Debugging missions database...');
-
-  try {
-    // Check mission definitions
-    const missionDefs = await prisma.missionDef.findMany();
-    console.log(`\n📋 Found ${missionDefs.length} mission definitions:`);
-    missionDefs.forEach(mission => {
-      console.log(`  - ${mission.name} (${mission.id})`);
-    });
-
-    // Check mission instances
-    const missionInstances = await prisma.missionInstance.findMany({
-      include: {
-        mission: true
+// Monitor React Query cache changes
+if (typeof window !== 'undefined') {
+  window.debugMissions = () => {
+    const queryClient = window.queryClient;
+    if (!queryClient) {
+      console.log('❌ React Query client not found');
+      return;
+    }
+    
+    const missionCache = queryClient.getQueryCache().find(['missions', 'list']);
+    if (missionCache) {
+      console.log('📊 Mission Cache State:', {
+        state: missionCache.state.status,
+        data: missionCache.state.data,
+        activeMissions: missionCache.state.data?.activeMissions?.length || 0,
+        lastUpdated: new Date(missionCache.state.dataUpdatedAt).toLocaleTimeString(),
+        isFetching: missionCache.state.isFetching,
+        isStale: queryClient.getQueryState(['missions', 'list'])?.isStale
+      });
+      
+      if (missionCache.state.data?.activeMissions) {
+        console.table(missionCache.state.data.activeMissions.map(m => ({
+          id: m.id.substring(0, 8),
+          missionId: m.missionId,
+          status: m.status,
+          endTime: new Date(m.endTime).toLocaleTimeString()
+        })));
       }
-    });
-    console.log(`\n🎯 Found ${missionInstances.length} mission instances:`);
-    missionInstances.forEach(instance => {
-      console.log(`  - ${instance.mission.name} (${instance.status}) - User: ${instance.userId}`);
-      console.log(`    Started: ${instance.startTime}`);
-      console.log(`    Ends: ${instance.endTime}`);
-    });
-
-    // Check users
-    const users = await prisma.user.findMany();
-    console.log(`\n👥 Found ${users.length} users:`);
-    users.forEach(user => {
-      console.log(`  - ${user.email} (${user.id})`);
-    });
-
-    console.log('\n✅ Debug complete!');
-  } catch (error) {
-    console.error('❌ Error debugging missions:', error);
-  } finally {
-    await prisma.$disconnect();
-  }
+    }
+    
+    // Show all queries
+    console.log('🗄️ All Queries:', queryClient.getQueryCache().getAll().map(q => ({
+      key: q.queryKey,
+      status: q.state.status,
+      isFetching: q.state.isFetching
+    })));
+  };
+  
+  // Monitor mutations
+  window.debugMutations = () => {
+    const mutationCache = queryClient?.getMutationCache();
+    if (mutationCache) {
+      console.log('🔄 Active Mutations:', mutationCache.getAll().map(m => ({
+        mutationId: m.mutationId,
+        status: m.state.status,
+        variables: m.state.variables
+      })));
+    }
+  };
+  
+  // Auto-refresh debug info
+  let debugInterval;
+  window.startMissionDebug = (intervalMs = 2000) => {
+    if (debugInterval) clearInterval(debugInterval);
+    debugInterval = setInterval(() => {
+      console.log('--- Mission Debug Update ---');
+      window.debugMissions();
+    }, intervalMs);
+    console.log(`🔄 Started auto-debug (${intervalMs}ms intervals). Use stopMissionDebug() to stop.`);
+  };
+  
+  window.stopMissionDebug = () => {
+    if (debugInterval) {
+      clearInterval(debugInterval);
+      debugInterval = null;
+      console.log('⏹️ Stopped auto-debug');
+    }
+  };
+  
+  console.log('🛠️ Debug functions available:');
+  console.log('- window.debugMissions() - Show mission cache state');
+  console.log('- window.debugMutations() - Show active mutations');  
+  console.log('- window.startMissionDebug() - Auto-refresh debug info');
+  console.log('- window.stopMissionDebug() - Stop auto-refresh');
 }
-
-debugMissions();
