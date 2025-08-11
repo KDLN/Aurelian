@@ -52,7 +52,13 @@ export default function TestsPage() {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { message: errorText };
+        }
+        throw new Error(`HTTP ${response.status}: ${JSON.stringify(errorData, null, 2)}`);
       }
 
       const data = await response.json();
@@ -100,7 +106,13 @@ export default function TestsPage() {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { message: errorText };
+        }
+        throw new Error(`HTTP ${response.status}: ${JSON.stringify(errorData, null, 2)}`);
       }
 
       const data = await response.json();
@@ -126,7 +138,13 @@ export default function TestsPage() {
       const response = await fetch('/api/test-db');
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { message: errorText };
+        }
+        throw new Error(`HTTP ${response.status}: ${JSON.stringify(errorData, null, 2)}`);
       }
       const data = await response.json();
       return data;
@@ -145,7 +163,13 @@ export default function TestsPage() {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { message: errorText };
+        }
+        throw new Error(`HTTP ${response.status}: ${JSON.stringify(errorData, null, 2)}`);
       }
 
       const data = await response.json();
@@ -165,7 +189,13 @@ export default function TestsPage() {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { message: errorText };
+        }
+        throw new Error(`HTTP ${response.status}: ${JSON.stringify(errorData, null, 2)}`);
       }
 
       const data = await response.json();

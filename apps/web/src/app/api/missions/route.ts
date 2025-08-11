@@ -10,16 +10,57 @@ let prisma: PrismaClient | null = null;
 function initPrisma() {
   if (prisma) return prisma;
   
-  console.log('🔍 DATABASE_URL status:', process.env.DATABASE_URL ? 'SET' : 'NOT SET');
+  const dbUrl = process.env.DATABASE_URL;
+  console.log('🔍 DATABASE_URL status:', dbUrl ? 'SET' : 'NOT SET');
   
-  if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('://')) {
+  if (dbUrl) {
+    // Parse and log database connection info (hide password)
     try {
-      prisma = new PrismaClient();
+      const url = new URL(dbUrl);
+      console.log('📊 Database connection info:', {
+        protocol: url.protocol,
+        host: url.host,
+        pathname: url.pathname,
+        username: url.username,
+        port: url.port || 'default',
+        params: url.searchParams.toString()
+      });
+    } catch (e) {
+      console.log('⚠️ Could not parse DATABASE_URL');
+    }
+  }
+  
+  if (dbUrl && dbUrl.includes('://')) {
+    try {
+      prisma = new PrismaClient({
+        log: ['error', 'warn'],
+        datasources: {
+          db: {
+            url: dbUrl
+          }
+        }
+      });
       console.log('✅ Prisma client initialized successfully');
       return prisma;
     } catch (error) {
       console.error('❌ Failed to initialize Prisma client:', error);
-      return null;
+      // Try fallback to hardcoded URL if available
+      const fallbackUrl = "postgresql://postgres.apoboundupzmulkqxkxw:XhDbhNjUEv9Q1IA4@aws-0-us-east-2.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1";
+      console.log('🔄 Trying fallback database URL...');
+      try {
+        prisma = new PrismaClient({
+          datasources: {
+            db: {
+              url: fallbackUrl
+            }
+          }
+        });
+        console.log('✅ Connected with fallback URL');
+        return prisma;
+      } catch (fallbackError) {
+        console.error('❌ Fallback also failed:', fallbackError);
+        return null;
+      }
     }
   } else {
     console.log('⚠️ DATABASE_URL not found or invalid');
@@ -36,19 +77,32 @@ const supabase = createClient(
 // GET - Fetch all mission definitions and user's active missions
 export async function GET(request: NextRequest) {
   try {
+    console.log('[Missions GET] Starting request');
+    
     // Get JWT token from headers
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
     
     if (!token) {
+      console.log('[Missions GET] No token provided');
       return NextResponse.json({ error: 'No token provided' }, { status: 401 });
     }
 
+    console.log('[Missions GET] Token found, verifying with Supabase');
+    
     // Verify token with Supabase
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    if (authError) {
+      console.error('[Missions GET] Auth error:', authError);
+      return NextResponse.json({ error: `Auth error: ${authError.message}` }, { status: 401 });
     }
+    
+    if (!user) {
+      console.log('[Missions GET] No user found for token');
+      return NextResponse.json({ error: 'Invalid token - no user' }, { status: 401 });
+    }
+    
+    console.log('[Missions GET] User authenticated:', user.id);
 
     const db = initPrisma();
     if (!db) {
@@ -104,33 +158,54 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('✅ Using database - Prisma initialized successfully');
-    // Get all active mission definitions
-    const missionDefs = await db.missionDef.findMany({
-      where: { isActive: true },
-      orderBy: { riskLevel: 'asc' }
-    });
+    
+    try {
+      console.log('[Missions GET] Fetching mission definitions...');
+      // Get all active mission definitions
+      const missionDefs = await db.missionDef.findMany({
+        where: { isActive: true },
+        orderBy: { riskLevel: 'asc' }
+      });
+      console.log(`[Missions GET] Found ${missionDefs.length} mission definitions`);
 
-    // Get user's active mission instances
-    const activeMissions = await db.missionInstance.findMany({
-      where: {
-        userId: user.id,
-        status: 'active'
-      },
-      include: {
-        mission: true
-      }
-    });
+      console.log('[Missions GET] Fetching active missions for user...');
+      // Get user's active mission instances
+      const activeMissions = await db.missionInstance.findMany({
+        where: {
+          userId: user.id,
+          status: 'active'
+        },
+        include: {
+          mission: true
+        }
+      });
+      console.log(`[Missions GET] Found ${activeMissions.length} active missions`);
 
-    return NextResponse.json({
-      missionDefs,
-      activeMissions,
-      debugTimestamp: new Date().toISOString()
-    });
+      return NextResponse.json({
+        missionDefs,
+        activeMissions,
+        debugTimestamp: new Date().toISOString()
+      });
+    } catch (dbError) {
+      console.error('[Missions GET] Database error:', dbError);
+      return NextResponse.json(
+        { 
+          error: 'Database query failed', 
+          details: dbError instanceof Error ? dbError.message : 'Unknown database error',
+          stack: dbError instanceof Error ? dbError.stack : undefined
+        },
+        { status: 500 }
+      );
+    }
 
   } catch (error) {
-    console.error('Error fetching missions:', error);
+    console.error('[Missions GET] Unexpected error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch missions' },
+      { 
+        error: 'Failed to fetch missions',
+        details: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      },
       { status: 500 }
     );
   }
