@@ -41,32 +41,76 @@ export async function GET(request: NextRequest) {
     console.log('[Missions GET] User authenticated:', user.id);
 
     try {
-      console.log('[Missions GET] Fetching mission definitions...');
-      // Get all active mission definitions
-      const missionDefs = await prisma.missionDef.findMany({
-        where: { isActive: true },
-        orderBy: { riskLevel: 'asc' }
-      });
-      console.log(`[Missions GET] Found ${missionDefs.length} mission definitions`);
+      console.log('[Missions GET] Fetching mission data...');
+      
+      // Fetch both queries in parallel for better performance
+      const [missionDefs, activeMissions] = await Promise.all([
+        // Get all active mission definitions with optimized selection
+        prisma.missionDef.findMany({
+          where: { isActive: true },
+          orderBy: { riskLevel: 'asc' },
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            fromHub: true,
+            toHub: true,
+            distance: true,
+            baseDuration: true,
+            baseReward: true,
+            riskLevel: true,
+            itemRewards: true,
+            isActive: true,
+          }
+        }),
+        // Get user's active mission instances with optimized includes
+        prisma.missionInstance.findMany({
+          where: {
+            userId: user.id,
+            status: 'active'
+          },
+          select: {
+            id: true,
+            userId: true,
+            missionId: true,
+            status: true,
+            startTime: true,
+            endTime: true,
+            actualReward: true,
+            itemsReceived: true,
+            completedAt: true,
+            mission: {
+              select: {
+                id: true,
+                name: true,
+                description: true,
+                fromHub: true,
+                toHub: true,
+                riskLevel: true,
+                baseReward: true,
+                baseDuration: true,
+              }
+            }
+          },
+          orderBy: {
+            startTime: 'desc'
+          }
+        })
+      ]);
+      
+      console.log(`[Missions GET] Found ${missionDefs.length} mission definitions and ${activeMissions.length} active missions`);
 
-      console.log('[Missions GET] Fetching active missions for user...');
-      // Get user's active mission instances
-      const activeMissions = await prisma.missionInstance.findMany({
-        where: {
-          userId: user.id,
-          status: 'active'
-        },
-        include: {
-          mission: true
-        }
-      });
-      console.log(`[Missions GET] Found ${activeMissions.length} active missions`);
-
-      return NextResponse.json({
+      const response = NextResponse.json({
         missionDefs,
         activeMissions,
         debugTimestamp: new Date().toISOString()
       });
+      
+      // Add caching headers for better performance
+      response.headers.set('Cache-Control', 'private, max-age=30, s-maxage=60');
+      response.headers.set('ETag', `"missions-${user.id}-${Date.now()}"`);
+      
+      return response;
     } catch (dbError) {
       console.error('[Missions GET] Database error, falling back to mock data:', dbError);
       
@@ -158,23 +202,30 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      // Get mission definition
-      const missionDef = await prisma.missionDef.findUnique({
-        where: { id: missionId }
-      });
+      // Optimize by doing checks in parallel
+      const [missionDef, existingMission] = await Promise.all([
+        prisma.missionDef.findUnique({
+          where: { id: missionId },
+          select: {
+            id: true,
+            name: true,
+            baseDuration: true,
+            isActive: true,
+          }
+        }),
+        prisma.missionInstance.findFirst({
+          where: {
+            userId: user.id,
+            missionId,
+            status: 'active'
+          },
+          select: { id: true }
+        })
+      ]);
 
       if (!missionDef || !missionDef.isActive) {
         return NextResponse.json({ error: 'Mission not found or inactive' }, { status: 404 });
       }
-
-      // Check if user already has this mission active
-      const existingMission = await prisma.missionInstance.findFirst({
-        where: {
-          userId: user.id,
-          missionId,
-          status: 'active'
-        }
-      });
 
       if (existingMission) {
         return NextResponse.json({ error: 'Mission already in progress' }, { status: 400 });

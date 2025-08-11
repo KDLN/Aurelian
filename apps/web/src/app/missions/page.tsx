@@ -1,107 +1,83 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import GameLayout from '@/components/GameLayout';
-import { useMissions, MissionDef, MissionInstance } from '@/hooks/useMissions';
-import { useUserData } from '@/hooks/useUserData';
+import { useMissions, useStartMission, useCompleteMission, useMissionHelpers } from '@/hooks/useMissionsQuery';
+import { MissionDef, MissionInstance } from '@/lib/api/missions';
+import { useUserDataQuery } from '@/hooks/useUserDataQuery';
+import MissionTimer from '@/components/MissionTimer';
 
 export default function MissionsPage() {
-  const { missionDefs, activeMissions, loading, error, startMission, completeMission, refreshMissions } = useMissions();
-  const { wallet } = useUserData();
+  const { data, isLoading, error, refetch } = useMissions();
+  const startMissionMutation = useStartMission();
+  const completeMissionMutation = useCompleteMission();
+  const { wallet } = useUserDataQuery();
+  const { formatDuration, getRiskColor } = useMissionHelpers();
+  
   const [selectedMission, setSelectedMission] = useState<string>('');
   const [completionMessage, setCompletionMessage] = useState<string>('');
 
-  // Auto-refresh missions every 30 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      refreshMissions();
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [refreshMissions]);
+  // Extract data with safe defaults
+  const missionDefs = data?.missionDefs ?? [];
+  const activeMissions = data?.activeMissions ?? [];
 
-  const handleStartMission = async () => {
+  const handleStartMission = useCallback(async () => {
     if (!selectedMission) {
       alert('Please select a mission first');
       return;
     }
 
-    const success = await startMission(selectedMission);
-    if (success) {
-      setSelectedMission('');
-      alert('Mission started successfully!');
+    try {
+      const result = await startMissionMutation.mutateAsync(selectedMission);
+      if (result.success) {
+        setSelectedMission('');
+        alert('Mission started successfully!');
+      }
+    } catch (error) {
+      console.error('Failed to start mission:', error);
+      alert('Failed to start mission. Please try again.');
     }
-  };
+  }, [selectedMission, startMissionMutation]);
 
-  const handleCompleteMission = async (missionInstanceId: string) => {
-    const result = await completeMission(missionInstanceId);
-    if (result.success !== undefined) {
+  const handleCompleteMission = useCallback(async (missionInstanceId: string) => {
+    try {
+      const result = await completeMissionMutation.mutateAsync(missionInstanceId);
       if (result.success) {
         const rewards = result.rewards;
-        const goldText = rewards?.gold > 0 ? `${rewards.gold} gold` : '';
-        const itemsText = rewards?.items?.length > 0 
+        const goldText = rewards?.gold && rewards.gold > 0 ? `${rewards.gold} gold` : '';
+        const itemsText = rewards?.items?.length 
           ? rewards.items.map((item: any) => `${item.qty} ${item.itemKey}`).join(', ')
           : '';
         const rewardText = [goldText, itemsText].filter(Boolean).join(' and ');
-        setCompletionMessage(`Mission completed successfully! Received: ${rewardText}`);
-      } else {
-        setCompletionMessage('Mission failed! You received partial or no rewards.');
+        
+        if (result.missionSuccess) {
+          setCompletionMessage(`Mission completed successfully! Received: ${rewardText}`);
+        } else {
+          setCompletionMessage('Mission failed! You received partial or no rewards.');
+        }
+        setTimeout(() => setCompletionMessage(''), 5000);
       }
+    } catch (error) {
+      console.error('Failed to complete mission:', error);
+      setCompletionMessage('Failed to complete mission. Please try again.');
       setTimeout(() => setCompletionMessage(''), 5000);
     }
-  };
+  }, [completeMissionMutation]);
 
-  const formatTimeRemaining = (endTime: string) => {
-    const now = new Date();
-    const end = new Date(endTime);
-    const diff = end.getTime() - now.getTime();
-    
-    if (diff <= 0) return 'Ready!';
-    
-    const minutes = Math.floor(diff / (1000 * 60));
-    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-    
-    if (minutes > 0) {
-      return `${minutes}m ${seconds}s`;
-    }
-    return `${seconds}s`;
-  };
+  // Memoize expensive calculations
+  const activeMissionsWithStatus = useMemo(() => {
+    return activeMissions.map(mission => ({
+      ...mission,
+      missionDef: mission.mission || missionDefs.find(def => def.id === mission.missionId),
+    }));
+  }, [activeMissions, missionDefs]);
 
-  const getMissionProgress = (startTime: string, endTime: string) => {
-    const now = new Date();
-    const start = new Date(startTime);
-    const end = new Date(endTime);
-    
-    const total = end.getTime() - start.getTime();
-    const elapsed = now.getTime() - start.getTime();
-    
-    const progress = Math.min(100, Math.max(0, (elapsed / total) * 100));
-    return Math.floor(progress);
-  };
+  const { isReady } = useMissionHelpers();
+  const readyMissionsCount = useMemo(() => {
+    return activeMissions.filter(m => isReady(m.endTime)).length;
+  }, [activeMissions, isReady]);
 
-  const isReady = (endTime: string) => {
-    return new Date() >= new Date(endTime);
-  };
-
-  const getRiskColor = (risk: string) => {
-    switch (risk) {
-      case 'LOW': return 'good';
-      case 'MEDIUM': return 'warn';
-      case 'HIGH': return 'bad';
-      default: return 'muted';
-    }
-  };
-
-  const formatDuration = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) {
-      return `${minutes} min`;
-    }
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
-    return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
-  };
-
-  const sidebar = (
+  const sidebar = useMemo(() => (
     <div>
       <h3>Mission Guide</h3>
       <p className="game-muted game-small">
@@ -132,12 +108,17 @@ export default function MissionsPage() {
         </div>
       )}
     </div>
-  );
+  ), [wallet]);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <GameLayout title="Mission Control" sidebar={<div>Loading...</div>}>
-        <div>Loading missions...</div>
+        <div className="game-card">
+          <div className="game-flex" style={{ alignItems: 'center', gap: '1rem' }}>
+            <div>Loading missions...</div>
+            <div className="game-spinner" />
+          </div>
+        </div>
       </GameLayout>
     );
   }
@@ -147,12 +128,13 @@ export default function MissionsPage() {
       <GameLayout title="Mission Control" sidebar={sidebar}>
         <div className="game-card">
           <h3>Error</h3>
-          <p className="game-bad">{error}</p>
+          <p className="game-bad">{error instanceof Error ? error.message : 'Unknown error'}</p>
           <button 
             className="game-btn game-btn-primary" 
-            onClick={refreshMissions}
+            onClick={() => refetch()}
+            disabled={isLoading}
           >
-            Retry
+            {isLoading ? 'Retrying...' : 'Retry'}
           </button>
         </div>
       </GameLayout>
@@ -251,9 +233,11 @@ export default function MissionsPage() {
           <button 
             className="game-btn game-btn-primary"
             onClick={handleStartMission}
-            disabled={!selectedMission || activeMissions.some(m => m.missionId === selectedMission)}
+            disabled={!selectedMission || 
+                     activeMissions.some(m => m.missionId === selectedMission) ||
+                     startMissionMutation.isPending}
           >
-            Start Mission
+            {startMissionMutation.isPending ? 'Starting...' : 'Start Mission'}
           </button>
         </div>
 
@@ -261,55 +245,30 @@ export default function MissionsPage() {
           <h3>Active Missions ({activeMissions.length})</h3>
           {activeMissions.length > 0 ? (
             <div className="game-flex-col">
-              {activeMissions.map(mission => {
-                const progress = getMissionProgress(mission.startTime, mission.endTime);
-                const ready = isReady(mission.endTime);
-                const missionDef = mission.mission || missionDefs.find(def => def.id === mission.missionId);
-                
-                return (
-                  <div key={mission.id} className="game-card">
-                    <div className="game-space-between">
-                      <div>
-                        <strong>{missionDef?.name || 'Unknown Mission'}</strong>
-                        <div className="game-muted game-small">
-                          {missionDef?.fromHub} → {missionDef?.toHub}
-                        </div>
-                      </div>
-                      <span className={`game-pill game-pill-${getRiskColor(missionDef?.riskLevel || 'LOW')}`}>
-                        {missionDef?.riskLevel || 'LOW'}
-                      </span>
-                    </div>
-                    
-                    <div style={{ marginTop: '8px' }}>
-                      <div className="game-progress">
-                        <div 
-                          className="game-progress-fill" 
-                          style={{ 
-                            width: `${progress}%`,
-                            background: ready ? '#68b06e' : '#b7b34d'
-                          }}
-                        >
-                          {ready ? 'Ready!' : `${progress}%`}
-                        </div>
+              {activeMissionsWithStatus.map(mission => (
+                <div key={mission.id} className="game-card">
+                  <div className="game-space-between">
+                    <div>
+                      <strong>{mission.missionDef?.name || 'Unknown Mission'}</strong>
+                      <div className="game-muted game-small">
+                        {mission.missionDef?.fromHub} → {mission.missionDef?.toHub}
                       </div>
                     </div>
-                    
-                    <div className="game-space-between game-small" style={{ marginTop: '4px' }}>
-                      <span>
-                        Time remaining: {formatTimeRemaining(mission.endTime)}
-                      </span>
-                      {ready && (
-                        <button 
-                          className="game-btn game-btn-small game-btn-primary"
-                          onClick={() => handleCompleteMission(mission.id)}
-                        >
-                          Complete Mission
-                        </button>
-                      )}
-                    </div>
+                    <span className={`game-pill game-pill-${getRiskColor(mission.missionDef?.riskLevel || 'LOW')}`}>
+                      {mission.missionDef?.riskLevel || 'LOW'}
+                    </span>
                   </div>
-                );
-              })}
+                  
+                  <MissionTimer
+                    startTime={mission.startTime}
+                    endTime={mission.endTime}
+                    onComplete={handleCompleteMission}
+                    missionInstanceId={mission.id}
+                    riskColor={getRiskColor(mission.missionDef?.riskLevel || 'LOW')}
+                    isCompleting={completeMissionMutation.isPending}
+                  />
+                </div>
+              ))}
             </div>
           ) : (
             <p className="game-muted">No active missions. Start one from the available missions above!</p>
@@ -329,9 +288,7 @@ export default function MissionsPage() {
             </div>
             <div className="game-space-between">
               <span>Ready:</span>
-              <span className="game-good">
-                {activeMissions.filter(m => isReady(m.endTime)).length}
-              </span>
+              <span className="game-good">{readyMissionsCount}</span>
             </div>
           </div>
         </div>
