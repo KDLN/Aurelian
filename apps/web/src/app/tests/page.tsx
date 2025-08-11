@@ -133,6 +133,16 @@ export default function TestsPage() {
       return data;
     });
 
+    // Test 5.5: Debug database URL specifically
+    await runTest('Database URL Debug', async () => {
+      const response = await fetch('/api/debug-db');
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    });
+
     // Test 6: Direct database test
     await runTest('Database Connection', async () => {
       const response = await fetch('/api/test-db');

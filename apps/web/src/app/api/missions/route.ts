@@ -137,7 +137,10 @@ export async function GET(request: NextRequest) {
     
     console.log('[Missions GET] User authenticated:', user.id);
 
-    const db = initPrisma();
+    // TEMPORARY: Force use mock data until database connection is fixed
+    console.log('🚧 TEMPORARILY using mock data due to persistent database connection issues');
+    const db = null; // Force null to use mock data
+    
     if (!db) {
       // Return mock data when database is not available
       const mockMissionDefs = [
@@ -267,7 +270,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Mission ID required' }, { status: 400 });
     }
 
-    const db = initPrisma();
+    // TEMPORARY: Force use mock data until database connection is fixed
+    console.log('🚧 TEMPORARILY using mock mission creation due to persistent database issues');
+    const db = null; // Force null to use mock data
+    
     if (!db) {
       console.log('⚠️ Using mock mission creation - Prisma not initialized');
       // Return mock success when database is not available
