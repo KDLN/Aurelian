@@ -6,12 +6,24 @@ export const dynamic = 'force-dynamic';
 
 // Initialize Prisma client with error handling
 let prisma: PrismaClient | null = null;
-if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('://')) {
-  try {
-    prisma = new PrismaClient();
-  } catch (error) {
-    console.error('Failed to initialize Prisma client:', error);
-    prisma = null;
+
+function initPrisma() {
+  if (prisma) return prisma;
+  
+  console.log('🔍 [Complete] DATABASE_URL status:', process.env.DATABASE_URL ? 'SET' : 'NOT SET');
+  
+  if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('://')) {
+    try {
+      prisma = new PrismaClient();
+      console.log('✅ [Complete] Prisma client initialized successfully');
+      return prisma;
+    } catch (error) {
+      console.error('❌ [Complete] Failed to initialize Prisma client:', error);
+      return null;
+    }
+  } else {
+    console.log('⚠️ [Complete] DATABASE_URL not found or invalid');
+    return null;
   }
 }
 
@@ -44,7 +56,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Mission instance ID required' }, { status: 400 });
     }
 
-    if (!prisma) {
+    const db = initPrisma();
+    if (!db) {
+      console.log('⚠️ [Complete] Using mock completion - Prisma not initialized');
       // Return mock success when database is not available
       return NextResponse.json({
         success: true,
@@ -56,7 +70,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get mission instance with mission definition
-    const missionInstance = await prisma.missionInstance.findUnique({
+    const missionInstance = await db.missionInstance.findUnique({
       where: { id: missionInstanceId },
       include: { mission: true }
     });
@@ -109,7 +123,7 @@ export async function POST(request: NextRequest) {
     // Award gold reward if successful
     if (actualReward > 0) {
       // Get or create user wallet
-      const wallet = await prisma.wallet.upsert({
+      const wallet = await db.wallet.upsert({
         where: { userId: user.id },
         update: { gold: { increment: actualReward } },
         create: { userId: user.id, gold: actualReward }
@@ -120,13 +134,13 @@ export async function POST(request: NextRequest) {
     if (itemsReceived.length > 0) {
       for (const itemReward of itemsReceived) {
         // Get item definition
-        const itemDef = await prisma.itemDef.findUnique({
+        const itemDef = await db.itemDef.findUnique({
           where: { key: itemReward.itemKey }
         });
 
         if (itemDef) {
           // Add items to inventory
-          await prisma.inventory.upsert({
+          await db.inventory.upsert({
             where: {
               userId_itemId_location: {
                 userId: user.id,
@@ -147,7 +161,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Mark mission as completed
-    const completedMission = await prisma.missionInstance.update({
+    const completedMission = await db.missionInstance.update({
       where: { id: missionInstanceId },
       data: {
         status: success ? 'completed' : 'failed',
