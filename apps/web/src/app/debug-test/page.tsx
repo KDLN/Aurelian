@@ -137,11 +137,12 @@ export default function DebugTestPage() {
   // API Performance Tests
   const testApiPerformance = async () => {
     return runTest('api-perf', 'API Performance (5 requests)', async () => {
+      const headers = await getAuthHeaders();
       const results = [];
       
       for (let i = 1; i <= 5; i++) {
         const start = performance.now();
-        const response = await fetch('/api/missions');
+        const response = await fetch('/api/missions', { headers });
         const data = await response.json();
         const duration = performance.now() - start;
         
@@ -175,12 +176,13 @@ export default function DebugTestPage() {
 
   const testConcurrentRequests = async () => {
     return runTest('concurrent', 'Concurrent API Requests', async () => {
+      const headers = await getAuthHeaders();
       const promises = [];
       const startTime = performance.now();
       
       for (let i = 0; i < 3; i++) {
         promises.push(
-          fetch('/api/missions').then(async response => ({
+          fetch('/api/missions', { headers }).then(async response => ({
             id: i + 1,
             status: response.status,
             data: await response.json(),
@@ -203,7 +205,8 @@ export default function DebugTestPage() {
   // Database Tests
   const testDatabaseConnection = async () => {
     return runTest('db-conn', 'Database Connection', async () => {
-      const response = await fetch('/api/missions');
+      const headers = await getAuthHeaders();
+      const response = await fetch('/api/missions', { headers });
       const data = await response.json();
       
       if (!response.ok) {
@@ -228,8 +231,10 @@ export default function DebugTestPage() {
   // Mission Lifecycle Test
   const testMissionLifecycle = async () => {
     return runTest('mission-lifecycle', 'Mission Start/Complete Cycle', async () => {
+      const headers = await getAuthHeaders();
+      
       // First get available missions
-      const missionsResponse = await fetch('/api/missions');
+      const missionsResponse = await fetch('/api/missions', { headers });
       const missionsData = await missionsResponse.json();
       
       if (!missionsResponse.ok) {
@@ -248,7 +253,7 @@ export default function DebugTestPage() {
       const missionToStart = availableMissions[0];
       const startResponse = await fetch('/api/missions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ missionId: missionToStart.id })
       });
       
@@ -270,10 +275,30 @@ export default function DebugTestPage() {
     });
   };
 
+  // Helper to get auth headers
+  const getAuthHeaders = async () => {
+    if (!supabaseClient) return {};
+    
+    try {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (session?.access_token) {
+        return {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        };
+      }
+    } catch (error) {
+      console.warn('Failed to get auth headers:', error);
+    }
+    
+    return { 'Content-Type': 'application/json' };
+  };
+
   // Simple connectivity test
   const testBasicConnectivity = async () => {
     return runTest('connectivity', 'Basic API Connectivity', async () => {
-      const response = await fetch('/api/missions');
+      const headers = await getAuthHeaders();
+      const response = await fetch('/api/missions', { headers });
       const data = await response.json();
       
       return {
@@ -284,7 +309,9 @@ export default function DebugTestPage() {
         activeMissions: data.activeMissions?.length || 0,
         error: data.error || null,
         requiresAuth: response.status === 401,
-        serverResponse: response.ok ? 'Success' : `Error ${response.status}`
+        serverResponse: response.ok ? 'Success' : `Error ${response.status}`,
+        usedAuth: !!headers.Authorization,
+        performance: data.performance || null
       };
     });
   };
