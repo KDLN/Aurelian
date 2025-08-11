@@ -304,7 +304,7 @@ export default function MissionStatsPage() {
             ))}
             {stats.popularRoutes.length === 0 && (
               <div className="game-table-row">
-                <div colSpan={4} className="game-muted" style={{ gridColumn: '1 / -1', textAlign: 'center' }}>
+                <div className="game-muted" style={{ gridColumn: '1 / -1', textAlign: 'center' }}>
                   No routes traveled yet
                 </div>
               </div>
