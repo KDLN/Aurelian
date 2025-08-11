@@ -1,4 +1,18 @@
 import { CharacterAppearance } from './characterSprites';
+import { supabase } from '../supabaseClient';
+
+// Utility to get the current user's access token
+async function getAccessToken(): Promise<string> {
+  const { data, error } = await supabase.auth.getSession();
+  if (error) {
+    throw new Error(`Auth session error: ${error.message}`);
+  }
+  const token = data.session?.access_token;
+  if (!token) {
+    throw new Error('No auth token found');
+  }
+  return token;
+}
 
 // Functions for saving/loading character appearance directly from the backend database
 
@@ -7,16 +21,7 @@ export async function saveCharacterToDatabase(
   userId?: string
 ): Promise<void> {
   try {
-    // Get the auth token from localStorage (Supabase stores it there)
-    const token =
-      localStorage.getItem('supabase.auth.token') ||
-      JSON.parse(
-        localStorage.getItem('sb-apoboundupzmulkqxkxw-auth-token') || '{}'
-      )?.access_token;
-
-    if (!token) {
-      throw new Error('No auth token found');
-    }
+    const token = await getAccessToken();
 
     const response = await fetch('/api/user/avatar', {
       method: 'POST',
@@ -44,16 +49,7 @@ export async function loadCharacterFromDatabase(
   userId?: string
 ): Promise<CharacterAppearance | null> {
   try {
-    // Get the auth token from localStorage
-    const token =
-      localStorage.getItem('supabase.auth.token') ||
-      JSON.parse(
-        localStorage.getItem('sb-apoboundupzmulkqxkxw-auth-token') || '{}'
-      )?.access_token;
-
-    if (!token) {
-      throw new Error('No auth token found');
-    }
+    const token = await getAccessToken();
 
     const response = await fetch('/api/user/avatar', {
       method: 'GET',

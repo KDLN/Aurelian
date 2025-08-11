@@ -50,6 +50,7 @@ export default function GameLayout({
         if (dbAppearance) {
           setCharacterAppearance(dbAppearance);
         } else {
+          console.warn('No character appearance found in database, using defaults');
           // Use default appearance
           const defaultAppearance = loadCharacterAppearance();
           setCharacterAppearance(defaultAppearance);
