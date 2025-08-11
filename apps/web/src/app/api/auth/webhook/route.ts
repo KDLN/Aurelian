@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
 }
 
 async function handleUserCreated(authUser: any) {
-  const results = { user: null, profile: null, wallet: null, inventory: 0 };
+  const results = { user: null as string | null, profile: null as string | null, wallet: null as string | null, inventory: 0 };
   
   try {
     console.log(`=== Creating database user for: ${authUser.id} (${authUser.email}) ===`);

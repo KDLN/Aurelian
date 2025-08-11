@@ -92,7 +92,7 @@ model Character {
 
 model Wallet {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId    String   @db.Uuid
+  userId    String   @unique @db.Uuid
   gold      Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -132,6 +132,7 @@ model Inventory {
   user      User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
   item      ItemDef    @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, itemId, location])
   @@index([userId])
   @@index([characterId])
   @@index([itemId])

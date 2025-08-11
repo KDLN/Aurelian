@@ -24,11 +24,17 @@ export default function GameLayout({
 }: GameLayoutProps) {
   const { world, subscribe } = useGameWorld();
   const [, forceUpdate] = useState(0);
+  const [currentPath, setCurrentPath] = useState('');
 
   useEffect(() => {
     const unsubscribe = subscribe(() => forceUpdate(x => x + 1));
     return unsubscribe;
   }, [subscribe]);
+
+  useEffect(() => {
+    // Set current path on client-side only
+    setCurrentPath(window.location.pathname);
+  }, []);
 
   const navigation = [
     { href: '/hub', label: 'Hub' },
@@ -72,7 +78,7 @@ export default function GameLayout({
                 <a
                   key={nav.href}
                   href={nav.href}
-                  className={typeof window !== 'undefined' && window.location.pathname === nav.href ? 'active' : ''}
+                  className={currentPath === nav.href ? 'active' : ''}
                 >
                   {nav.label}
                 </a>
