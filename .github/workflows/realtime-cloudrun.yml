@@ -22,13 +22,17 @@ jobs:
       - uses: google-github-actions/setup-gcloud@v2
         with: { version: '>= 471.0.0' }
       - run: gcloud auth configure-docker ${{ secrets.GCP_REGION }}-docker.pkg.dev
+      - name: Generate Prisma Client
+        run: |
+          npm install
+          npx prisma generate
       - name: Build & push
         env:
           REGION: ${{ secrets.GCP_REGION }}
           PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
         run: |
           IMAGE_URI="$REGION-docker.pkg.dev/$PROJECT_ID/aurelian/realtime:${GITHUB_SHA::7}"
-          docker build -t "$IMAGE_URI" .
+          docker build -f apps/realtime/Dockerfile -t "$IMAGE_URI" .
           docker push "$IMAGE_URI"
           echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
       - name: Deploy
