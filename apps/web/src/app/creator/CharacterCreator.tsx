@@ -1,21 +1,42 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { CharacterSprite, CharacterAppearance } from '../../lib/sprites/characterSprites';
-import { CHARACTER_OPTIONS, saveCharacterAppearance, loadCharacterAppearance } from '../../lib/sprites/characterOptions';
+import {
+  CHARACTER_OPTIONS,
+  saveCharacterAppearance,
+  loadCharacterAppearanceAsync
+} from '../../lib/sprites/characterOptions';
 
 export default function CharacterCreator() {
-  const [appearance, setAppearance] = useState<CharacterAppearance>(loadCharacterAppearance());
-  const [name, setName] = useState<string>(appearance.name || 'Trader');
+  const [appearance, setAppearance] = useState<CharacterAppearance | null>(null);
+  const [name, setName] = useState<string>('Trader');
   const [sprite, setSprite] = useState<CharacterSprite | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [animationType, setAnimationType] = useState<'idle' | 'walk' | 'run'>('idle');
   const [direction, setDirection] = useState<'south' | 'west' | 'east' | 'north'>('south');
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
-    loadSprite();
+    if (appearance) {
+      loadSprite();
+    }
   }, [appearance]);
+
+  useEffect(() => {
+    const loadFromDb = async () => {
+      try {
+        const dbAppearance = await loadCharacterAppearanceAsync();
+        setAppearance(dbAppearance);
+        setName(dbAppearance.name || 'Trader');
+      } catch (error) {
+        console.error('Failed to load character from database:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadFromDb();
+  }, []);
 
   useEffect(() => {
     console.log('Setting animation:', animationType, direction);
@@ -25,6 +46,7 @@ export default function CharacterCreator() {
   }, [sprite, animationType, direction]);
 
   async function loadSprite() {
+    if (!appearance) return;
     setLoading(true);
     console.log('Loading sprite with appearance:', appearance);
     try {
@@ -86,10 +108,12 @@ export default function CharacterCreator() {
   }, []);
 
   function updateAppearance(key: keyof CharacterAppearance, value: string) {
-    setAppearance(prev => ({ ...prev, [key]: value }));
+    if (!appearance) return;
+    setAppearance(prev => ({ ...prev!, [key]: value }));
   }
 
   async function save() {
+    if (!appearance) return;
     const fullAppearance = { ...appearance, name };
     try {
       await saveCharacterAppearance(fullAppearance);
@@ -98,6 +122,10 @@ export default function CharacterCreator() {
       console.error('Failed to save character:', error);
       alert('Failed to save character. Please try again.');
     }
+  }
+
+  if (loading || !appearance) {
+    return <div>Loading character...</div>;
   }
 
   return (
