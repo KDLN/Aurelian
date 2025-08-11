@@ -10,6 +10,7 @@ export default function MissionTestPage() {
   
   const [logs, setLogs] = useState<string[]>([]);
   const [selectedMissionId, setSelectedMissionId] = useState('');
+  const [completingMissions, setCompletingMissions] = useState<Set<string>>(new Set());
   
   const addLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
@@ -44,8 +45,17 @@ export default function MissionTestPage() {
   };
 
   const handleCompleteMission = async (missionInstanceId: string) => {
+    // Prevent double-clicks by checking if mission is already being completed
+    if (completingMissions.has(missionInstanceId)) {
+      addLog(`⚠️ Mission ${missionInstanceId.substring(0, 8)} already being completed, ignoring duplicate click`);
+      return;
+    }
+
     try {
+      // Mark mission as being completed
+      setCompletingMissions(prev => new Set(prev).add(missionInstanceId));
       addLog(`🎯 Completing mission: ${missionInstanceId.substring(0, 8)}...`);
+      
       const result = await completeMissionMutation.mutateAsync(missionInstanceId);
       
       if (result.success) {
@@ -55,6 +65,13 @@ export default function MissionTestPage() {
       }
     } catch (error: any) {
       addLog(`❌ Error completing mission: ${error.message}`);
+    } finally {
+      // Always remove from completing set, even on error
+      setCompletingMissions(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(missionInstanceId);
+        return newSet;
+      });
     }
   };
 
@@ -244,17 +261,18 @@ export default function MissionTestPage() {
                   {isReady && (
                     <button
                       onClick={() => handleCompleteMission(mission.id)}
-                      disabled={completeMissionMutation.isPending}
+                      disabled={completingMissions.has(mission.id)}
                       style={{
                         padding: '0.5rem 1rem',
-                        backgroundColor: '#4CAF50',
+                        backgroundColor: completingMissions.has(mission.id) ? '#666' : '#4CAF50',
                         color: 'white',
                         border: 'none',
                         borderRadius: '4px',
-                        cursor: 'pointer'
+                        cursor: completingMissions.has(mission.id) ? 'not-allowed' : 'pointer',
+                        opacity: completingMissions.has(mission.id) ? 0.6 : 1
                       }}
                     >
-                      {completeMissionMutation.isPending ? 'Completing...' : 'Complete Mission'}
+                      {completingMissions.has(mission.id) ? 'Completing...' : 'Complete Mission'}
                     </button>
                   )}
                 </div>
