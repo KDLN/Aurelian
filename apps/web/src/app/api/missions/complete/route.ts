@@ -14,6 +14,26 @@ function initPrisma() {
   console.log('🔍 [Complete] DATABASE_URL status:', dbUrl ? 'SET' : 'NOT SET');
   
   if (dbUrl && dbUrl.includes('://')) {
+    // Check if the URL has the problematic port 6543
+    if (dbUrl.includes(':6543')) {
+      console.log('⚠️ [Complete] DATABASE_URL contains port 6543, replacing with 5432...');
+      const fixedUrl = dbUrl.replace(':6543', ':5432').replace('?pgbouncer=true&connection_limit=1', '');
+      try {
+        prisma = new PrismaClient({
+          datasources: {
+            db: {
+              url: fixedUrl
+            }
+          }
+        });
+        console.log('✅ [Complete] Prisma client initialized with fixed port');
+        return prisma;
+      } catch (fixError) {
+        console.error('❌ [Complete] Fixed URL also failed:', fixError);
+      }
+    }
+    
+    // Try original URL
     try {
       prisma = new PrismaClient({
         datasources: {

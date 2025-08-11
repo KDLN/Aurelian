@@ -31,6 +31,27 @@ function initPrisma() {
   }
   
   if (dbUrl && dbUrl.includes('://')) {
+    // Check if the URL has the problematic port 6543
+    if (dbUrl.includes(':6543')) {
+      console.log('⚠️ DATABASE_URL contains port 6543, replacing with 5432...');
+      const fixedUrl = dbUrl.replace(':6543', ':5432').replace('?pgbouncer=true&connection_limit=1', '');
+      try {
+        prisma = new PrismaClient({
+          log: ['error', 'warn'],
+          datasources: {
+            db: {
+              url: fixedUrl
+            }
+          }
+        });
+        console.log('✅ Prisma client initialized with fixed port');
+        return prisma;
+      } catch (fixError) {
+        console.error('❌ Fixed URL also failed:', fixError);
+      }
+    }
+    
+    // Try original URL
     try {
       prisma = new PrismaClient({
         log: ['error', 'warn'],
@@ -44,24 +65,35 @@ function initPrisma() {
       return prisma;
     } catch (error) {
       console.error('❌ Failed to initialize Prisma client:', error);
-      // Try fallback to direct URL (non-pooled connection)
-      // This uses port 5432 instead of 6543
-      const fallbackUrl = "postgresql://postgres.apoboundupzmulkqxkxw:XhDbhNjUEv9Q1IA4@aws-0-us-east-2.pooler.supabase.com:5432/postgres";
-      console.log('🔄 Trying fallback with DIRECT database URL (port 5432, no pooler)...');
-      try {
-        prisma = new PrismaClient({
-          datasources: {
-            db: {
-              url: fallbackUrl
+      // Try multiple fallback URLs with different formats
+      const fallbackUrls = [
+        // Try without port (uses default 5432)
+        "postgresql://postgres.apoboundupzmulkqxkxw:XhDbhNjUEv9Q1IA4@aws-0-us-east-2.pooler.supabase.com/postgres",
+        // Try with explicit default port
+        "postgres://postgres.apoboundupzmulkqxkxw:XhDbhNjUEv9Q1IA4@aws-0-us-east-2.pooler.supabase.com:5432/postgres",
+        // Try localhost format (Supabase CLI local)
+        "postgresql://postgres:postgres@localhost:54322/postgres"
+      ];
+      
+      for (const fallbackUrl of fallbackUrls) {
+        console.log(`🔄 Trying fallback URL format: ${fallbackUrl.substring(0, 30)}...`);
+        try {
+          prisma = new PrismaClient({
+            datasources: {
+              db: {
+                url: fallbackUrl
+              }
             }
-          }
-        });
-        console.log('✅ Connected with fallback URL');
-        return prisma;
-      } catch (fallbackError) {
-        console.error('❌ Fallback also failed:', fallbackError);
-        return null;
+          });
+          console.log('✅ Connected with fallback URL');
+          return prisma;
+        } catch (fallbackError) {
+          console.error(`❌ Fallback failed for ${fallbackUrl.substring(0, 30)}:`, fallbackError);
+          continue; // Try next URL
+        }
       }
+      console.error('❌ All fallback URLs failed');
+      return null;
     }
   } else {
     console.log('⚠️ DATABASE_URL not found or invalid');
