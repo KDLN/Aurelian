@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import GameLayout from '@/components/GameLayout';
 import { useGameWorld } from '@/lib/game/world';
+import { useUserData } from '@/hooks/useUserData';
 import { getRTClient } from '@/lib/rtClient';
 import { supabase } from '@/lib/supabaseClient';
 import type { Room } from 'colyseus.js';
@@ -23,6 +24,7 @@ type Listing = {
 
 export default function AuctionPage() {
   const { world } = useGameWorld();
+  const { wallet } = useUserData();
   const [selectedItem, setSelectedItem] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [price, setPrice] = useState(10);
@@ -175,13 +177,13 @@ export default function AuctionPage() {
     }
 
     const totalCost = listing.qty * listing.price;
-    if (world.gold < totalCost) {
-      alert(`Not enough gold! Need ${totalCost}g, have ${world.gold}g`);
+    const currentGold = wallet?.gold || world.gold;
+    if (currentGold < totalCost) {
+      alert(`Not enough gold! Need ${totalCost}g, have ${currentGold}g`);
       return;
     }
 
-    // Optimistically update local state
-    world.gold -= totalCost;
+    // Note: Real gold deduction happens on the server side
 
     room.send('buy_listing', {
       listingId: listing.id,
@@ -232,7 +234,7 @@ export default function AuctionPage() {
 
       <h3>Your Gold</h3>
       <div className="game-pill game-pill-good" style={{ fontSize: '18px', textAlign: 'center' }}>
-        {world.gold.toLocaleString()}g
+        {wallet ? wallet.gold.toLocaleString() : world.gold.toLocaleString()}g
       </div>
 
     </div>
@@ -365,7 +367,7 @@ export default function AuctionPage() {
                           <button 
                             className="game-btn game-btn-small game-btn-primary"
                             onClick={() => handleBuy(listing)}
-                            disabled={world.gold < listing.qty * listing.price}
+                            disabled={(wallet?.gold || world.gold) < listing.qty * listing.price}
                           >
                             Buy
                           </button>
