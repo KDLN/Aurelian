@@ -10,43 +10,63 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+// Simple in-memory cache for mission definitions (30 second TTL)
+let missionDefsCache: { data: any[], timestamp: number } | null = null;
+const MISSION_DEFS_CACHE_TTL = 30000; // 30 seconds
+
 // GET - Fetch all mission definitions and user's active missions
 export async function GET(request: NextRequest) {
+  const startTime = performance.now();
+  
   try {
-    console.log('[Missions GET] Starting request');
+    console.log('🚀 [Missions GET] Starting request at:', new Date().toISOString());
     
     // Get JWT token from headers
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
     
     if (!token) {
-      console.log('[Missions GET] No token provided');
+      console.log('❌ [Missions GET] No token provided');
       return NextResponse.json({ error: 'No token provided' }, { status: 401 });
     }
 
-    console.log('[Missions GET] Token found, verifying with Supabase');
+    const authStartTime = performance.now();
+    console.log('🔐 [Missions GET] Verifying token...');
     
     // Verify token with Supabase
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
+    const authEndTime = performance.now();
+    console.log(`⚡ [Missions GET] Auth completed in ${(authEndTime - authStartTime).toFixed(2)}ms`);
+    
     if (authError) {
-      console.error('[Missions GET] Auth error:', authError);
+      console.error('❌ [Missions GET] Auth error:', authError);
       return NextResponse.json({ error: `Auth error: ${authError.message}` }, { status: 401 });
     }
     
     if (!user) {
-      console.log('[Missions GET] No user found for token');
+      console.log('❌ [Missions GET] No user found for token');
       return NextResponse.json({ error: 'Invalid token - no user' }, { status: 401 });
     }
     
-    console.log('[Missions GET] User authenticated:', user.id);
+    console.log('✅ [Missions GET] User authenticated:', user.id);
 
     try {
-      console.log('[Missions GET] Fetching mission data...');
+      const dbStartTime = performance.now();
+      console.log('📊 [Missions GET] Fetching mission data...');
       
-      // Fetch both queries in parallel for better performance
-      const [missionDefs, activeMissions] = await Promise.all([
-        // Get all active mission definitions with optimized selection
-        prisma.missionDef.findMany({
+      // Check cache for mission definitions
+      const now = Date.now();
+      let missionDefs;
+      
+      const cacheAge = missionDefsCache ? now - missionDefsCache.timestamp : Infinity;
+      const usedCache = missionDefsCache && cacheAge < MISSION_DEFS_CACHE_TTL;
+      
+      if (usedCache) {
+        console.log(`⚡ [Missions GET] Using cached mission definitions (age: ${Math.round(cacheAge/1000)}s)`);
+        missionDefs = missionDefsCache.data;
+      } else {
+        console.log(`🔄 [Missions GET] Fetching fresh mission definitions (cache age: ${missionDefsCache ? Math.round(cacheAge/1000) + 's' : 'none'})`);
+        missionDefs = await prisma.missionDef.findMany({
           where: { isActive: true },
           orderBy: { riskLevel: 'asc' },
           select: {
@@ -62,53 +82,86 @@ export async function GET(request: NextRequest) {
             itemRewards: true,
             isActive: true,
           }
-        }),
-        // Get user's active mission instances with optimized includes
-        prisma.missionInstance.findMany({
-          where: {
-            userId: user.id,
-            status: 'active'
-          },
-          select: {
-            id: true,
-            userId: true,
-            missionId: true,
-            status: true,
-            startTime: true,
-            endTime: true,
-            actualReward: true,
-            itemsReceived: true,
-            completedAt: true,
-            mission: {
-              select: {
-                id: true,
-                name: true,
-                description: true,
-                fromHub: true,
-                toHub: true,
-                riskLevel: true,
-                baseReward: true,
-                baseDuration: true,
-              }
-            }
-          },
-          orderBy: {
-            startTime: 'desc'
-          }
-        })
-      ]);
+        });
+        
+        // Update cache
+        missionDefsCache = { data: missionDefs, timestamp: now };
+        console.log(`💾 [Missions GET] Cached ${missionDefs.length} mission definitions for 30s`);
+      }
       
-      console.log(`[Missions GET] Found ${missionDefs.length} mission definitions and ${activeMissions.length} active missions`);
+      // Only fetch user's active missions (this must be fresh)
+      const activeMissions = await prisma.missionInstance.findMany({
+        where: {
+          userId: user.id,
+          status: 'active'
+        },
+        select: {
+          id: true,
+          userId: true,
+          missionId: true,
+          status: true,
+          startTime: true,
+          endTime: true,
+          actualReward: true,
+          itemsReceived: true,
+          completedAt: true,
+          mission: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              fromHub: true,
+              toHub: true,
+              riskLevel: true,
+              baseReward: true,
+              baseDuration: true,
+            }
+          }
+        },
+        orderBy: {
+          startTime: 'desc'
+        }
+      });
+      
+      const dbEndTime = performance.now();
+      console.log(`⚡ [Missions GET] Database queries completed in ${(dbEndTime - dbStartTime).toFixed(2)}ms`);
+      console.log(`📊 [Missions GET] Found ${missionDefs.length} mission definitions and ${activeMissions.length} active missions`);
+      
+      // Log active missions for debugging
+      if (activeMissions.length > 0) {
+        console.log('🎯 [Missions GET] Active missions:', activeMissions.map(m => ({
+          id: m.id.substring(0, 8),
+          missionName: m.mission?.name,
+          status: m.status,
+          endTime: m.endTime,
+          timeLeft: Math.max(0, Math.ceil((new Date(m.endTime).getTime() - Date.now()) / 1000)) + 's'
+        })));
+      } else {
+        console.log('⚠️ [Missions GET] No active missions found for user:', user.id);
+      }
 
+      const endTime = performance.now();
+      const totalTime = endTime - startTime;
+      
+      console.log(`🏁 [Missions GET] Request completed in ${totalTime.toFixed(2)}ms`);
+      console.log(`📈 [Missions GET] Performance breakdown: Auth(${(authEndTime - authStartTime).toFixed(2)}ms) + DB(${(dbEndTime - dbStartTime).toFixed(2)}ms) + Processing(${(endTime - dbEndTime).toFixed(2)}ms)`);
+      
       const response = NextResponse.json({
         missionDefs,
         activeMissions,
-        debugTimestamp: new Date().toISOString()
+        debugTimestamp: new Date().toISOString(),
+        performance: {
+          totalMs: Math.round(totalTime),
+          authMs: Math.round(authEndTime - authStartTime),
+          dbMs: Math.round(dbEndTime - dbStartTime),
+          usedCache,
+          cacheAgeSeconds: missionDefsCache ? Math.round(cacheAge/1000) : null
+        }
       });
       
-      // Add caching headers for better performance
-      response.headers.set('Cache-Control', 'private, max-age=30, s-maxage=60');
-      response.headers.set('ETag', `"missions-${user.id}-${Date.now()}"`);
+      // Add optimized caching headers
+      response.headers.set('Cache-Control', 'private, max-age=15, stale-while-revalidate=30');
+      response.headers.set('X-Response-Time', `${totalTime.toFixed(2)}ms`);
       
       return response;
     } catch (dbError) {
@@ -234,7 +287,14 @@ export async function POST(request: NextRequest) {
       // Calculate end time based on base duration
       const endTime = new Date(Date.now() + missionDef.baseDuration * 1000);
 
-      console.log('✅ Creating mission instance in database');
+      console.log('✅ [MissionStart] Creating mission instance in database');
+      console.log('🎯 [MissionStart] Mission details:', {
+        userId: user.id,
+        missionId,
+        missionName: missionDef.name,
+        duration: missionDef.baseDuration,
+        endTime: endTime.toISOString()
+      });
       // Create new mission instance
       const missionInstance = await prisma.missionInstance.create({
         data: {
@@ -246,6 +306,13 @@ export async function POST(request: NextRequest) {
         include: {
           mission: true
         }
+      });
+
+      console.log('✅ [MissionStart] Mission created successfully:', {
+        instanceId: missionInstance.id,
+        status: missionInstance.status,
+        startTime: missionInstance.startTime,
+        endTime: missionInstance.endTime
       });
 
       return NextResponse.json({

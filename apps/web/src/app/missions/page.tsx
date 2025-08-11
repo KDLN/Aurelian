@@ -8,7 +8,7 @@ import { useUserDataQuery } from '@/hooks/useUserDataQuery';
 import MissionTimer from '@/components/MissionTimer';
 
 export default function MissionsPage() {
-  const { data, isLoading, error, refetch } = useMissions();
+  const { data, isLoading, error, refetch } = useMissions(); // Uses optimized 60s polling
   const startMissionMutation = useStartMission();
   const completeMissionMutation = useCompleteMission();
   

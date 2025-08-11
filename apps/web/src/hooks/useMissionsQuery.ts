@@ -22,27 +22,38 @@ interface UseMissionsOptions {
 }
 
 export function useMissions(options: UseMissionsOptions = {}) {
-  const { refetchInterval = 30000, enabled = true } = options;
+  const { refetchInterval = 60000, enabled = true } = options; // Reduced from 30s to 60s
   const isPageVisible = usePageVisibility();
   
   const query = useQuery<MissionsData>({
     queryKey: missionKeys.missions(),
     queryFn: () => {
       console.log('🌐 [useMissions] Fetching missions from API...');
-      return missionsApi.getMissions();
+      const startTime = performance.now();
+      return missionsApi.getMissions().then(data => {
+        const endTime = performance.now();
+        console.log(`⚡ [useMissions] Client request completed in ${(endTime - startTime).toFixed(2)}ms`);
+        if (data.performance) {
+          console.log('📊 [useMissions] Server performance:', data.performance);
+        }
+        return data;
+      });
     },
     enabled,
     refetchInterval: isPageVisible ? refetchInterval : false, // Only poll when page is visible
     refetchIntervalInBackground: false,
-    staleTime: 2 * 60 * 1000, // 2 minutes - shorter for debugging
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes - much longer since we have real-time countdown
+    gcTime: 15 * 60 * 1000, // 15 minutes
+    refetchOnWindowFocus: false, // Disable aggressive refocusing
+    refetchOnMount: 'always', // Always fetch fresh data on mount
     retry: (failureCount, error) => {
       // Don't retry authentication errors
       if (error instanceof MissionsApiError && error.status === 401) {
         return false;
       }
-      return failureCount < 3;
+      return failureCount < 2; // Reduced retries from 3 to 2
     },
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
   });
 
   // Log query status changes (replaces onSuccess/onError)
@@ -128,39 +139,79 @@ export function useCompleteMission() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (missionInstanceId: string) => 
-      missionsApi.completeMission(missionInstanceId),
-    onSuccess: (data, missionInstanceId) => {
+    mutationFn: (missionInstanceId: string) => {
+      console.log('🎯 [CompleteMission] Starting completion for:', missionInstanceId);
+      return missionsApi.completeMission(missionInstanceId);
+    },
+    onMutate: async (missionInstanceId) => {
+      console.log('⚡ [CompleteMission] Applying optimistic update...');
+      
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: missionKeys.missions() });
+      
+      // Snapshot previous state
+      const previousMissions = queryClient.getQueryData<MissionsData>(missionKeys.missions());
+      
+      // Optimistically remove the mission immediately for instant UI feedback
+      queryClient.setQueryData<MissionsData>(
+        missionKeys.missions(),
+        (oldData) => {
+          if (!oldData) return oldData;
+          
+          console.log('💨 [CompleteMission] Optimistically removing mission from UI');
+          return {
+            ...oldData,
+            activeMissions: oldData.activeMissions.filter(
+              (mission) => mission.id !== missionInstanceId
+            ),
+          };
+        }
+      );
+      
+      return { previousMissions, missionInstanceId };
+    },
+    onSuccess: (data, missionInstanceId, context) => {
+      console.log('✅ [CompleteMission] Mutation successful:', { 
+        success: data.success,
+        missionSuccess: data.missionSuccess,
+        rewards: data.rewards
+      });
+      
       if (data.success) {
-        // Optimistically update the cache
-        queryClient.setQueryData<MissionsData>(
-          missionKeys.missions(),
-          (oldData) => {
-            if (!oldData) return oldData;
-            
-            return {
-              ...oldData,
-              activeMissions: oldData.activeMissions.filter(
-                (mission) => mission.id !== missionInstanceId
-              ),
-            };
-          }
-        );
-        
-        // Invalidate more selectively to avoid unnecessary refetches
+        // Mission was successfully completed - optimistic update was correct
+        // Only invalidate wallet data since mission is already removed from UI
+        setTimeout(() => {
+          queryClient.invalidateQueries({ 
+            queryKey: ['user', 'wallet'],
+            exact: false
+          });
+        }, 1000); // Delay to prevent immediate refetch
+      }
+    },
+    onError: (error, missionInstanceId, context) => {
+      console.error('❌ [CompleteMission] Mutation failed:', error);
+      
+      // Revert the optimistic update on error
+      if (context?.previousMissions) {
+        console.log('🔄 [CompleteMission] Reverting optimistic update due to error');
+        queryClient.setQueryData(missionKeys.missions(), context.previousMissions);
+      }
+    },
+    onSettled: (data, error, missionInstanceId) => {
+      console.log('🏁 [CompleteMission] Mutation settled:', { 
+        missionInstanceId: missionInstanceId.substring(0, 8), 
+        hasError: !!error,
+        success: data?.success 
+      });
+      
+      // Always refresh missions after a reasonable delay to ensure consistency
+      setTimeout(() => {
+        console.log('🔄 [CompleteMission] Final cache refresh');
         queryClient.invalidateQueries({ 
           queryKey: missionKeys.missions(),
           exact: true 
         });
-        // Only invalidate specific user data that might have changed
-        queryClient.invalidateQueries({ 
-          queryKey: ['user', 'wallet'],
-          exact: false // Allow partial matches for user wallet queries
-        });
-      }
-    },
-    onError: (error) => {
-      console.error('Failed to complete mission:', error);
+      }, 3000);
     },
   });
 }

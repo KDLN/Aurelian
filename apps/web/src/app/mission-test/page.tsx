@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useMissions, useStartMission, useCompleteMission } from '@/hooks/useMissionsQuery';
 
 export default function MissionTestPage() {
-  const { data, isLoading, error, refetch } = useMissions({ refetchInterval: 2000 });
+  const { data, isLoading, error, refetch } = useMissions({ refetchInterval: 10000 }); // Faster for testing: 10s
   const startMissionMutation = useStartMission();
   const completeMissionMutation = useCompleteMission();
   
