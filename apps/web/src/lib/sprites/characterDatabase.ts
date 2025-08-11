@@ -13,42 +13,79 @@ export async function saveCharacterToDatabase(
   appearance: CharacterAppearance,
   userId?: string
 ): Promise<void> {
-  // For now, save to localStorage 
-  // In production, this would be a database call
+  // Save to localStorage for immediate access
   const dbAppearance: DBCharacterAppearance = {
     ...appearance,
     userId
   };
-  
   localStorage.setItem('character_appearance_db', JSON.stringify(dbAppearance));
   
-  // TODO: When implementing with Supabase/Prisma, use something like:
-  /*
-  const { data: profile, error } = await supabase
-    .from('Profile')
-    .update({ 
-      avatar: {
-        base: appearance.base,
-        outfit: appearance.outfit,
-        hair: appearance.hair,
-        hat: appearance.hat,
-        name: appearance.name
-      }
-    })
-    .eq('userId', userId)
-    .single();
+  // Save to database via API
+  try {
+    // Get the auth token from localStorage (Supabase stores it there)
+    const token = localStorage.getItem('supabase.auth.token') || 
+                  JSON.parse(localStorage.getItem('sb-apoboundupzmulkqxkxw-auth-token') || '{}')?.access_token;
     
-  if (error) {
-    throw new Error(`Failed to save character appearance: ${error.message}`);
+    if (token) {
+      const response = await fetch('/api/user/avatar', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          avatar: appearance,
+          display: appearance.name
+        })
+      });
+
+      if (!response.ok) {
+        console.error('Failed to save avatar to database:', await response.text());
+      }
+    }
+  } catch (error) {
+    console.error('Error saving character to database:', error);
+    // Don't throw - localStorage save was successful
   }
-  */
 }
 
 export async function loadCharacterFromDatabase(
   userId?: string
 ): Promise<CharacterAppearance | null> {
-  // For now, load from localStorage
-  // In production, this would be a database call
+  try {
+    // Get the auth token from localStorage
+    const token = localStorage.getItem('supabase.auth.token') || 
+                  JSON.parse(localStorage.getItem('sb-apoboundupzmulkqxkxw-auth-token') || '{}')?.access_token;
+    
+    if (token) {
+      const response = await fetch('/api/user/avatar', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.avatar) {
+          // Save to localStorage for offline access
+          const appearance = {
+            name: data.avatar.name || data.display || 'Trader',
+            base: data.avatar.base || 'v01',
+            outfit: data.avatar.outfit || 'fstr_v01',
+            hair: data.avatar.hair || 'bob1_v01',
+            hat: data.avatar.hat || ''
+          };
+          localStorage.setItem('character_appearance_db', JSON.stringify(appearance));
+          return appearance;
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error loading character from database:', error);
+  }
+  
+  // Fallback to localStorage
   const saved = localStorage.getItem('character_appearance_db');
   if (saved) {
     const dbAppearance: DBCharacterAppearance = JSON.parse(saved);
@@ -62,27 +99,6 @@ export async function loadCharacterFromDatabase(
   }
   
   return null;
-  
-  // TODO: When implementing with Supabase/Prisma, use something like:
-  /*
-  const { data: profile, error } = await supabase
-    .from('Profile')
-    .select('avatar')
-    .eq('userId', userId)
-    .single();
-    
-  if (error || !profile?.avatar) {
-    return null;
-  }
-  
-  return {
-    name: profile.avatar.name || 'Trader',
-    base: profile.avatar.base || 'v01',
-    outfit: profile.avatar.outfit,
-    hair: profile.avatar.hair,
-    hat: profile.avatar.hat
-  };
-  */
 }
 
 // Migration helper to move localStorage data to database format

@@ -3,6 +3,8 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { useGameWorld } from '@/lib/game/world';
 import { useUserData } from '@/hooks/useUserData';
+import { loadCharacterAppearance } from '@/lib/sprites/characterOptions';
+import { CharacterAppearance } from '@/lib/sprites/characterSprites';
 import CharacterViewer from './CharacterViewer';
 import '@/lib/game/styles.css';
 
@@ -27,6 +29,7 @@ export default function GameLayout({
   const { wallet } = useUserData();
   const [, forceUpdate] = useState(0);
   const [currentPath, setCurrentPath] = useState('');
+  const [characterAppearance, setCharacterAppearance] = useState<CharacterAppearance | null>(null);
 
   useEffect(() => {
     const unsubscribe = subscribe(() => forceUpdate(x => x + 1));
@@ -36,6 +39,30 @@ export default function GameLayout({
   useEffect(() => {
     // Set current path on client-side only
     setCurrentPath(window.location.pathname);
+    
+    // Load character appearance
+    const loadAppearance = async () => {
+      try {
+        // First try to load from database
+        const { loadCharacterFromDatabase } = await import('@/lib/sprites/characterDatabase');
+        const dbAppearance = await loadCharacterFromDatabase();
+        
+        if (dbAppearance) {
+          setCharacterAppearance(dbAppearance);
+        } else {
+          // Fallback to localStorage
+          const localAppearance = loadCharacterAppearance();
+          setCharacterAppearance(localAppearance);
+        }
+      } catch (error) {
+        console.error('Error loading character appearance:', error);
+        // Use default appearance
+        const defaultAppearance = loadCharacterAppearance();
+        setCharacterAppearance(defaultAppearance);
+      }
+    };
+    
+    loadAppearance();
   }, []);
 
   const navigation = [
@@ -107,7 +134,7 @@ export default function GameLayout({
             </div>
           )}
 
-          {showCharacterViewer && (
+          {showCharacterViewer && characterAppearance && (
             <div>
               <h3>Player Activity</h3>
               <div style={{ 
@@ -122,9 +149,10 @@ export default function GameLayout({
                   position="inline"
                   activity={characterActivity}
                   location={characterLocation}
-                  outfit="fstr"
-                  hair="dap1"
-                  hat=""
+                  skinTone={characterAppearance.base}
+                  outfit={characterAppearance.outfit}
+                  hair={characterAppearance.hair}
+                  hat={characterAppearance.hat || ''}
                   size={64}
                   autoWalk={true}
                   walkAreaWidth={240}
