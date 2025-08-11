@@ -159,6 +159,7 @@ export async function POST(request: NextRequest) {
     
     // Determine outcome type and modifiers
     let outcomeType: string;
+    let outcomeDescription: string;
     let goldMultiplier: number;
     let itemMultiplier: number;
     let bonusChance: number;
@@ -166,36 +167,42 @@ export async function POST(request: NextRequest) {
     
     if (outcomeRoll >= 90) {
       outcomeType = 'CRITICAL_SUCCESS';
+      outcomeDescription = 'Exceptional success! Your caravan traveled swiftly and safely, with expert navigation avoiding all hazards. The crew discovered additional opportunities along the route.';
       goldMultiplier = 1.5;
       itemMultiplier = 1.0;
       bonusChance = 0.8; // 80% chance for bonus items
       discoveryChance = 0.3; // 30% chance for discovery
     } else if (outcomeRoll >= 70) {
       outcomeType = 'GOOD_SUCCESS';
+      outcomeDescription = 'Great success! The journey proceeded smoothly with only minor delays. Your caravan arrived safely with full cargo and some extra goods picked up en route.';
       goldMultiplier = 1.2;
       itemMultiplier = 1.0;
       bonusChance = 0.4; // 40% chance for bonus items
       discoveryChance = 0.1; // 10% chance for discovery
     } else if (outcomeRoll >= 40) {
       outcomeType = 'NORMAL_SUCCESS';
+      outcomeDescription = 'Mission completed successfully. The caravan reached its destination as planned with all expected cargo intact. A routine but profitable journey.';
       goldMultiplier = 1.0;
       itemMultiplier = 1.0;
       bonusChance = 0.1; // 10% chance for bonus items
       discoveryChance = 0.05; // 5% chance for discovery
     } else if (outcomeRoll >= 20) {
       outcomeType = 'POOR_SUCCESS';
+      outcomeDescription = 'Difficult journey with complications. Your caravan faced delays, harsh weather, or equipment problems but managed to deliver most of the cargo. Some goods were damaged or lost.';
       goldMultiplier = 0.7;
       itemMultiplier = 0.75;
       bonusChance = 0.0;
       discoveryChance = 0.0;
     } else if (outcomeRoll >= 5) {
       outcomeType = 'FAILURE';
+      outcomeDescription = 'Mission largely failed due to bandits, severe weather, or major equipment failure. Only salvaged a small portion of the cargo and minimal payment for the attempt.';
       goldMultiplier = 0.3;
       itemMultiplier = 0.25;
       bonusChance = 0.0;
       discoveryChance = 0.0;
     } else {
       outcomeType = 'CRITICAL_FAILURE';
+      outcomeDescription = 'Catastrophic failure! The caravan was completely lost to bandits, disasters, or other calamity. Nothing was recovered and the caravan requires major repairs.';
       goldMultiplier = 0.0;
       itemMultiplier = 0.0;
       bonusChance = 0.0;
@@ -215,12 +222,25 @@ export async function POST(request: NextRequest) {
     const variation = Math.floor(actualReward * 0.1 * (Math.random() * 2 - 1));
     actualReward = Math.max(0, actualReward + variation);
     
-    // Calculate item rewards
-    let itemsReceived = missionDef.itemRewards ? [...(missionDef.itemRewards as any[])] : [];
-    itemsReceived = itemsReceived.map((item: any) => ({
+    // Calculate item rewards and track what was lost
+    const originalItems = missionDef.itemRewards ? [...(missionDef.itemRewards as any[])] : [];
+    let itemsReceived = originalItems.map((item: any) => ({
       ...item,
       qty: Math.max(0, Math.floor(item.qty * itemMultiplier))
-    })).filter((item: any) => item.qty > 0);
+    }));
+    
+    // Track what was lost for detailed reporting
+    const itemsLost = originalItems.map((originalItem: any) => {
+      const receivedItem = itemsReceived.find((item: any) => item.itemKey === originalItem.itemKey);
+      const lostQty = originalItem.qty - (receivedItem?.qty || 0);
+      return {
+        itemKey: originalItem.itemKey,
+        qty: lostQty
+      };
+    }).filter((item: any) => item.qty > 0);
+    
+    // Filter out zero-quantity items from received
+    itemsReceived = itemsReceived.filter((item: any) => item.qty > 0);
     
     // Track bonus/discovery for response
     let bonusItemsAdded = false;
@@ -307,22 +327,69 @@ export async function POST(request: NextRequest) {
       }
     });
 
+    // Calculate gold lost for reporting
+    const expectedGold = missionDef.riskLevel === 'HIGH' ? Math.floor(missionDef.baseReward * 1.25) : missionDef.baseReward;
+    const goldLost = expectedGold - actualReward;
+    
+    // Create detailed outcome report
+    let outcomeReport = outcomeDescription;
+    
+    // Add specific details about what happened
+    if (actualReward > expectedGold) {
+      outcomeReport += ` You earned ${actualReward - expectedGold} extra gold from excellent performance.`;
+    } else if (goldLost > 0) {
+      outcomeReport += ` ${goldLost} gold was lost due to complications.`;
+    }
+    
+    if (bonusItemsAdded) {
+      outcomeReport += ' Your crew found additional valuable materials during the journey.';
+    }
+    
+    if (discoveryItemsAdded) {
+      outcomeReport += ' A remarkable discovery was made along the route!';
+    }
+    
+    if (itemsLost.length > 0) {
+      const lostItemNames = itemsLost.map(item => `${item.qty} ${item.itemKey.replace('_', ' ')}`).join(', ');
+      outcomeReport += ` Lost cargo: ${lostItemNames}.`;
+    }
+
     return NextResponse.json({
       success: true,
       missionSuccess: success,
       outcomeType,
       outcomeRoll,
+      outcomeDescription: outcomeReport,
       rewards: {
         gold: actualReward,
         items: itemsReceived
+      },
+      breakdown: {
+        expectedRewards: {
+          gold: expectedGold,
+          items: originalItems
+        },
+        actualRewards: {
+          gold: actualReward,
+          items: itemsReceived
+        },
+        losses: {
+          gold: Math.max(0, goldLost),
+          items: itemsLost
+        },
+        bonuses: {
+          bonusItemsAdded,
+          discoveryItemsAdded,
+          goldBonus: Math.max(0, actualReward - expectedGold)
+        }
       },
       details: {
         baseGold: missionDef.baseReward,
         goldMultiplier,
         riskBonus: missionDef.riskLevel === 'HIGH' ? 1.25 : 1.0,
         finalGoldBeforeVariation: Math.floor((missionDef.riskLevel === 'HIGH' ? missionDef.baseReward * 1.25 : missionDef.baseReward) * goldMultiplier),
-        bonusItemsAdded,
-        discoveryItemsAdded
+        itemMultiplier,
+        riskLevel: missionDef.riskLevel
       },
       completedMission
     });
