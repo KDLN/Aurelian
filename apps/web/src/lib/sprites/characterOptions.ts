@@ -81,33 +81,14 @@ export const CHARACTER_OPTIONS = {
   ],
 };
 
-import { saveCharacterToDatabase, loadCharacterFromDatabase, migrateLocalStorageToDatabase } from './characterDatabase';
+import { saveCharacterToDatabase, loadCharacterFromDatabase } from './characterDatabase';
 import { CharacterAppearance } from './characterSprites';
 
 export async function saveCharacterAppearance(appearance: CharacterAppearance) {
-  // Save to both localStorage (immediate) and database (future)
-  localStorage.setItem('character_appearance', JSON.stringify(appearance));
   await saveCharacterToDatabase(appearance);
 }
 
 export function loadCharacterAppearance(): CharacterAppearance {
-  // Try to load from localStorage first
-  const saved = localStorage.getItem('character_appearance');
-  if (saved) {
-    try {
-      return JSON.parse(saved);
-    } catch (error) {
-      console.warn('Failed to parse saved character appearance:', error);
-    }
-  }
-  
-  // Try to migrate old data
-  const migrated = migrateLocalStorageToDatabase();
-  if (migrated) {
-    return migrated;
-  }
-  
-  // Default appearance
   return {
     name: 'Trader',
     base: 'v01',
@@ -117,15 +98,13 @@ export function loadCharacterAppearance(): CharacterAppearance {
   };
 }
 
-export async function loadCharacterAppearanceAsync(userId?: string): Promise<CharacterAppearance> {
-  // Try to load from database first
-  if (userId) {
-    const dbAppearance = await loadCharacterFromDatabase(userId);
-    if (dbAppearance) {
-      return dbAppearance;
-    }
+export async function loadCharacterAppearanceAsync(
+  userId?: string
+): Promise<CharacterAppearance> {
+  const dbAppearance = await loadCharacterFromDatabase(userId);
+  if (dbAppearance) {
+    return dbAppearance;
   }
-  
-  // Fallback to synchronous load
+
   return loadCharacterAppearance();
 }

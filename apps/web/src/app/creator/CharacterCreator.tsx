@@ -1,7 +1,12 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { CharacterSprite, CharacterAppearance } from '../../lib/sprites/characterSprites';
-import { CHARACTER_OPTIONS, saveCharacterAppearance, loadCharacterAppearance } from '../../lib/sprites/characterOptions';
+import {
+  CHARACTER_OPTIONS,
+  saveCharacterAppearance,
+  loadCharacterAppearance,
+  loadCharacterAppearanceAsync
+} from '../../lib/sprites/characterOptions';
 
 export default function CharacterCreator() {
   const [appearance, setAppearance] = useState<CharacterAppearance>(loadCharacterAppearance());
@@ -16,6 +21,15 @@ export default function CharacterCreator() {
   useEffect(() => {
     loadSprite();
   }, [appearance]);
+
+  useEffect(() => {
+    const loadFromDb = async () => {
+      const dbAppearance = await loadCharacterAppearanceAsync();
+      setAppearance(dbAppearance);
+      setName(dbAppearance.name || 'Trader');
+    };
+    loadFromDb();
+  }, []);
 
   useEffect(() => {
     console.log('Setting animation:', animationType, direction);
