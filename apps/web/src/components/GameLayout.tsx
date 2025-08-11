@@ -46,17 +46,17 @@ export default function GameLayout({
         // First try to load from database
         const { loadCharacterFromDatabase } = await import('@/lib/sprites/characterDatabase');
         const dbAppearance = await loadCharacterFromDatabase();
-        
+
         if (dbAppearance) {
           setCharacterAppearance(dbAppearance);
         } else {
-          // Fallback to localStorage
-          const localAppearance = loadCharacterAppearance();
-          setCharacterAppearance(localAppearance);
+          console.warn('No character appearance found in database, using defaults');
+          // Use default appearance
+          const defaultAppearance = loadCharacterAppearance();
+          setCharacterAppearance(defaultAppearance);
         }
       } catch (error) {
         console.error('Error loading character appearance:', error);
-        // Use default appearance
         const defaultAppearance = loadCharacterAppearance();
         setCharacterAppearance(defaultAppearance);
       }
