@@ -2,6 +2,7 @@
 
 import { ReactNode, useEffect, useState } from 'react';
 import { useGameWorld } from '@/lib/game/world';
+import { useUserData } from '@/hooks/useUserData';
 import CharacterViewer from './CharacterViewer';
 import '@/lib/game/styles.css';
 
@@ -23,6 +24,7 @@ export default function GameLayout({
   characterLocation = 'Hub'
 }: GameLayoutProps) {
   const { world, subscribe } = useGameWorld();
+  const { wallet } = useUserData();
   const [, forceUpdate] = useState(0);
   const [currentPath, setCurrentPath] = useState('');
 
@@ -68,7 +70,9 @@ export default function GameLayout({
 
           <div className="game-flex">
             <span>Gold:</span>
-            <span className="game-pill game-pill-good">{world.gold.toLocaleString()}</span>
+            <span className="game-pill game-pill-good">
+              {wallet ? wallet.gold.toLocaleString() : world.gold.toLocaleString()}
+            </span>
           </div>
 
           <div>

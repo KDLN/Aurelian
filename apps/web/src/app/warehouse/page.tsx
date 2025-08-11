@@ -3,23 +3,34 @@
 import { useState } from 'react';
 import GameLayout from '@/components/GameLayout';
 import { useGameWorld } from '@/lib/game/world';
+import { useUserData } from '@/hooks/useUserData';
 
 export default function WarehousePage() {
   const { world } = useGameWorld();
+  const { user, authLoaded, inventory, isLoading, error } = useUserData();
   const [selectedItem, setSelectedItem] = useState('');
   const [transferQty, setTransferQty] = useState(1);
   const [transferTo, setTransferTo] = useState<'caravan' | 'escrow'>('caravan');
 
-  const warehouseItems = Object.entries(world.warehouse)
-    .filter(([, qty]) => qty > 0)
-    .sort(([a], [b]) => a.localeCompare(b));
+  // Use real inventory data when available, fallback to mock data
+  const warehouseItems = inventory?.inventory || [];
+  const warehouseMap = warehouseItems.reduce((acc, item) => {
+    acc[item.itemName] = item.quantity;
+    return acc;
+  }, {} as Record<string, number>);
 
   const getTotalValue = () => {
+    if (inventory?.inventory) {
+      return warehouseItems.reduce((sum, item) => sum + (item.quantity * world.priceOf(item.itemName)), 0);
+    }
     return Object.entries(world.warehouse)
       .reduce((sum, [item, qty]) => sum + (qty * world.priceOf(item)), 0);
   };
 
   const getStorageUsed = () => {
+    if (inventory?.totalItems) {
+      return inventory.totalItems;
+    }
     return Object.values(world.warehouse).reduce((sum, qty) => sum + qty, 0);
   };
 
@@ -34,7 +45,7 @@ export default function WarehousePage() {
       return;
     }
 
-    if ((world.warehouse[selectedItem] || 0) < transferQty) {
+    if ((warehouseMap[selectedItem] || 0) < transferQty) {
       alert('Not enough items in warehouse');
       return;
     }
@@ -94,26 +105,43 @@ export default function WarehousePage() {
       characterLocation="Warehouse"
       sidebar={sidebar}
     >
-      <div className="game-flex-col">
+      {!authLoaded ? (
         <div className="game-card">
-          <h3>Storage Summary</h3>
-          <div className="game-grid-3">
-            <div className="game-space-between">
-              <span>Total Items:</span>
-              <span className="game-good">{getStorageUsed().toLocaleString()}</span>
-            </div>
-            <div className="game-space-between">
-              <span>Estimated Value:</span>
-              <span className="game-good">{getTotalValue().toLocaleString()}g</span>
-            </div>
-            <div className="game-space-between">
-              <span>Capacity Used:</span>
-              <span className={getStorageUsed() > 800 ? 'game-bad' : 'game-good'}>
-                {Math.round((getStorageUsed() / 1000) * 100)}%
-              </span>
+          <p>Loading authentication...</p>
+        </div>
+      ) : !user ? (
+        <div className="game-card">
+          <p className="game-warn">Please log in to view your warehouse</p>
+        </div>
+      ) : isLoading ? (
+        <div className="game-card">
+          <p>Loading warehouse data...</p>
+        </div>
+      ) : error ? (
+        <div className="game-card">
+          <p className="game-bad">Error loading warehouse: {error}</p>
+        </div>
+      ) : (
+        <div className="game-flex-col">
+          <div className="game-card">
+            <h3>Storage Summary</h3>
+            <div className="game-grid-3">
+              <div className="game-space-between">
+                <span>Total Items:</span>
+                <span className="game-good">{getStorageUsed().toLocaleString()}</span>
+              </div>
+              <div className="game-space-between">
+                <span>Estimated Value:</span>
+                <span className="game-good">{getTotalValue().toLocaleString()}g</span>
+              </div>
+              <div className="game-space-between">
+                <span>Capacity Used:</span>
+                <span className={getStorageUsed() > 800 ? 'game-bad' : 'game-good'}>
+                  {Math.round((getStorageUsed() / 1000) * 100)}%
+                </span>
+              </div>
             </div>
           </div>
-        </div>
 
         <div className="game-card">
           <h3>Transfer Items</h3>
@@ -126,9 +154,9 @@ export default function WarehousePage() {
                 style={{ width: '100%' }}
               >
                 <option value="">Select item...</option>
-                {warehouseItems.map(([item]) => (
-                  <option key={item} value={item}>
-                    {item} ({world.warehouse[item]} available)
+                {warehouseItems.filter(item => item.quantity > 0).map((item) => (
+                  <option key={item.itemKey} value={item.itemName}>
+                    {item.itemName} ({item.quantity} available)
                   </option>
                 ))}
               </select>
@@ -141,7 +169,7 @@ export default function WarehousePage() {
                 value={transferQty}
                 onChange={(e) => setTransferQty(Number(e.target.value))}
                 min="1"
-                max={selectedItem ? world.warehouse[selectedItem] || 0 : 0}
+                max={selectedItem ? warehouseMap[selectedItem] || 0 : 0}
                 style={{ width: '100%' }}
               />
             </div>
@@ -169,82 +197,85 @@ export default function WarehousePage() {
           </button>
         </div>
 
-        <div className="game-card">
-          <h3>Current Inventory</h3>
-          {warehouseItems.length > 0 ? (
-            <table>
-              <thead>
-                <tr>
-                  <th>Item</th>
-                  <th>Quantity</th>
-                  <th>Market Value</th>
-                  <th>Total Value</th>
-                  <th>% of Storage</th>
-                </tr>
-              </thead>
-              <tbody>
-                {warehouseItems.map(([item, qty]) => {
-                  const marketPrice = world.priceOf(item);
-                  const totalValue = qty * marketPrice;
-                  const storagePercent = Math.round((qty / 1000) * 100 * 10) / 10;
-                  
-                  return (
-                    <tr key={item}>
-                      <td>{item}</td>
-                      <td>{qty}</td>
-                      <td>{marketPrice}g</td>
-                      <td>{totalValue.toLocaleString()}g</td>
-                      <td className={storagePercent > 50 ? 'game-warn' : 'game-muted'}>
-                        {storagePercent}%
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          ) : (
-            <p className="game-muted">Warehouse is empty</p>
-          )}
-        </div>
+          <div className="game-card">
+            <h3>Current Inventory</h3>
+            {warehouseItems.length > 0 ? (
+              <table>
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th>Quantity</th>
+                    <th>Rarity</th>
+                    <th>Market Value</th>
+                    <th>Total Value</th>
+                    <th>% of Storage</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {warehouseItems.filter(item => item.quantity > 0).map((item) => {
+                    const marketPrice = world.priceOf(item.itemName);
+                    const totalValue = item.quantity * marketPrice;
+                    const storagePercent = Math.round((item.quantity / 1000) * 100 * 10) / 10;
+                    
+                    return (
+                      <tr key={item.itemKey}>
+                        <td>{item.itemName}</td>
+                        <td>{item.quantity}</td>
+                        <td className={`game-${item.rarity.toLowerCase()}`}>{item.rarity}</td>
+                        <td>{marketPrice}g</td>
+                        <td>{totalValue.toLocaleString()}g</td>
+                        <td className={storagePercent > 50 ? 'game-warn' : 'game-muted'}>
+                          {storagePercent}%
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            ) : (
+              <p className="game-muted">Warehouse is empty</p>
+            )}
+          </div>
 
-        <div className="game-card">
-          <h3>Storage by Category</h3>
-          <div className="game-grid-2">
-            <div>
-              <h4>Raw Materials</h4>
-              <div className="game-flex-col">
-                {['Iron Ore', 'Hide', 'Herb', 'Pearl', 'Relic Fragment'].map(item => (
-                  <div key={item} className="game-space-between">
-                    <span className="game-small">{item}:</span>
-                    <span className="game-pill">{world.warehouse[item] || 0}</span>
-                  </div>
-                ))}
+          <div className="game-card">
+            <h3>Storage by Category</h3>
+            <div className="game-grid-2">
+              <div>
+                <h4>Raw Materials</h4>
+                <div className="game-flex-col">
+                  {['Iron Ore', 'Hide', 'Herb', 'Pearl', 'Relic Fragment'].map(item => (
+                    <div key={item} className="game-space-between">
+                      <span className="game-small">{item}:</span>
+                      <span className="game-pill">{warehouseMap[item] || 0}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-            
-            <div>
-              <h4>Crafted Goods</h4>
-              <div className="game-flex-col">
-                {['Iron Ingot', 'Leather Roll', 'Healing Tonic'].map(item => (
-                  <div key={item} className="game-space-between">
-                    <span className="game-small">{item}:</span>
-                    <span className="game-pill game-pill-good">{world.warehouse[item] || 0}</span>
-                  </div>
-                ))}
+              
+              <div>
+                <h4>Crafted Goods</h4>
+                <div className="game-flex-col">
+                  {['Iron Ingot', 'Leather Roll', 'Healing Tonic'].map(item => (
+                    <div key={item} className="game-space-between">
+                      <span className="game-small">{item}:</span>
+                      <span className="game-pill game-pill-good">{warehouseMap[item] || 0}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div className="game-card">
-          <h3>Quick Actions</h3>
-          <div className="game-grid-3">
-            <a href="/missions" className="game-btn">Send Mission</a>
-            <a href="/auction" className="game-btn">List Items</a>
-            <a href="/crafting" className="game-btn">Start Crafting</a>
+          <div className="game-card">
+            <h3>Quick Actions</h3>
+            <div className="game-grid-3">
+              <a href="/missions" className="game-btn">Send Mission</a>
+              <a href="/auction" className="game-btn">List Items</a>
+              <a href="/crafting" className="game-btn">Start Crafting</a>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </GameLayout>
   );
 }
