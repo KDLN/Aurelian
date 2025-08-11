@@ -9,7 +9,7 @@ import { AuctionTickerRoom } from './rooms/ticker.js';
 import { AuctionRoom } from './rooms/auction.js';
 
 const app = express();
-app.get('/', (_req: Request, res: Response) => res.send('Aurelian Realtime Server - Deployed'));
+app.get('/', (_req: Request, res: Response) => res.send('Aurelian Realtime Server v2.0 - Ready'));
 const server = createServer(app);
 
 const gameServer = new Server({
