@@ -4,7 +4,17 @@ import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
 
-const prisma = new PrismaClient();
+let prisma: PrismaClient | null = null;
+
+// Only initialize Prisma if DATABASE_URL is properly configured
+if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('://')) {
+  try {
+    prisma = new PrismaClient();
+  } catch (error) {
+    console.warn('Failed to initialize Prisma:', error);
+    prisma = null;
+  }
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,19 +38,31 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    // Check if database is configured
-    if (!process.env.DATABASE_URL) {
-      console.warn('DATABASE_URL not configured, returning default wallet data');
+    // Check if database is configured and Prisma is initialized
+    if (!prisma || !process.env.DATABASE_URL || process.env.DATABASE_URL === '') {
+      console.warn('Database not configured, returning default wallet data');
       return NextResponse.json({
         gold: 1000,
-        userId: user.id
+        userId: user.id,
+        source: 'default'
       });
     }
 
-    // Get user's wallet from database
-    const wallet = await prisma.wallet.findUnique({
-      where: { userId: user.id }
-    });
+    // Try to get user's wallet from database
+    let wallet;
+    try {
+      wallet = await prisma.wallet.findUnique({
+        where: { userId: user.id }
+      });
+    } catch (dbError) {
+      console.error('Database query failed:', dbError);
+      // Return default data on database error
+      return NextResponse.json({
+        gold: 1000,
+        userId: user.id,
+        source: 'default-on-error'
+      });
+    }
 
     if (!wallet) {
       // Return default wallet if not found
@@ -62,6 +84,8 @@ export async function GET(request: NextRequest) {
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   } finally {
-    await prisma.$disconnect();
+    if (prisma) {
+      await prisma.$disconnect();
+    }
   }
 }
