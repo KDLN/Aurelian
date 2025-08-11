@@ -180,7 +180,7 @@ export default function LeaderboardPage() {
   return (
     <GameLayout 
       title="Mission Leaderboards" 
-      characterActivity="viewing leaderboards"
+      characterActivity="idle"
       characterLocation="Hall of Fame"
       sidebar={sidebar}
     >
