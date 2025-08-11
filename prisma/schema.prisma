@@ -63,10 +63,11 @@ model User {
   missions      Mission[]
   craftJobs     CraftJob[]
   routeBookings RouteBooking[]
-  inventories   Inventory[] // opposite of Inventory.user
-  ledger        LedgerTx[] // opposite of LedgerTx.user
-  trailNodes    TrailNode[] // opposite of TrailNode.user
-  trailSegs     TrailSeg[] // opposite of TrailSeg.user
+  inventories      Inventory[] // opposite of Inventory.user
+  ledger           LedgerTx[] // opposite of LedgerTx.user
+  trailNodes       TrailNode[] // opposite of TrailNode.user
+  trailSegs        TrailSeg[] // opposite of TrailSeg.user
+  missionInstances MissionInstance[] // opposite of MissionInstance.user
 }
 
 model Profile {
@@ -326,4 +327,41 @@ model RouteBooking {
   toHub   Hub? @relation("Route_to", fields: [toHubId], references: [id])
 
   @@index([userId, createdAt])
+}
+
+// ---------- Missions System ----------
+model MissionDef {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name         String
+  description  String
+  fromHub      String   @default("Home")
+  toHub        String   
+  distance     Int      @default(100)
+  baseDuration Int      @default(300) // seconds
+  baseReward   Int      @default(50)  // gold
+  riskLevel    MissionRisk @default(LOW)
+  itemRewards  Json?    // array of {itemKey: string, qty: number}
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  instances MissionInstance[]
+}
+
+model MissionInstance {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String   @db.Uuid
+  missionId   String   @db.Uuid
+  status      String   @default("active") // active, completed, failed
+  startTime   DateTime @default(now())
+  endTime     DateTime
+  actualReward Int?
+  itemsReceived Json?   // actual items received
+  createdAt   DateTime @default(now())
+  completedAt DateTime?
+
+  user    User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mission MissionDef @relation(fields: [missionId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([endTime])
 }

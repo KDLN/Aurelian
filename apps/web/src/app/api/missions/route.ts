@@ -1,0 +1,213 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
+import { createClient } from '@supabase/supabase-js';
+
+export const dynamic = 'force-dynamic';
+
+// Initialize Prisma client with error handling
+let prisma: PrismaClient | null = null;
+if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('://')) {
+  try {
+    prisma = new PrismaClient();
+  } catch (error) {
+    console.error('Failed to initialize Prisma client:', error);
+    prisma = null;
+  }
+}
+
+// Initialize Supabase client
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+// GET - Fetch all mission definitions and user's active missions
+export async function GET(request: NextRequest) {
+  try {
+    // Get JWT token from headers
+    const token = request.headers.get('authorization')?.replace('Bearer ', '');
+    
+    if (!token) {
+      return NextResponse.json({ error: 'No token provided' }, { status: 401 });
+    }
+
+    // Verify token with Supabase
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    }
+
+    if (!prisma) {
+      // Return mock data when database is not available
+      const mockMissionDefs = [
+        {
+          id: 'mock-1',
+          name: 'Iron Ore Run',
+          description: 'Transport iron ore from the mines to the city',
+          fromHub: 'Mining Camp',
+          toHub: 'Capital City',
+          distance: 150,
+          baseDuration: 300,
+          baseReward: 75,
+          riskLevel: 'LOW',
+          itemRewards: [{ itemKey: 'iron_ore', qty: 3 }],
+          isActive: true
+        },
+        {
+          id: 'mock-2', 
+          name: 'Herb Delivery',
+          description: 'Deliver rare herbs to the healers guild',
+          fromHub: 'Forest Camp',
+          toHub: 'Capital City', 
+          distance: 200,
+          baseDuration: 420,
+          baseReward: 100,
+          riskLevel: 'MEDIUM',
+          itemRewards: [{ itemKey: 'herb', qty: 2 }],
+          isActive: true
+        },
+        {
+          id: 'mock-3',
+          name: 'Relic Recovery',
+          description: 'Dangerous expedition to recover ancient relics',
+          fromHub: 'Capital City',
+          toHub: 'Ancient Ruins',
+          distance: 300,
+          baseDuration: 600,
+          baseReward: 200,
+          riskLevel: 'HIGH', 
+          itemRewards: [{ itemKey: 'relic_fragment', qty: 1 }],
+          isActive: true
+        }
+      ];
+
+      const mockActiveMissions: any[] = [];
+
+      return NextResponse.json({
+        missionDefs: mockMissionDefs,
+        activeMissions: mockActiveMissions
+      });
+    }
+
+    // Get all active mission definitions
+    const missionDefs = await prisma.missionDef.findMany({
+      where: { isActive: true },
+      orderBy: { riskLevel: 'asc' }
+    });
+
+    // Get user's active mission instances
+    const activeMissions = await prisma.missionInstance.findMany({
+      where: {
+        userId: user.id,
+        status: 'active'
+      },
+      include: {
+        mission: true
+      }
+    });
+
+    return NextResponse.json({
+      missionDefs,
+      activeMissions
+    });
+
+  } catch (error) {
+    console.error('Error fetching missions:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch missions' },
+      { status: 500 }
+    );
+  }
+}
+
+// POST - Start a new mission
+export async function POST(request: NextRequest) {
+  try {
+    // Get JWT token from headers
+    const token = request.headers.get('authorization')?.replace('Bearer ', '');
+    
+    if (!token) {
+      return NextResponse.json({ error: 'No token provided' }, { status: 401 });
+    }
+
+    // Verify token with Supabase
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    }
+
+    const { missionId } = await request.json();
+
+    if (!missionId) {
+      return NextResponse.json({ error: 'Mission ID required' }, { status: 400 });
+    }
+
+    if (!prisma) {
+      // Return mock success when database is not available
+      return NextResponse.json({
+        success: true,
+        missionInstance: {
+          id: 'mock-instance-' + Date.now(),
+          missionId,
+          status: 'active',
+          startTime: new Date(),
+          endTime: new Date(Date.now() + 300000), // 5 minutes from now
+          actualReward: null,
+          itemsReceived: null
+        }
+      });
+    }
+
+    // Get mission definition
+    const missionDef = await prisma.missionDef.findUnique({
+      where: { id: missionId }
+    });
+
+    if (!missionDef || !missionDef.isActive) {
+      return NextResponse.json({ error: 'Mission not found or inactive' }, { status: 404 });
+    }
+
+    // Check if user already has this mission active
+    const existingMission = await prisma.missionInstance.findFirst({
+      where: {
+        userId: user.id,
+        missionId,
+        status: 'active'
+      }
+    });
+
+    if (existingMission) {
+      return NextResponse.json({ error: 'Mission already in progress' }, { status: 400 });
+    }
+
+    // Calculate end time based on base duration
+    const endTime = new Date(Date.now() + missionDef.baseDuration * 1000);
+
+    // Create new mission instance
+    const missionInstance = await prisma.missionInstance.create({
+      data: {
+        userId: user.id,
+        missionId,
+        status: 'active',
+        endTime
+      },
+      include: {
+        mission: true
+      }
+    });
+
+    return NextResponse.json({
+      success: true,
+      missionInstance
+    });
+
+  } catch (error) {
+    console.error('Error starting mission:', error);
+    return NextResponse.json(
+      { error: 'Failed to start mission' },
+      { status: 500 }
+    );
+  }
+}
