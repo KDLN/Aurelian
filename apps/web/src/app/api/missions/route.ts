@@ -6,12 +6,24 @@ export const dynamic = 'force-dynamic';
 
 // Initialize Prisma client with error handling
 let prisma: PrismaClient | null = null;
-if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('://')) {
-  try {
-    prisma = new PrismaClient();
-  } catch (error) {
-    console.error('Failed to initialize Prisma client:', error);
-    prisma = null;
+
+function initPrisma() {
+  if (prisma) return prisma;
+  
+  console.log('🔍 DATABASE_URL status:', process.env.DATABASE_URL ? 'SET' : 'NOT SET');
+  
+  if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('://')) {
+    try {
+      prisma = new PrismaClient();
+      console.log('✅ Prisma client initialized successfully');
+      return prisma;
+    } catch (error) {
+      console.error('❌ Failed to initialize Prisma client:', error);
+      return null;
+    }
+  } else {
+    console.log('⚠️ DATABASE_URL not found or invalid');
+    return null;
   }
 }
 
@@ -38,7 +50,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    if (!prisma) {
+    const db = initPrisma();
+    if (!db) {
       // Return mock data when database is not available
       const mockMissionDefs = [
         {
@@ -90,14 +103,15 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    console.log('✅ Using database - Prisma initialized successfully');
     // Get all active mission definitions
-    const missionDefs = await prisma.missionDef.findMany({
+    const missionDefs = await db.missionDef.findMany({
       where: { isActive: true },
       orderBy: { riskLevel: 'asc' }
     });
 
     // Get user's active mission instances
-    const activeMissions = await prisma.missionInstance.findMany({
+    const activeMissions = await db.missionInstance.findMany({
       where: {
         userId: user.id,
         status: 'active'
@@ -109,7 +123,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       missionDefs,
-      activeMissions
+      activeMissions,
+      debugTimestamp: new Date().toISOString()
     });
 
   } catch (error) {
@@ -144,7 +159,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Mission ID required' }, { status: 400 });
     }
 
-    if (!prisma) {
+    const db = initPrisma();
+    if (!db) {
+      console.log('⚠️ Using mock mission creation - Prisma not initialized');
       // Return mock success when database is not available
       return NextResponse.json({
         success: true,
@@ -161,7 +178,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get mission definition
-    const missionDef = await prisma.missionDef.findUnique({
+    const missionDef = await db.missionDef.findUnique({
       where: { id: missionId }
     });
 
@@ -170,7 +187,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already has this mission active
-    const existingMission = await prisma.missionInstance.findFirst({
+    const existingMission = await db.missionInstance.findFirst({
       where: {
         userId: user.id,
         missionId,
@@ -185,8 +202,9 @@ export async function POST(request: NextRequest) {
     // Calculate end time based on base duration
     const endTime = new Date(Date.now() + missionDef.baseDuration * 1000);
 
+    console.log('✅ Creating mission instance in database');
     // Create new mission instance
-    const missionInstance = await prisma.missionInstance.create({
+    const missionInstance = await db.missionInstance.create({
       data: {
         userId: user.id,
         missionId,

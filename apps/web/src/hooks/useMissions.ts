@@ -67,8 +67,10 @@ export function useMissions(): UseMissionsReturn {
       }
 
       const data = await response.json();
+      console.log('🔍 Missions API response:', data);
       setMissionDefs(data.missionDefs || []);
       setActiveMissions(data.activeMissions || []);
+      console.log('🎯 Set active missions:', data.activeMissions || []);
       
     } catch (err) {
       console.error('Error fetching missions:', err);
@@ -104,8 +106,10 @@ export function useMissions(): UseMissionsReturn {
       }
 
       const data = await response.json();
+      console.log('🚀 Mission start response:', data);
       if (data.success) {
         // Refresh missions to get updated state
+        console.log('🔄 Refreshing missions after successful start');
         await fetchMissions();
         return true;
       }
