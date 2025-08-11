@@ -83,6 +83,19 @@ export async function POST(request: NextRequest) {
         break;
     }
     
+    // Enhanced risk factors: distance and duration affect difficulty
+    if (missionDef.distance > 200) {
+      outcomeRoll -= 3; // Long journeys are more dangerous
+    } else if (missionDef.distance < 100) {
+      outcomeRoll += 3; // Short journeys are safer
+    }
+    
+    if (missionDef.baseDuration > 300) { // > 5 minutes
+      outcomeRoll -= 2; // Extended missions have more chances for complications
+    } else if (missionDef.baseDuration < 180) { // < 3 minutes
+      outcomeRoll += 2; // Quick missions are less risky
+    }
+    
     // Clamp roll between 0-100
     outcomeRoll = Math.max(0, Math.min(100, outcomeRoll));
     
@@ -94,7 +107,14 @@ export async function POST(request: NextRequest) {
     let bonusChance: number;
     let discoveryChance: number;
     
-    if (outcomeRoll >= 90) {
+    if (outcomeRoll >= 95) {
+      outcomeType = 'LEGENDARY_SUCCESS';
+      outcomeDescription = 'Legendary success! Your caravan discovered a secret route and ancient cache, completing the mission with extraordinary results. Word of this achievement will spread throughout the realm, enhancing your reputation significantly.';
+      goldMultiplier = 2.0; // Double rewards for legendary success
+      itemMultiplier = 1.2; // Bonus items too
+      bonusChance = 0.95; // Almost guaranteed bonus items
+      discoveryChance = 0.6; // High discovery chance
+    } else if (outcomeRoll >= 90) {
       outcomeType = 'CRITICAL_SUCCESS';
       outcomeDescription = 'Exceptional success! Your caravan traveled swiftly and safely, with expert navigation avoiding all hazards. The crew discovered additional opportunities along the route.';
       goldMultiplier = 1.5;
@@ -175,31 +195,82 @@ export async function POST(request: NextRequest) {
     let bonusItemsAdded = false;
     let discoveryItemsAdded = false;
     
-    // Add bonus items for good outcomes
+    // Enhanced context-aware bonus items
     if (bonusChance > 0 && Math.random() < bonusChance) {
       bonusItemsAdded = true;
-      const bonusItems = ['iron_ore', 'herb', 'hide'];
-      const bonusItem = bonusItems[Math.floor(Math.random() * bonusItems.length)];
+      
+      // Context-aware bonus items based on mission location
+      const getBonusItemsForMission = (missionDef: any) => {
+        const bonusMap: { [key: string]: string[] } = {
+          'Mining Camp': ['iron_ore', 'iron_ingot'],
+          'Forest Outpost': ['herb', 'healing_tonic'],
+          'Tribal Grounds': ['hide', 'leather_roll'],
+          'Harbor Town': ['pearl', 'hide'],
+          'Ancient Ruins': ['relic_fragment', 'pearl'],
+          'Treasure Island': ['pearl', 'relic_fragment'],
+          'Capital City': ['iron_ore', 'herb', 'hide'], // Trading hub
+          'Frontier Town': ['iron_ore', 'hide'],
+          'Village Clinic': ['herb', 'healing_tonic'],
+          'Coastal Ruins': ['pearl', 'relic_fragment'],
+          'Hidden Cove': ['pearl', 'relic_fragment']
+        };
+        
+        return bonusMap[missionDef.fromHub] || bonusMap[missionDef.toHub] || ['iron_ore', 'herb', 'hide'];
+      };
+      
+      const contextualBonusItems = getBonusItemsForMission(missionDef);
+      const bonusItem = contextualBonusItems[Math.floor(Math.random() * contextualBonusItems.length)];
       const existingBonus = itemsReceived.find((item: any) => item.itemKey === bonusItem);
       
+      // Scale bonus quantity based on outcome quality
+      let bonusQuantity = Math.ceil(Math.random() * 2); // Base 1-2
+      if (outcomeType === 'CRITICAL_SUCCESS') {
+        bonusQuantity = Math.ceil(Math.random() * 3) + 1; // 2-4 for critical success
+      } else if (outcomeType === 'GOOD_SUCCESS') {
+        bonusQuantity = Math.ceil(Math.random() * 2) + 1; // 2-3 for good success
+      }
+      
       if (existingBonus) {
-        existingBonus.qty += Math.ceil(Math.random() * 2); // 1-2 bonus
+        existingBonus.qty += bonusQuantity;
       } else {
-        itemsReceived.push({ itemKey: bonusItem, qty: Math.ceil(Math.random() * 2) });
+        itemsReceived.push({ itemKey: bonusItem, qty: bonusQuantity });
       }
     }
     
-    // Add discovery items for exceptional outcomes
+    // Enhanced discovery items for exceptional outcomes
     if (discoveryChance > 0 && Math.random() < discoveryChance) {
       discoveryItemsAdded = true;
-      const discoveryItems = ['pearl', 'relic_fragment'];
-      const discoveryItem = discoveryItems[Math.floor(Math.random() * discoveryItems.length)];
+      
+      // Context-aware discovery items based on mission location and type
+      const getDiscoveryItemsForMission = (missionDef: any) => {
+        const discoveryMap: { [key: string]: string[] } = {
+          'Ancient Ruins': ['relic_fragment'],
+          'Treasure Island': ['pearl', 'relic_fragment'],
+          'Harbor Town': ['pearl'],
+          'Coastal Ruins': ['pearl', 'relic_fragment'],
+          'Hidden Cove': ['pearl', 'relic_fragment'],
+          'Mining Camp': ['relic_fragment'], // Sometimes find ancient artifacts in mines
+          'Forest Outpost': ['pearl'] // Rare forest pearls in streams
+        };
+        
+        const locationItems = discoveryMap[missionDef.fromHub] || discoveryMap[missionDef.toHub];
+        return locationItems || ['pearl', 'relic_fragment']; // Default rare items
+      };
+      
+      const contextualDiscoveries = getDiscoveryItemsForMission(missionDef);
+      const discoveryItem = contextualDiscoveries[Math.floor(Math.random() * contextualDiscoveries.length)];
       const existingDiscovery = itemsReceived.find((item: any) => item.itemKey === discoveryItem);
       
+      // Legendary success can discover multiple rare items
+      let discoveryQuantity = 1;
+      if (outcomeType === 'LEGENDARY_SUCCESS') {
+        discoveryQuantity = Math.ceil(Math.random() * 2) + 1; // 2-3 for legendary
+      }
+      
       if (existingDiscovery) {
-        existingDiscovery.qty += 1;
+        existingDiscovery.qty += discoveryQuantity;
       } else {
-        itemsReceived.push({ itemKey: discoveryItem, qty: 1 });
+        itemsReceived.push({ itemKey: discoveryItem, qty: discoveryQuantity });
       }
     }
     
