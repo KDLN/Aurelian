@@ -28,8 +28,8 @@ A persistent multiplayer 2D trading game where players rebuild civilization thro
 - [x] Implement real-time caravan timers
 - [x] Risk calculation system (LOW/MEDIUM/HIGH routes)
 - [x] Success/failure dice rolls based on risk
-- [ ] Dynamic gold and item rewards
-- [ ] Mission history and statistics tracking
+- [x] Dynamic gold and item rewards
+- [x] Mission history and statistics tracking
 - [ ] Caravan capacity limits
 - [ ] Multiple caravans per player
 

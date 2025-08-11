@@ -143,6 +143,15 @@ export default function MissionsPage() {
           </div>
         </div>
       )}
+      
+      <div style={{ marginTop: '1rem' }}>
+        <a href="/missions/stats" className="game-btn game-btn-secondary" style={{ width: '100%', textAlign: 'center', display: 'block', marginBottom: '0.5rem' }}>
+          📊 View Statistics
+        </a>
+        <a href="/missions/leaderboard" className="game-btn game-btn-secondary" style={{ width: '100%', textAlign: 'center', display: 'block' }}>
+          🏆 Leaderboards
+        </a>
+      </div>
     </div>
   ), [mounted, wallet]);
 
