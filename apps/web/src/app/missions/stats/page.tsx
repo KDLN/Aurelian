@@ -114,7 +114,7 @@ export default function MissionStatsPage() {
 
   if (loading) {
     return (
-      <GameLayout>
+      <GameLayout title="Mission Statistics">
         <div className="game-container">
           <h1 className="game-title">Mission Statistics</h1>
           <div className="game-loading">Loading statistics...</div>
@@ -125,7 +125,7 @@ export default function MissionStatsPage() {
 
   if (error || !stats) {
     return (
-      <GameLayout>
+      <GameLayout title="Mission Statistics">
         <div className="game-container">
           <h1 className="game-title">Mission Statistics</h1>
           <div className="game-error">{error || 'Failed to load statistics'}</div>
@@ -136,7 +136,7 @@ export default function MissionStatsPage() {
   }
 
   return (
-    <GameLayout>
+    <GameLayout title="Mission Statistics">
       <div className="game-container">
         <h1 className="game-title">Mission Statistics</h1>
 
