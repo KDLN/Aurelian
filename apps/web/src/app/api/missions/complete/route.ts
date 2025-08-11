@@ -13,6 +13,12 @@ const supabase = createClient(
 // POST - Complete a mission and award rewards
 export async function POST(request: NextRequest) {
   try {
+    console.log('🎯 [MissionComplete] API called at:', new Date().toISOString());
+    console.log('🎯 [MissionComplete] Headers:', {
+      userAgent: request.headers.get('user-agent'),
+      referer: request.headers.get('referer'),
+      origin: request.headers.get('origin')
+    });
     // Get JWT token from headers
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
     
@@ -28,6 +34,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { missionInstanceId } = await request.json();
+    console.log('🎯 [MissionComplete] Completing mission:', missionInstanceId, 'for user:', user.id);
 
     if (!missionInstanceId) {
       return NextResponse.json({ error: 'Mission instance ID required' }, { status: 400 });
