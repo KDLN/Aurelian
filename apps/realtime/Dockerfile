@@ -1,29 +1,27 @@
 FROM node:20-alpine
 WORKDIR /app
 
-# Install dependencies for building
+# Install build dependencies
 RUN apk add --no-cache python3 make g++
 
-# Copy root package files
-COPY package*.json ./
+# Copy package files
+COPY package.json ./
 COPY tsconfig.json ./
 
-# Copy app-specific files
-COPY apps/realtime/package*.json ./apps/realtime/
-COPY apps/realtime/tsconfig.json ./apps/realtime/
+# Copy pre-generated Prisma client and schema
+COPY node_modules/@prisma ./node_modules/@prisma
+COPY prisma ./prisma
 
-# Install all dependencies (including dev for building)
+# Install dependencies
 RUN npm install
 
 # Copy source code
-COPY apps/realtime/src ./apps/realtime/src
+COPY src ./src
 
-# Build the TypeScript code
-WORKDIR /app/apps/realtime
+# Build TypeScript
 RUN npm run build
 
 # Remove dev dependencies
-WORKDIR /app
 RUN npm prune --production
 
 # Expose port
@@ -34,5 +32,4 @@ ENV NODE_ENV=production
 ENV PORT=8787
 
 # Start the server
-WORKDIR /app/apps/realtime
 CMD ["node", "dist/index.js"]

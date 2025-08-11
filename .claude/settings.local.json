@@ -27,7 +27,9 @@
       "Bash(git add:*)",
       "Bash(git push:*)",
       "Bash(gh run list:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(gcloud run services describe:*)",
+      "Bash(gcloud run services update:*)"
     ],
     "deny": []
   }
