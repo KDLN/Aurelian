@@ -1,11 +1,51 @@
 import { PrismaClient } from '@prisma/client';
 
 declare global {
-  var prisma: PrismaClient | undefined;
+  var __prisma: PrismaClient | undefined;
 }
 
-export const prisma = global.prisma || new PrismaClient();
+// Singleton pattern for Prisma Client
+class PrismaClientSingleton {
+  private static instance: PrismaClient | null = null;
+  
+  public static getInstance(): PrismaClient {
+    if (this.instance) {
+      return this.instance;
+    }
 
-if (process.env.NODE_ENV !== 'production') {
-  global.prisma = prisma;
+    // Check global instance first (for development hot reloading)
+    if (typeof globalThis !== 'undefined' && globalThis.__prisma) {
+      this.instance = globalThis.__prisma;
+      return this.instance;
+    }
+
+    // Create new instance with proper configuration for production
+    this.instance = new PrismaClient({
+      log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+      errorFormat: 'pretty',
+    });
+
+    // Store globally in development to prevent hot reload issues
+    if (process.env.NODE_ENV !== 'production') {
+      globalThis.__prisma = this.instance;
+    }
+
+    return this.instance;
+  }
+
+  // Cleanup method for graceful shutdowns
+  public static async disconnect(): Promise<void> {
+    if (this.instance) {
+      await this.instance.$disconnect();
+      this.instance = null;
+      if (typeof globalThis !== 'undefined') {
+        globalThis.__prisma = undefined;
+      }
+    }
+  }
 }
+
+export const prisma = PrismaClientSingleton.getInstance();
+
+// Export the disconnect method for use in serverless cleanup
+export const disconnectPrisma = PrismaClientSingleton.disconnect;

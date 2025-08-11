@@ -109,3 +109,5 @@ prisma/migrations/*/migration_lock.toml
 # Build outputs
 dist/
 *.js.map
+.vercel
+.env*.local
