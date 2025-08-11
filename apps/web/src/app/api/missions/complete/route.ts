@@ -10,16 +10,39 @@ let prisma: PrismaClient | null = null;
 function initPrisma() {
   if (prisma) return prisma;
   
-  console.log('🔍 [Complete] DATABASE_URL status:', process.env.DATABASE_URL ? 'SET' : 'NOT SET');
+  const dbUrl = process.env.DATABASE_URL;
+  console.log('🔍 [Complete] DATABASE_URL status:', dbUrl ? 'SET' : 'NOT SET');
   
-  if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('://')) {
+  if (dbUrl && dbUrl.includes('://')) {
     try {
-      prisma = new PrismaClient();
+      prisma = new PrismaClient({
+        datasources: {
+          db: {
+            url: dbUrl
+          }
+        }
+      });
       console.log('✅ [Complete] Prisma client initialized successfully');
       return prisma;
     } catch (error) {
       console.error('❌ [Complete] Failed to initialize Prisma client:', error);
-      return null;
+      // Try fallback to direct URL (non-pooled connection)
+      const fallbackUrl = "postgresql://postgres.apoboundupzmulkqxkxw:XhDbhNjUEv9Q1IA4@aws-0-us-east-2.pooler.supabase.com:5432/postgres";
+      console.log('🔄 [Complete] Trying fallback with DIRECT database URL...');
+      try {
+        prisma = new PrismaClient({
+          datasources: {
+            db: {
+              url: fallbackUrl
+            }
+          }
+        });
+        console.log('✅ [Complete] Connected with fallback URL');
+        return prisma;
+      } catch (fallbackError) {
+        console.error('❌ [Complete] Fallback also failed:', fallbackError);
+        return null;
+      }
     }
   } else {
     console.log('⚠️ [Complete] DATABASE_URL not found or invalid');

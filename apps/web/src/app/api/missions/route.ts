@@ -44,9 +44,10 @@ function initPrisma() {
       return prisma;
     } catch (error) {
       console.error('❌ Failed to initialize Prisma client:', error);
-      // Try fallback to hardcoded URL if available
-      const fallbackUrl = "postgresql://postgres.apoboundupzmulkqxkxw:XhDbhNjUEv9Q1IA4@aws-0-us-east-2.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1";
-      console.log('🔄 Trying fallback database URL...');
+      // Try fallback to direct URL (non-pooled connection)
+      // This uses port 5432 instead of 6543
+      const fallbackUrl = "postgresql://postgres.apoboundupzmulkqxkxw:XhDbhNjUEv9Q1IA4@aws-0-us-east-2.pooler.supabase.com:5432/postgres";
+      console.log('🔄 Trying fallback with DIRECT database URL (port 5432, no pooler)...');
       try {
         prisma = new PrismaClient({
           datasources: {
