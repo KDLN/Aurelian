@@ -6,7 +6,7 @@ const { Server } = colyseus;
 import { createServer } from 'http';
 import { MovementRoom } from './rooms/movement.js';
 import { AuctionTickerRoom } from './rooms/ticker.js';
-import { AuctionRoom } from './rooms/auction.js';
+import { SimpleAuctionRoom } from './rooms/simple-auction.js';
 
 const app = express();
 app.get('/', (_req: Request, res: Response) => res.send('Aurelian Realtime Server v2.0 - Ready'));
@@ -18,7 +18,7 @@ const gameServer = new Server({
 
 gameServer.define('movement', MovementRoom);
 gameServer.define('auction_ticker', AuctionTickerRoom);
-gameServer.define('auction', AuctionRoom);
+gameServer.define('auction', SimpleAuctionRoom);
 
 const port = Number(process.env.PORT || 8787);
 server.listen(port, ()=> console.log(`Realtime running on :${port}`));

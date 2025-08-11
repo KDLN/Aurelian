@@ -3,7 +3,16 @@ import type { Client } from 'colyseus';
 import { PrismaClient } from '@prisma/client';
 
 const { Room } = colyseus;
-const prisma = new PrismaClient();
+let prisma: PrismaClient | null = null;
+
+// Initialize Prisma client only if DATABASE_URL is available
+try {
+  if (process.env.DATABASE_URL) {
+    prisma = new PrismaClient();
+  }
+} catch (error) {
+  console.warn('Database connection failed, running without persistence:', error);
+}
 
 type Listing = {
   id: string;
@@ -47,6 +56,11 @@ export class AuctionRoom extends Room {
     
     // Handle listing creation
     this.onMessage('create_listing', async (client, message) => {
+      if (!prisma) {
+        client.send('error', { message: 'Database not available' });
+        return;
+      }
+      
       try {
         const { itemKey, quantity, pricePerUnit, userId } = message;
         
@@ -354,6 +368,11 @@ export class AuctionRoom extends Room {
   }
   
   async loadListings() {
+    if (!prisma) {
+      console.log('No database connection, skipping listing load');
+      return;
+    }
+    
     try {
       const listings = await prisma.listing.findMany({
         where: { status: 'active' },
