@@ -109,15 +109,14 @@ export default function GameLayout({
 
           {showCharacterViewer && (
             <div>
-              <h3>Player Actions</h3>
+              <h3>Player Activity</h3>
               <div style={{ 
-                display: 'flex', 
-                justifyContent: 'center',
                 background: '#1a1511',
                 border: '2px solid #533b2c',
                 borderRadius: '4px',
-                padding: '12px',
-                marginTop: '8px'
+                padding: '8px',
+                marginTop: '8px',
+                overflow: 'hidden'
               }}>
                 <CharacterViewer
                   position="inline"
@@ -126,7 +125,9 @@ export default function GameLayout({
                   outfit="fstr"
                   hair="dap1"
                   hat=""
-                  size={140}
+                  size={64}
+                  autoWalk={true}
+                  walkAreaWidth={240}
                 />
               </div>
             </div>

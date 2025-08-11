@@ -25,6 +25,8 @@ interface CharacterViewerProps {
   size?: number;
   showBorder?: boolean;
   position?: 'top-right' | 'top-left' | 'inline';
+  autoWalk?: boolean;
+  walkAreaWidth?: number;
 }
 
 // Hat configuration - which hats should hide hair to prevent clipping
@@ -87,7 +89,9 @@ export default function CharacterViewer({
   mood = 'neutral',
   size = 160,
   showBorder = true,
-  position = 'inline'
+  position = 'inline',
+  autoWalk = false,
+  walkAreaWidth = 240
 }: CharacterViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const spritesRef = useRef<Map<string, HTMLImageElement>>(new Map());
@@ -96,7 +100,10 @@ export default function CharacterViewer({
   const currentFrameRef = useRef<number>(0);
   const frameTimeRef = useRef<number>(0);
   const [spritesLoaded, setSpritesLoaded] = useState(false);
-  const [direction] = useState<'south' | 'north' | 'east' | 'west'>('south');
+  const [direction, setDirection] = useState<'south' | 'north' | 'east' | 'west'>('south');
+  const characterXRef = useRef<number>(walkAreaWidth / 2);
+  const walkDirectionRef = useRef<'left' | 'right'>('left');
+  const walkSpeedRef = useRef<number>(0.02); // pixels per millisecond
 
   // Determine if hair should be hidden based on hat
   const shouldHideHair = hat && HATS_THAT_HIDE_HAIR.includes(hat);
@@ -192,7 +199,28 @@ export default function CharacterViewer({
       lastTimeRef.current = timestamp;
       frameTimeRef.current += deltaTime;
 
-      const frames = ACTIVITY_ANIMATIONS[activity] || ACTIVITY_ANIMATIONS.idle;
+      // Handle auto-walk movement
+      if (autoWalk) {
+        // Update position
+        if (walkDirectionRef.current === 'left') {
+          characterXRef.current -= walkSpeedRef.current * deltaTime;
+          if (characterXRef.current <= -size) {
+            characterXRef.current = -size;
+            walkDirectionRef.current = 'right';
+            setDirection('east');
+          }
+        } else {
+          characterXRef.current += walkSpeedRef.current * deltaTime;
+          if (characterXRef.current >= walkAreaWidth) {
+            characterXRef.current = walkAreaWidth;
+            walkDirectionRef.current = 'left';
+            setDirection('west');
+          }
+        }
+      }
+
+      const currentActivity = autoWalk ? 'walking' : activity;
+      const frames = ACTIVITY_ANIMATIONS[currentActivity] || ACTIVITY_ANIMATIONS.idle;
       const frame = frames[currentFrameRef.current];
       
       if (frameTimeRef.current >= frame.duration) {
@@ -204,9 +232,10 @@ export default function CharacterViewer({
       if (ctx) {
         ctx.imageSmoothingEnabled = false;
         
-        // Clear with dark background
+        // Clear canvas - use full walk area width if auto-walking
+        const canvasWidth = autoWalk ? walkAreaWidth : size;
         ctx.fillStyle = '#1a1511';
-        ctx.fillRect(0, 0, size, size);
+        ctx.fillRect(0, 0, canvasWidth, size);
         
         // Determine page and get base sprite
         const page = activity === 'combat' || activity === 'mission' ? 'pONE2' : 'p1';
@@ -222,7 +251,7 @@ export default function CharacterViewer({
           
           const sx = currentFrame.col * frameSize;
           const sy = (currentFrame.row + directionRow) * frameSize;
-          const drawX = (size - frameSize * scale) / 2;
+          const drawX = autoWalk ? characterXRef.current : (size - frameSize * scale) / 2;
           const drawY = (size - frameSize * scale) / 2;
           
           // Draw base
@@ -246,21 +275,23 @@ export default function CharacterViewer({
           });
         }
         
-        // Draw border
-        if (showBorder) {
+        // Draw border - adjust for auto-walk width
+        if (showBorder && !autoWalk) {
           ctx.strokeStyle = '#f1e5c8';
           ctx.lineWidth = 2;
           ctx.strokeRect(1, 1, size - 2, size - 2);
         }
         
-        // Activity text
-        ctx.fillStyle = '#f1e5c8';
-        ctx.font = '10px monospace';
-        ctx.fillText(activity.charAt(0).toUpperCase() + activity.slice(1), 4, size - 4);
-        
-        // Location text
-        if (location) {
-          ctx.fillText(location, 4, 12);
+        // Activity text - only show if not auto-walking
+        if (!autoWalk) {
+          ctx.fillStyle = '#f1e5c8';
+          ctx.font = '10px monospace';
+          ctx.fillText(activity.charAt(0).toUpperCase() + activity.slice(1), 4, size - 4);
+          
+          // Location text
+          if (location) {
+            ctx.fillText(location, 4, 12);
+          }
         }
       }
 
@@ -273,7 +304,7 @@ export default function CharacterViewer({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [spritesLoaded, activity, direction, size, showBorder, location]);
+  }, [spritesLoaded, activity, direction, size, showBorder, location, autoWalk, walkAreaWidth]);
 
   // Position styles based on prop
   const positionStyles = position === 'top-right' ? {
@@ -313,10 +344,12 @@ export default function CharacterViewer({
   return (
     <canvas
       ref={canvasRef}
-      width={size}
+      width={autoWalk ? walkAreaWidth : size}
       height={size}
       style={{
         imageRendering: 'pixelated',
+        width: autoWalk ? walkAreaWidth : size,
+        height: size,
         ...positionStyles
       }}
     />
