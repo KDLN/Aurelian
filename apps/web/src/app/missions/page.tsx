@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import GameLayout from '@/components/GameLayout';
 import { useMissions, useStartMission, useCompleteMission, useMissionHelpers } from '@/hooks/useMissionsQuery';
 import { MissionDef, MissionInstance } from '@/lib/api/missions';
@@ -11,8 +11,17 @@ export default function MissionsPage() {
   const { data, isLoading, error, refetch } = useMissions();
   const startMissionMutation = useStartMission();
   const completeMissionMutation = useCompleteMission();
+  
+  // Only load user data after component mounts to avoid blocking initial render
+  const [mounted, setMounted] = useState(false);
   const { wallet } = useUserDataQuery();
-  const { formatDuration, getRiskColor } = useMissionHelpers();
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  
+  const missionHelpers = useMissionHelpers();
+  const { formatDuration, getRiskColor, isReady } = missionHelpers;
   
   const [selectedMission, setSelectedMission] = useState<string>('');
   const [completionMessage, setCompletionMessage] = useState<string>('');
@@ -72,7 +81,6 @@ export default function MissionsPage() {
     }));
   }, [activeMissions, missionDefs]);
 
-  const { isReady } = useMissionHelpers();
   const readyMissionsCount = useMemo(() => {
     return activeMissions.filter(m => isReady(m.endTime)).length;
   }, [activeMissions, isReady]);
@@ -99,7 +107,7 @@ export default function MissionsPage() {
         </div>
       </div>
 
-      {wallet && (
+      {mounted && wallet && (
         <div style={{ marginTop: '1rem' }}>
           <h3>Your Gold</h3>
           <div className="game-pill game-pill-good" style={{ fontSize: '18px', textAlign: 'center' }}>
@@ -108,7 +116,7 @@ export default function MissionsPage() {
         </div>
       )}
     </div>
-  ), [wallet]);
+  ), [mounted, wallet]);
 
   if (isLoading) {
     return (

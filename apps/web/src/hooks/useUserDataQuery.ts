@@ -76,15 +76,21 @@ async function fetchUserInventory(location: string = 'warehouse'): Promise<Inven
   return response.json();
 }
 
-export function useUserWallet() {
-  const { data: user } = useQuery({
+// Centralized auth query to avoid duplicates
+function useAuth() {
+  return useQuery({
     queryKey: ['auth', 'user'],
     queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
       return session?.user ?? null;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000,
   });
+}
+
+export function useUserWallet() {
+  const { data: user } = useAuth();
 
   return useQuery({
     queryKey: userKeys.wallet(user?.id || ''),
@@ -96,14 +102,7 @@ export function useUserWallet() {
 }
 
 export function useUserInventory(location: string = 'warehouse') {
-  const { data: user } = useQuery({
-    queryKey: ['auth', 'user'],
-    queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      return session?.user ?? null;
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+  const { data: user } = useAuth();
 
   return useQuery({
     queryKey: userKeys.inventory(user?.id || '', location),
@@ -116,20 +115,12 @@ export function useUserInventory(location: string = 'warehouse') {
 
 // Combined hook for backward compatibility
 export function useUserDataQuery() {
+  const authQuery = useAuth();
   const walletQuery = useUserWallet();
   const inventoryQuery = useUserInventory();
-  
-  const { data: user } = useQuery({
-    queryKey: ['auth', 'user'],
-    queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      return session?.user ?? null;
-    },
-    staleTime: 5 * 60 * 1000,
-  });
 
   return {
-    user,
+    user: authQuery.data,
     authLoaded: true, // Since React Query handles loading states
     wallet: walletQuery.data,
     inventory: inventoryQuery.data,

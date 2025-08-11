@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useMemo } from 'react';
 import { 
   missionsApi, 
   MissionsData, 
@@ -62,8 +63,11 @@ export function useStartMission() {
           }
         );
         
-        // Invalidate to ensure fresh data
-        queryClient.invalidateQueries({ queryKey: missionKeys.missions() });
+        // Invalidate more selectively to avoid unnecessary refetches
+        queryClient.invalidateQueries({ 
+          queryKey: missionKeys.missions(),
+          exact: true 
+        });
       }
     },
     onError: (error) => {
@@ -95,10 +99,16 @@ export function useCompleteMission() {
           }
         );
         
-        // Invalidate to ensure fresh data (important for wallet/inventory updates)
-        queryClient.invalidateQueries({ queryKey: missionKeys.missions() });
-        // Also invalidate user data since completing missions updates wallet/inventory
-        queryClient.invalidateQueries({ queryKey: ['user'] });
+        // Invalidate more selectively to avoid unnecessary refetches
+        queryClient.invalidateQueries({ 
+          queryKey: missionKeys.missions(),
+          exact: true 
+        });
+        // Only invalidate specific user data that might have changed
+        queryClient.invalidateQueries({ 
+          queryKey: ['user', 'wallet'],
+          exact: false // Allow partial matches for user wallet queries
+        });
       }
     },
     onError: (error) => {
@@ -107,9 +117,9 @@ export function useCompleteMission() {
   });
 }
 
-// Helper hook for mission status calculations
+// Helper hook for mission status calculations - memoized to prevent re-renders
 export function useMissionHelpers() {
-  const formatTimeRemaining = (endTime: string): string => {
+  const formatTimeRemaining = useCallback((endTime: string): string => {
     const now = new Date();
     const end = new Date(endTime);
     const diff = end.getTime() - now.getTime();
@@ -123,9 +133,9 @@ export function useMissionHelpers() {
       return `${minutes}m ${seconds}s`;
     }
     return `${seconds}s`;
-  };
+  }, []);
 
-  const getMissionProgress = (startTime: string, endTime: string): number => {
+  const getMissionProgress = useCallback((startTime: string, endTime: string): number => {
     const now = new Date();
     const start = new Date(startTime);
     const end = new Date(endTime);
@@ -135,22 +145,22 @@ export function useMissionHelpers() {
     
     const progress = Math.min(100, Math.max(0, (elapsed / total) * 100));
     return Math.floor(progress);
-  };
+  }, []);
 
-  const isReady = (endTime: string): boolean => {
+  const isReady = useCallback((endTime: string): boolean => {
     return new Date() >= new Date(endTime);
-  };
+  }, []);
 
-  const getRiskColor = (risk: string): string => {
+  const getRiskColor = useCallback((risk: string): string => {
     switch (risk) {
       case 'LOW': return 'good';
       case 'MEDIUM': return 'warn';
       case 'HIGH': return 'bad';
       default: return 'muted';
     }
-  };
+  }, []);
 
-  const formatDuration = (seconds: number): string => {
+  const formatDuration = useCallback((seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
     if (minutes < 60) {
       return `${minutes} min`;
@@ -158,13 +168,13 @@ export function useMissionHelpers() {
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = minutes % 60;
     return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
-  };
+  }, []);
 
-  return {
+  return useMemo(() => ({
     formatTimeRemaining,
     getMissionProgress,
     isReady,
     getRiskColor,
     formatDuration,
-  };
+  }), [formatTimeRemaining, getMissionProgress, isReady, getRiskColor, formatDuration]);
 }
