@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useMissions, useStartMission, useCompleteMission } from '@/hooks/useMissionsQuery';
+import { supabase } from '@/lib/supabaseClient';
 
 interface TestResult {
   id: string;
@@ -18,9 +19,15 @@ export default function DebugTestPage() {
   const [supabaseClient, setSupabaseClient] = useState<any>(null);
 
   useEffect(() => {
-    // Get Supabase client from window
-    const client = (window as any).supabase || (window as any)._supabase;
+    // Use imported Supabase client, fallback to window if available
+    const client = supabase || (window as any).supabase || (window as any)._supabase;
     setSupabaseClient(client);
+    
+    if (!client) {
+      console.error('No Supabase client found. Make sure Supabase is properly initialized.');
+    } else {
+      console.log('✅ Supabase client initialized for debug tests');
+    }
   }, []);
 
   const addTestResult = (test: TestResult) => {
@@ -64,12 +71,24 @@ export default function DebugTestPage() {
   // Authentication Tests
   const testAuthentication = async () => {
     return runTest('auth', 'Authentication Status', async () => {
-      if (!supabaseClient) throw new Error('No Supabase client found');
+      if (!supabaseClient) {
+        return {
+          error: 'No Supabase client available',
+          suggestion: 'Check if Supabase is properly initialized',
+          clientAvailable: false
+        };
+      }
       
       const { data: { session }, error } = await supabaseClient.auth.getSession();
       
       if (error) throw error;
-      if (!session) throw new Error('No session found');
+      if (!session) {
+        return {
+          error: 'No active session',
+          suggestion: 'User needs to sign in',
+          hasSession: false
+        };
+      }
       
       const tokenParts = session.access_token?.split('.') || [];
       
@@ -78,16 +97,30 @@ export default function DebugTestPage() {
         hasValidToken: tokenParts.length === 3,
         tokenParts: tokenParts.length,
         expiresAt: new Date(session.expires_at * 1000).toISOString(),
-        timeUntilExpiry: Math.round((session.expires_at * 1000 - Date.now()) / 1000 / 60) + 'm'
+        timeUntilExpiry: Math.round((session.expires_at * 1000 - Date.now()) / 1000 / 60) + 'm',
+        hasSession: true,
+        clientAvailable: true
       };
     });
   };
 
   const testSessionRefresh = async () => {
     return runTest('refresh', 'Session Refresh', async () => {
-      if (!supabaseClient) throw new Error('No Supabase client found');
+      if (!supabaseClient) {
+        return {
+          error: 'No Supabase client available',
+          suggestion: 'Check if Supabase is properly initialized'
+        };
+      }
       
       const { data: { session: oldSession } } = await supabaseClient.auth.getSession();
+      if (!oldSession) {
+        return {
+          error: 'No session to refresh',
+          suggestion: 'User needs to sign in first'
+        };
+      }
+      
       const { data: { session: newSession }, error } = await supabaseClient.auth.refreshSession();
       
       if (error) throw error;
@@ -237,12 +270,32 @@ export default function DebugTestPage() {
     });
   };
 
+  // Simple connectivity test
+  const testBasicConnectivity = async () => {
+    return runTest('connectivity', 'Basic API Connectivity', async () => {
+      const response = await fetch('/api/missions');
+      const data = await response.json();
+      
+      return {
+        status: response.status,
+        ok: response.ok,
+        hasData: !!data,
+        missionDefs: data.missionDefs?.length || 0,
+        activeMissions: data.activeMissions?.length || 0,
+        error: data.error || null,
+        requiresAuth: response.status === 401,
+        serverResponse: response.ok ? 'Success' : `Error ${response.status}`
+      };
+    });
+  };
+
   const runAllTests = async () => {
     setIsRunning(true);
     setTests([]);
     
     try {
-      // Run tests in sequence
+      // Run tests in sequence, starting with basic connectivity
+      await testBasicConnectivity();
       await testAuthentication();
       await testDatabaseConnection();
       await testApiPerformance();
