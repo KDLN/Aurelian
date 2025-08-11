@@ -135,33 +135,126 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Mission not yet complete' }, { status: 400 });
     }
 
-    // Calculate success/failure based on risk level
+    // Enhanced dynamic outcome system
     const missionDef = missionInstance.mission;
-    let success = true;
-    let actualReward = missionDef.baseReward;
-    let itemsReceived = missionDef.itemRewards ? [...(missionDef.itemRewards as any[])] : [];
-
-    // Risk-based success calculation
-    const riskRoll = Math.random();
+    
+    // Roll 0-100 for outcome
+    let outcomeRoll = Math.floor(Math.random() * 101);
+    
+    // Apply risk-based modifiers
     switch (missionDef.riskLevel) {
       case 'LOW':
-        success = riskRoll > 0.05; // 95% success rate
+        outcomeRoll += 20; // Easier outcomes
         break;
       case 'MEDIUM':
-        success = riskRoll > 0.15; // 85% success rate
-        if (!success) {
-          actualReward = Math.floor(actualReward * 0.3); // 30% reward on failure
-          itemsReceived = itemsReceived.map((item: any) => ({ ...item, qty: Math.ceil(item.qty * 0.2) }));
-        }
+        // No modifier
         break;
       case 'HIGH':
-        success = riskRoll > 0.25; // 75% success rate
-        if (!success) {
-          actualReward = 0; // No gold reward on failure
-          itemsReceived = []; // No item rewards on failure
-        }
+        outcomeRoll -= 15; // Harder outcomes, but better rewards
         break;
     }
+    
+    // Clamp roll between 0-100
+    outcomeRoll = Math.max(0, Math.min(100, outcomeRoll));
+    
+    // Determine outcome type and modifiers
+    let outcomeType: string;
+    let goldMultiplier: number;
+    let itemMultiplier: number;
+    let bonusChance: number;
+    let discoveryChance: number;
+    
+    if (outcomeRoll >= 90) {
+      outcomeType = 'CRITICAL_SUCCESS';
+      goldMultiplier = 1.5;
+      itemMultiplier = 1.0;
+      bonusChance = 0.8; // 80% chance for bonus items
+      discoveryChance = 0.3; // 30% chance for discovery
+    } else if (outcomeRoll >= 70) {
+      outcomeType = 'GOOD_SUCCESS';
+      goldMultiplier = 1.2;
+      itemMultiplier = 1.0;
+      bonusChance = 0.4; // 40% chance for bonus items
+      discoveryChance = 0.1; // 10% chance for discovery
+    } else if (outcomeRoll >= 40) {
+      outcomeType = 'NORMAL_SUCCESS';
+      goldMultiplier = 1.0;
+      itemMultiplier = 1.0;
+      bonusChance = 0.1; // 10% chance for bonus items
+      discoveryChance = 0.05; // 5% chance for discovery
+    } else if (outcomeRoll >= 20) {
+      outcomeType = 'POOR_SUCCESS';
+      goldMultiplier = 0.7;
+      itemMultiplier = 0.75;
+      bonusChance = 0.0;
+      discoveryChance = 0.0;
+    } else if (outcomeRoll >= 5) {
+      outcomeType = 'FAILURE';
+      goldMultiplier = 0.3;
+      itemMultiplier = 0.25;
+      bonusChance = 0.0;
+      discoveryChance = 0.0;
+    } else {
+      outcomeType = 'CRITICAL_FAILURE';
+      goldMultiplier = 0.0;
+      itemMultiplier = 0.0;
+      bonusChance = 0.0;
+      discoveryChance = 0.0;
+    }
+    
+    // Calculate base gold reward with risk bonus
+    let baseGold = missionDef.baseReward;
+    if (missionDef.riskLevel === 'HIGH') {
+      baseGold = Math.floor(baseGold * 1.25); // 25% bonus for high risk
+    }
+    
+    // Apply outcome multiplier
+    let actualReward = Math.floor(baseGold * goldMultiplier);
+    
+    // Add random variation (±10%)
+    const variation = Math.floor(actualReward * 0.1 * (Math.random() * 2 - 1));
+    actualReward = Math.max(0, actualReward + variation);
+    
+    // Calculate item rewards
+    let itemsReceived = missionDef.itemRewards ? [...(missionDef.itemRewards as any[])] : [];
+    itemsReceived = itemsReceived.map((item: any) => ({
+      ...item,
+      qty: Math.max(0, Math.floor(item.qty * itemMultiplier))
+    })).filter((item: any) => item.qty > 0);
+    
+    // Track bonus/discovery for response
+    let bonusItemsAdded = false;
+    let discoveryItemsAdded = false;
+    
+    // Add bonus items for good outcomes
+    if (bonusChance > 0 && Math.random() < bonusChance) {
+      bonusItemsAdded = true;
+      const bonusItems = ['iron_ore', 'herb', 'hide'];
+      const bonusItem = bonusItems[Math.floor(Math.random() * bonusItems.length)];
+      const existingBonus = itemsReceived.find((item: any) => item.itemKey === bonusItem);
+      
+      if (existingBonus) {
+        existingBonus.qty += Math.ceil(Math.random() * 2); // 1-2 bonus
+      } else {
+        itemsReceived.push({ itemKey: bonusItem, qty: Math.ceil(Math.random() * 2) });
+      }
+    }
+    
+    // Add discovery items for exceptional outcomes
+    if (discoveryChance > 0 && Math.random() < discoveryChance) {
+      discoveryItemsAdded = true;
+      const discoveryItems = ['pearl', 'relic_fragment'];
+      const discoveryItem = discoveryItems[Math.floor(Math.random() * discoveryItems.length)];
+      const existingDiscovery = itemsReceived.find((item: any) => item.itemKey === discoveryItem);
+      
+      if (existingDiscovery) {
+        existingDiscovery.qty += 1;
+      } else {
+        itemsReceived.push({ itemKey: discoveryItem, qty: 1 });
+      }
+    }
+    
+    const success = outcomeRoll >= 40; // Success threshold
 
     // Award gold reward if successful
     if (actualReward > 0) {
@@ -217,9 +310,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       missionSuccess: success,
+      outcomeType,
+      outcomeRoll,
       rewards: {
         gold: actualReward,
         items: itemsReceived
+      },
+      details: {
+        baseGold: missionDef.baseReward,
+        goldMultiplier,
+        riskBonus: missionDef.riskLevel === 'HIGH' ? 1.25 : 1.0,
+        finalGoldBeforeVariation: Math.floor((missionDef.riskLevel === 'HIGH' ? missionDef.baseReward * 1.25 : missionDef.baseReward) * goldMultiplier),
+        bonusItemsAdded,
+        discoveryItemsAdded
       },
       completedMission
     });

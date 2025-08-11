@@ -24,10 +24,10 @@ A persistent multiplayer 2D trading game where players rebuild civilization thro
 ## 🚀 Phase 1: Core Trading Loop (CURRENT PRIORITY)
 
 ### 1.1 Working Missions System ⭐
-- [ ] Connect missions to PostgreSQL database
-- [ ] Implement real-time caravan timers
-- [ ] Risk calculation system (LOW/MEDIUM/HIGH routes)
-- [ ] Success/failure dice rolls based on risk
+- [x] Connect missions to PostgreSQL database
+- [x] Implement real-time caravan timers
+- [x] Risk calculation system (LOW/MEDIUM/HIGH routes)
+- [x] Success/failure dice rolls based on risk
 - [ ] Dynamic gold and item rewards
 - [ ] Mission history and statistics tracking
 - [ ] Caravan capacity limits
