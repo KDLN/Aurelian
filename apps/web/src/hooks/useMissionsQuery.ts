@@ -27,17 +27,40 @@ export function useMissions(options: UseMissionsOptions = {}) {
   
   const query = useQuery<MissionsData>({
     queryKey: missionKeys.missions(),
-    queryFn: () => {
+    queryFn: async () => {
       console.log('🌐 [useMissions] Fetching missions from API...');
       const startTime = performance.now();
-      return missionsApi.getMissions().then(data => {
+      
+      try {
+        const data = await missionsApi.getMissions();
         const endTime = performance.now();
         console.log(`⚡ [useMissions] Client request completed in ${(endTime - startTime).toFixed(2)}ms`);
+        
         if (data.performance) {
           console.log('📊 [useMissions] Server performance:', data.performance);
         }
+        
+        // Validate that we got real data, not fallback mock data
+        if (data.missionDefs && data.missionDefs.length < 5) {
+          console.warn('⚠️ [useMissions] Received potentially mock data (low mission count):', {
+            missionDefs: data.missionDefs.length,
+            hasPerformance: !!data.performance,
+            debugTimestamp: data.debugTimestamp
+          });
+        }
+        
         return data;
-      });
+      } catch (error) {
+        const endTime = performance.now();
+        console.error(`❌ [useMissions] Request failed after ${(endTime - startTime).toFixed(2)}ms:`, error);
+        
+        // Re-throw auth errors to prevent fallback to stale data
+        if (error instanceof MissionsApiError && error.status === 401) {
+          console.error('🔐 [useMissions] Authentication failed - user may need to re-login');
+        }
+        
+        throw error;
+      }
     },
     enabled,
     refetchInterval: isPageVisible ? refetchInterval : false, // Only poll when page is visible
