@@ -10,24 +10,79 @@ let prisma: PrismaClient | null = null;
 function initPrisma() {
   if (prisma) return prisma;
   
-  // Try direct connection string that we know works
-  const workingUrl = "postgresql://postgres.apoboundupzmulkqxkxw:XhDbhNjUEv9Q1IA4@aws-0-us-east-2.pooler.supabase.com:5432/postgres";
+  const dbUrl = process.env.DATABASE_URL;
+  console.log('🔍 [Missions] DATABASE_URL status:', dbUrl ? 'SET' : 'NOT SET');
   
-  console.log('🔍 Trying direct working database URL...');
-  
-  try {
-    prisma = new PrismaClient({
-      datasources: {
-        db: {
-          url: workingUrl
-        }
+  if (dbUrl && dbUrl.includes('://')) {
+    // Check if the URL has the problematic port 6543
+    if (dbUrl.includes(':6543')) {
+      console.log('⚠️ [Missions] DATABASE_URL contains port 6543, replacing with 5432...');
+      const fixedUrl = dbUrl.replace(':6543', ':5432').replace('?pgbouncer=true&connection_limit=1', '');
+      try {
+        prisma = new PrismaClient({
+          datasources: {
+            db: {
+              url: fixedUrl
+            }
+          }
+        });
+        console.log('✅ [Missions] Prisma client initialized with fixed port');
+        return prisma;
+      } catch (fixError) {
+        console.error('❌ [Missions] Fixed URL also failed:', fixError);
       }
-    });
-    console.log('✅ Prisma client initialized with working URL');
-    return prisma;
-  } catch (error) {
-    console.error('❌ Even direct URL failed:', error);
-    return null;
+    }
+    
+    // Try original URL
+    try {
+      prisma = new PrismaClient({
+        datasources: {
+          db: {
+            url: dbUrl
+          }
+        }
+      });
+      console.log('✅ [Missions] Prisma client initialized successfully');
+      return prisma;
+    } catch (error) {
+      console.error('❌ [Missions] Failed to initialize Prisma client:', error);
+      // Try fallback to direct URL (non-pooled connection)
+      const fallbackUrl = "postgresql://postgres.apoboundupzmulkqxkxw:XhDbhNjUEv9Q1IA4@aws-0-us-east-2.pooler.supabase.com:5432/postgres";
+      console.log('🔄 [Missions] Trying fallback with DIRECT database URL...');
+      try {
+        prisma = new PrismaClient({
+          datasources: {
+            db: {
+              url: fallbackUrl
+            }
+          }
+        });
+        console.log('✅ [Missions] Connected with fallback URL');
+        return prisma;
+      } catch (fallbackError) {
+        console.error('❌ [Missions] Fallback also failed:', fallbackError);
+        return null;
+      }
+    }
+  } else {
+    console.log('⚠️ [Missions] DATABASE_URL not found or invalid');
+    // Try direct working URL as last resort
+    const workingUrl = "postgresql://postgres.apoboundupzmulkqxkxw:XhDbhNjUEv9Q1IA4@aws-0-us-east-2.pooler.supabase.com:5432/postgres";
+    console.log('🔄 [Missions] Trying direct working database URL as last resort...');
+    try {
+      prisma = new PrismaClient({
+        datasources: {
+          db: {
+            url: workingUrl
+          }
+        }
+      });
+      console.log('✅ [Missions] Connected with direct working URL');
+      return prisma;
+    } catch (error) {
+      console.error('❌ [Missions] Even direct URL failed:', error);
+      return null;
+    }
   }
 }
 
