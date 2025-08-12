@@ -30,8 +30,8 @@ A persistent multiplayer 2D trading game where players rebuild civilization thro
 - [x] Success/failure dice rolls based on risk
 - [x] Dynamic gold and item rewards
 - [x] Mission history and statistics tracking
-- [ ] Caravan capacity limits
-- [ ] Multiple caravans per player
+- [x] Caravan capacity limits
+- [x] Multiple caravans per player
 
 ### 1.2 Functional Crafting System
 - [ ] Database-backed crafting queue

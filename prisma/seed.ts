@@ -71,7 +71,13 @@ async function main() {
           key: blueprint.key,
           outputId: outputItem.id,
           inputs: inputsWithIds,
+          outputQty: 1,
           timeMin: blueprint.timeMin,
+          category: 'general',
+          requiredLevel: 1,
+          xpReward: 10,
+          discoverable: false,
+          starterRecipe: true,
         },
       });
       console.log(`Created/Updated blueprint: ${blueprint.key}`);

@@ -2,61 +2,208 @@
 
 import { useState } from 'react';
 import GameLayout from '@/components/GameLayout';
-import { useGameWorld } from '@/lib/game/world';
+import { useCrafting } from '@/hooks/useCrafting';
+
+interface Blueprint {
+  id: string;
+  key: string;
+  category: string;
+  requiredLevel: number;
+  xpReward: number;
+  timeMin: number;
+  outputQty: number;
+  description?: string;
+  isUnlocked: boolean;
+  canCraft: boolean;
+  output: {
+    name: string;
+    rarity: string;
+  };
+  inputs: Array<{
+    qty: number;
+    item: {
+      name: string;
+      rarity: string;
+    };
+  }>;
+}
 
 export default function CraftingPage() {
-  const { world } = useGameWorld();
-  const [selectedRecipe, setSelectedRecipe] = useState('Iron Ingot');
+  const {
+    blueprints,
+    activeJobs,
+    completedJobs,
+    userStats,
+    isLoading,
+    error,
+    startCrafting,
+    completeCrafting,
+    clearError
+  } = useCrafting();
+  
+  const [selectedBlueprint, setSelectedBlueprint] = useState<Blueprint | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [quantity, setQuantity] = useState(1);
+  const [message, setMessage] = useState('');
 
-  const recipes = {
-    'Iron Ingot': { input: 'Iron Ore', ratio: 2, time: 12 },
-    'Leather Roll': { input: 'Hide', ratio: 2, time: 12 },
-    'Healing Tonic': { input: 'Herb', ratio: 2, time: 12 }
+  const categories = ['all', ...Array.from(new Set(blueprints.map(bp => bp.category)))];
+  const filteredBlueprints = selectedCategory === 'all' 
+    ? blueprints 
+    : blueprints.filter(bp => bp.category === selectedCategory);
+
+  const handleCraft = async () => {
+    if (!selectedBlueprint || quantity < 1) return;
+    
+    try {
+      clearError();
+      const result = await startCrafting(selectedBlueprint.id, quantity);
+      setMessage(`✅ ${result.message}`);
+      setQuantity(1);
+    } catch (err) {
+      setMessage(`❌ ${err instanceof Error ? err.message : 'Failed to start crafting'}`);
+    }
   };
 
-  const handleCraft = () => {
-    if (quantity <= 0) {
-      alert('Quantity must be greater than 0');
-      return;
+  const handleComplete = async (jobId: string) => {
+    try {
+      clearError();
+      const result = await completeCrafting(jobId);
+      setMessage(`🎉 ${result.message}`);
+      if (result.leveledUp) {
+        setMessage(prev => `${prev}\n🆙 Level up! Now level ${result.newLevel}!`);
+        if (result.newBlueprints?.length > 0) {
+          setMessage(prev => `${prev}\n📜 Unlocked ${result.newBlueprints.length} new recipes!`);
+        }
+      }
+    } catch (err) {
+      setMessage(`❌ ${err instanceof Error ? err.message : 'Failed to complete crafting'}`);
     }
-
-    if (!world.craft(selectedRecipe, quantity)) {
-      alert(`Not enough ${recipes[selectedRecipe as keyof typeof recipes].input} in warehouse. Need ${quantity * recipes[selectedRecipe as keyof typeof recipes].ratio} units.`);
-      return;
-    }
-
-    alert(`Started crafting ${quantity} ${selectedRecipe}!`);
-    setQuantity(1);
   };
 
-  const canCraft = (recipe: string, qty: number) => {
-    const recipeData = recipes[recipe as keyof typeof recipes];
-    const required = qty * recipeData.ratio;
-    const available = world.warehouse[recipeData.input] || 0;
-    return available >= required;
+  const formatTime = (minutes: number) => {
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours}h ${mins}m`;
+  };
+
+  const getRarityColor = (rarity: string) => {
+    switch (rarity.toLowerCase()) {
+      case 'common': return '#9ca3af';
+      case 'uncommon': return '#10b981';
+      case 'rare': return '#3b82f6';
+      case 'epic': return '#8b5cf6';
+      case 'legendary': return '#f59e0b';
+      default: return '#9ca3af';
+    }
   };
 
   const sidebar = (
     <div>
-      <h3>Crafting Guide</h3>
-      <p className="game-muted game-small">
-        Transform raw materials into valuable goods. Each recipe takes time to complete.
-      </p>
-      
-      <h3>Recipes</h3>
-      <div className="game-flex-col">
-        {Object.entries(recipes).map(([output, data]) => (
-          <div key={output} className="game-small">
-            <strong>{output}</strong>
-            <div className="game-muted">
-              {data.ratio} {data.input} → 1 {output}
+      {userStats && (
+        <div style={{ marginBottom: '16px' }}>
+          <h3>Crafting Level {userStats.level}</h3>
+          <div style={{ 
+            background: '#1a1511',
+            border: '1px solid #533b2c',
+            borderRadius: '4px',
+            padding: '8px',
+            marginBottom: '8px'
+          }}>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between',
+              fontSize: '12px',
+              marginBottom: '4px'
+            }}>
+              <span>XP: {userStats.xp}</span>
+              <span>Next: {userStats.xpNext}</span>
             </div>
-            <div className="game-muted">
-              {data.time}min per unit
+            <div style={{
+              background: '#2a1f19',
+              borderRadius: '2px',
+              height: '8px',
+              overflow: 'hidden'
+            }}>
+              <div style={{
+                background: 'linear-gradient(90deg, #d4af37, #b8941f)',
+                height: '100%',
+                width: `${(userStats.xp / userStats.xpNext) * 100}%`,
+                transition: 'width 0.3s ease'
+              }} />
             </div>
           </div>
-        ))}
+        </div>
+      )}
+
+      {activeJobs.length > 0 && (
+        <div style={{ marginBottom: '16px' }}>
+          <h3>Active Jobs ({activeJobs.length})</h3>
+          <div className="game-flex-col" style={{ gap: '8px' }}>
+            {activeJobs.map(job => (
+              <div key={job.id} style={{
+                background: '#1a1511',
+                border: '1px solid #533b2c',
+                borderRadius: '4px',
+                padding: '8px',
+                fontSize: '12px'
+              }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+                  {job.qty}x {job.blueprint.output.name}
+                </div>
+                <div style={{
+                  background: '#2a1f19',
+                  borderRadius: '2px',
+                  height: '6px',
+                  overflow: 'hidden',
+                  marginBottom: '4px'
+                }}>
+                  <div style={{
+                    background: job.isComplete ? '#10b981' : 'linear-gradient(90deg, #3b82f6, #1d4ed8)',
+                    height: '100%',
+                    width: `${job.progress}%`,
+                    transition: 'width 0.3s ease'
+                  }} />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>{job.progress.toFixed(1)}%</span>
+                  {job.canComplete ? (
+                    <button 
+                      onClick={() => handleComplete(job.id)}
+                      className="game-btn"
+                      style={{ padding: '2px 6px', fontSize: '10px' }}
+                    >
+                      Complete!
+                    </button>
+                  ) : (
+                    <span>{formatTime(job.timeRemainingMinutes)}</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div>
+        <h3>Recipe Categories</h3>
+        <div className="game-flex-col" style={{ gap: '4px' }}>
+          {categories.map(category => (
+            <button
+              key={category}
+              onClick={() => setSelectedCategory(category)}
+              className={`game-btn ${selectedCategory === category ? 'game-btn-primary' : ''}`}
+              style={{ 
+                width: '100%', 
+                padding: '6px 8px',
+                fontSize: '12px',
+                textTransform: 'capitalize'
+              }}
+            >
+              {category} ({category === 'all' ? blueprints.length : blueprints.filter(bp => bp.category === category).length})
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -69,128 +216,192 @@ export default function CraftingPage() {
       sidebar={sidebar}
     >
       <div className="game-flex-col">
-        <div className="game-card">
-          <h3>Start New Crafting Job</h3>
-          <div className="game-grid-2">
-            <div>
-              <label className="game-small">Recipe</label>
-              <select 
-                value={selectedRecipe}
-                onChange={(e) => setSelectedRecipe(e.target.value)}
-                style={{ width: '100%' }}
-              >
-                {Object.entries(recipes).map(([output, data]) => (
-                  <option key={output} value={output}>
-                    {output} (needs {data.ratio} {data.input})
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            <div>
-              <label className="game-small">Quantity</label>
-              <input
-                type="number"
-                value={quantity}
-                onChange={(e) => setQuantity(Number(e.target.value))}
-                min="1"
-                max="50"
-                style={{ width: '100%' }}
-              />
-            </div>
-          </div>
-          
-          <div className="game-flex-col" style={{ marginTop: '12px' }}>
-            <div className="game-grid-2">
-              <div className="game-space-between">
-                <span>Required:</span>
-                <span>
-                  {quantity * recipes[selectedRecipe as keyof typeof recipes].ratio} {recipes[selectedRecipe as keyof typeof recipes].input}
-                </span>
-              </div>
-              <div className="game-space-between">
-                <span>Available:</span>
-                <span className={
-                  canCraft(selectedRecipe, quantity) ? 'game-good' : 'game-bad'
-                }>
-                  {world.warehouse[recipes[selectedRecipe as keyof typeof recipes].input] || 0}
-                </span>
-              </div>
-              <div className="game-space-between">
-                <span>Time:</span>
-                <span>{quantity * recipes[selectedRecipe as keyof typeof recipes].time}min</span>
-              </div>
-              <div className="game-space-between">
-                <span>Output:</span>
-                <span className="game-good">{quantity} {selectedRecipe}</span>
-              </div>
-            </div>
-            
+        {message && (
+          <div style={{
+            background: message.includes('❌') ? '#7f1d1d' : '#166534',
+            border: `1px solid ${message.includes('❌') ? '#dc2626' : '#16a34a'}`,
+            borderRadius: '4px',
+            padding: '12px',
+            marginBottom: '16px',
+            fontSize: '14px',
+            whiteSpace: 'pre-wrap'
+          }}>
+            {message}
             <button 
-              className="game-btn game-btn-primary"
-              onClick={handleCraft}
-              disabled={!canCraft(selectedRecipe, quantity)}
+              onClick={() => setMessage('')}
+              style={{
+                float: 'right',
+                background: 'transparent',
+                border: 'none',
+                color: 'inherit',
+                cursor: 'pointer',
+                fontSize: '16px'
+              }}
             >
-              Start Crafting
+              ×
             </button>
           </div>
-        </div>
+        )}
 
-        <div className="game-card">
-          <h3>Active Crafting Jobs ({world.crafting.length})</h3>
-          {world.crafting.length > 0 ? (
-            <div className="game-flex-col">
-              {world.crafting.map(job => {
-                const timeLeft = Math.max(0, job.eta - (world.day - 1) * 24 * 60 - world.minute);
-                const isComplete = timeLeft === 0;
-                
-                return (
-                  <div key={job.id} className="game-card">
-                    <div className="game-space-between">
-                      <div>
-                        <strong>{job.out} x{job.qty}</strong>
-                        <div className="game-muted game-small">
-                          ID: {job.id.slice(0, 8)}
+        <div className="game-grid-2" style={{ gap: '16px', alignItems: 'start' }}>
+          {/* Recipe List */}
+          <div className="game-card">
+            <h3>Recipe Book</h3>
+            <div style={{ maxHeight: '600px', overflowY: 'auto' }}>
+              {filteredBlueprints.length === 0 ? (
+                <p className="game-muted">No recipes available in this category.</p>
+              ) : (
+                <div className="game-flex-col" style={{ gap: '8px' }}>
+                  {filteredBlueprints.map(blueprint => (
+                    <div 
+                      key={blueprint.id}
+                      onClick={() => setSelectedBlueprint(blueprint)}
+                      style={{
+                        background: selectedBlueprint?.id === blueprint.id ? '#533b2c' : '#1a1511',
+                        border: `1px solid ${selectedBlueprint?.id === blueprint.id ? '#7b4b2d' : '#533b2c'}`,
+                        borderRadius: '4px',
+                        padding: '12px',
+                        cursor: blueprint.isUnlocked ? 'pointer' : 'not-allowed',
+                        opacity: blueprint.isUnlocked ? 1 : 0.6
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '8px' }}>
+                        <div>
+                          <div style={{ 
+                            fontWeight: 'bold', 
+                            color: getRarityColor(blueprint.output.rarity),
+                            marginBottom: '2px'
+                          }}>
+                            {blueprint.output.name}
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#9b8c70' }}>
+                            {blueprint.outputQty > 1 && `${blueprint.outputQty}x `}
+                            Level {blueprint.requiredLevel} • {formatTime(blueprint.timeMin)} • {blueprint.xpReward} XP
+                          </div>
+                        </div>
+                        {!blueprint.isUnlocked && (
+                          <div style={{ fontSize: '12px', color: '#dc2626' }}>
+                            🔒 Locked
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div style={{ fontSize: '12px' }}>
+                        <strong>Materials:</strong>
+                        <div style={{ marginTop: '4px' }}>
+                          {blueprint.inputs.map((input, i) => (
+                            <div key={i} style={{ 
+                              display: 'flex', 
+                              justifyContent: 'space-between',
+                              color: '#9b8c70'
+                            }}>
+                              <span style={{ color: getRarityColor(input.item.rarity) }}>
+                                {input.item.name}
+                              </span>
+                              <span>{input.qty}</span>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                      <span className={`game-pill ${isComplete ? 'game-pill-good' : 'game-pill-warn'}`}>
-                        {isComplete ? 'Ready' : `${timeLeft}min`}
-                      </span>
+                      
+                      {blueprint.description && (
+                        <div style={{ 
+                          fontSize: '11px', 
+                          color: '#9b8c70', 
+                          marginTop: '8px',
+                          fontStyle: 'italic'
+                        }}>
+                          {blueprint.description}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                );
-              })}
+                  ))}
+                </div>
+              )}
             </div>
-          ) : (
-            <p className="game-muted">No active crafting jobs</p>
-          )}
-        </div>
-
-        <div className="game-card">
-          <h3>Material Inventory</h3>
-          <div className="game-grid-2">
-            {Object.entries(recipes).map(([output, data]) => (
-              <div key={output} className="game-space-between">
-                <span>{data.input}:</span>
-                <span className="game-pill">
-                  {world.warehouse[data.input] || 0}
-                </span>
-              </div>
-            ))}
           </div>
-        </div>
 
-        <div className="game-card">
-          <h3>Finished Goods</h3>
-          <div className="game-grid-2">
-            {Object.keys(recipes).map(item => (
-              <div key={item} className="game-space-between">
-                <span>{item}:</span>
-                <span className="game-pill game-pill-good">
-                  {world.warehouse[item] || 0}
-                </span>
+          {/* Crafting Panel */}
+          <div className="game-card">
+            <h3>Start Crafting</h3>
+            {selectedBlueprint ? (
+              <div>
+                <div style={{ marginBottom: '16px' }}>
+                  <h4 style={{ color: getRarityColor(selectedBlueprint.output.rarity) }}>
+                    {selectedBlueprint.output.name}
+                  </h4>
+                  <div style={{ fontSize: '12px', color: '#9b8c70', marginBottom: '8px' }}>
+                    Produces {selectedBlueprint.outputQty}x • Takes {formatTime(selectedBlueprint.timeMin)} • Awards {selectedBlueprint.xpReward} XP
+                  </div>
+                  
+                  {selectedBlueprint.description && (
+                    <div style={{ 
+                      fontSize: '12px', 
+                      color: '#9b8c70',
+                      fontStyle: 'italic',
+                      marginBottom: '12px'
+                    }}>
+                      {selectedBlueprint.description}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ marginBottom: '16px' }}>
+                  <label className="game-small">Quantity</label>
+                  <input
+                    type="number"
+                    value={quantity}
+                    onChange={(e) => setQuantity(Math.max(1, Math.min(50, Number(e.target.value))))}
+                    min="1"
+                    max="50"
+                    style={{ width: '100%', marginTop: '4px' }}
+                    disabled={!selectedBlueprint.isUnlocked || !selectedBlueprint.canCraft}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '16px' }}>
+                  <div className="game-small" style={{ marginBottom: '8px' }}>Batch Summary:</div>
+                  <div style={{ fontSize: '12px', color: '#9b8c70' }}>
+                    <div>Total Time: {formatTime(selectedBlueprint.timeMin * quantity * (quantity > 1 ? 0.9 : 1))}</div>
+                    <div>Total Output: {selectedBlueprint.outputQty * quantity}x {selectedBlueprint.output.name}</div>
+                    <div>Total XP: {selectedBlueprint.xpReward * quantity}</div>
+                    {quantity > 1 && <div style={{ color: '#10b981' }}>Batch Bonus: 10% time reduction</div>}
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '16px' }}>
+                  <div className="game-small" style={{ marginBottom: '8px' }}>Required Materials:</div>
+                  {selectedBlueprint.inputs.map((input, i) => (
+                    <div key={i} style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between',
+                      fontSize: '12px',
+                      color: '#9b8c70',
+                      marginBottom: '2px'
+                    }}>
+                      <span style={{ color: getRarityColor(input.item.rarity) }}>
+                        {input.item.name}
+                      </span>
+                      <span>{input.qty * quantity} needed</span>
+                    </div>
+                  ))}
+                </div>
+
+                <button 
+                  onClick={handleCraft}
+                  disabled={!selectedBlueprint.isUnlocked || !selectedBlueprint.canCraft || isLoading}
+                  className="game-btn game-btn-primary"
+                  style={{ width: '100%' }}
+                >
+                  {isLoading ? 'Starting...' : 
+                   !selectedBlueprint.isUnlocked ? 'Recipe Locked' :
+                   !selectedBlueprint.canCraft ? `Requires Level ${selectedBlueprint.requiredLevel}` :
+                   'Start Crafting'}
+                </button>
               </div>
-            ))}
+            ) : (
+              <p className="game-muted">Select a recipe from the list to begin crafting.</p>
+            )}
           </div>
         </div>
       </div>

@@ -58,6 +58,11 @@ model User {
   // Caravan system fields
   caravanSlotsUnlocked Int @default(3) @map("caravan_slots_unlocked")
   caravanSlotsPremium  Int @default(0) @map("caravan_slots_premium")
+  
+  // Crafting system fields
+  craftingLevel       Int @default(1) @map("crafting_level")
+  craftingXP          Int @default(0) @map("crafting_xp")
+  craftingXPNext      Int @default(100) @map("crafting_xp_next")
 
   profile       Profile?
   characters    Character[]
@@ -72,6 +77,7 @@ model User {
   trailNodes       TrailNode[] // opposite of TrailNode.user
   trailSegs        TrailSeg[] // opposite of TrailSeg.user
   missionInstances MissionInstance[] // opposite of MissionInstance.user
+  unlockedBlueprints BlueprintUnlock[] // opposite of BlueprintUnlock.user
 }
 
 model Profile {
@@ -148,12 +154,20 @@ model Blueprint {
   key       String     @unique
   outputId  String     @db.Uuid
   inputs    Json // [{itemId, qty}, ...]
+  outputQty Int        @default(1) @map("output_qty") // how many items produced
   timeMin   Int        @default(10) // minutes per batch
+  category  String     @default("general") // general, weapons, armor, consumables, etc
+  requiredLevel Int    @default(1) @map("required_level")
+  xpReward  Int        @default(10) @map("xp_reward")
+  discoverable Boolean @default(false) // can be discovered through gameplay
+  starterRecipe Boolean @default(true) @map("starter_recipe") // available from start
+  description String?  @db.Text
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
   output    ItemDef    @relation("BlueprintOutput", fields: [outputId], references: [id], onDelete: Cascade)
   // opposites
   craftJobs CraftJob[]
+  unlockedBy BlueprintUnlock[] // opposite of BlueprintUnlock.blueprint
 }
 
 model CraftJob {
@@ -162,6 +176,8 @@ model CraftJob {
   blueprintId String    @db.Uuid
   qty         Int
   status      JobStatus @default(queued)
+  quality     String    @default("common") // common, uncommon, rare, epic, legendary
+  startedAt   DateTime? @map("started_at")
   eta         DateTime
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -172,6 +188,21 @@ model CraftJob {
   @@index([userId])
   @@index([status])
   @@index([eta])
+}
+
+// Junction table for tracking which blueprints users have unlocked
+model BlueprintUnlock {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String    @db.Uuid
+  blueprintId String    @db.Uuid
+  unlockedAt  DateTime  @default(now()) @map("unlocked_at")
+  unlockedBy  String?   @map("unlocked_by") // "level", "discovery", "quest", "purchase"
+  
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  blueprint Blueprint @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, blueprintId])
+  @@index([userId])
 }
 
 // ---------- Quests / Missions (Scouts) ----------

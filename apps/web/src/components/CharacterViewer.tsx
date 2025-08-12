@@ -212,9 +212,9 @@ export default function CharacterViewer({
           }
         } else {
           characterXRef.current += walkSpeedRef.current * deltaTime;
-          // Walk completely off the right edge
-          if (characterXRef.current >= walkAreaWidth + 20) {
-            characterXRef.current = walkAreaWidth + 20;
+          // Walk completely off the right edge (account for character width)
+          if (characterXRef.current >= walkAreaWidth - size + 20) {
+            characterXRef.current = walkAreaWidth - size + 20;
             walkDirectionRef.current = 'left';
             setDirection('west');
           }
