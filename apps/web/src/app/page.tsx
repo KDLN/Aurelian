@@ -180,45 +180,46 @@ export default function Home() {
       return;
     }
 
-    // Check if username is already taken
-    const { data: existingProfile } = await supabase
-      .from('Profile')
-      .select('id')
-      .eq('display', newUsername)
-      .neq('userId', user.id)
-      .single();
-    
-    if (existingProfile) {
-      setErrorMsg('Username already taken.');
-      return;
-    }
+    try {
+      // Get the auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        setErrorMsg('Please log in again.');
+        return;
+      }
 
-    // Try to update existing profile first
-    const { error: updateError } = await supabase
-      .from('Profile')
-      .update({ display: newUsername })
-      .eq('userId', user.id);
+      // Use our API endpoint to update the username
+      const response = await fetch('/api/user/profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          display: newUsername
+        }),
+      });
 
-    if (updateError) {
-      // If update fails, try to create new profile
-      const { error: insertError } = await supabase
-        .from('Profile')
-        .insert({ userId: user.id, display: newUsername });
-      
-      if (insertError) {
-        if ((insertError as any).code === '23505') {
+      const result = await response.json();
+
+      if (!response.ok) {
+        if (result.error?.includes('already taken') || result.error?.includes('23505')) {
           setErrorMsg('Username already taken.');
         } else {
-          setErrorMsg('Failed to save profile. Please try again.');
-          console.error('Profile save error:', insertError);
+          setErrorMsg('Failed to save username. Please try again.');
+          console.error('Profile save error:', result);
         }
         return;
       }
-    }
 
-    setNeedsUsername(false);
-    setNewUsername('');
-    setUser({ ...user });
+      setNeedsUsername(false);
+      setNewUsername('');
+      setUser({ ...user });
+    } catch (error) {
+      console.error('Username save error:', error);
+      setErrorMsg('An error occurred. Please try again.');
+    }
   }
 
   async function signOut() {
