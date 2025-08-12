@@ -14,12 +14,106 @@ export default function Home() {
     });
   }, []);
 
+  async function signUp() {
+    const email = prompt('Enter your email:') || '';
+    const password = prompt('Create a password:') || '';
+    const username = prompt('Choose a username:') || '';
+    if (!email || !password || !username) return;
+
+    const { data: existing } = await supabase
+      .from('Profile')
+      .select('id')
+      .eq('display', username);
+    if (existing && existing.length > 0) {
+      alert('Username already taken.');
+      return;
+    }
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    const user = data.user;
+    if (user) {
+      await supabase.from('Profile').upsert({
+        userId: user.id,
+        display: username,
+      });
+      alert('Account created! Please verify your email before logging in.');
+    }
+  }
+
   async function signIn() {
-    const email = prompt('Enter your email for magic link:') || '';
-    if (!email) return;
-    const { error } = await supabase.auth.signInWithOtp({ email });
-    if (error) alert(error.message); 
-    else alert('Check your email for the magic link!');
+    const identifier = prompt('Enter email or username:') || '';
+    const password = prompt('Enter your password:') || '';
+    if (!identifier || !password) return;
+
+    let authResponse;
+    if (identifier.includes('@')) {
+      authResponse = await supabase.auth.signInWithPassword({
+        email: identifier,
+        password,
+      });
+    } else {
+      const { data: profile, error: profileError } = await supabase
+        .from('Profile')
+        .select('userId')
+        .eq('display', identifier)
+        .single();
+      if (profileError || !profile) {
+        alert('User not found.');
+        return;
+      }
+      const { data: userRow, error: userError } = await supabase
+        .from('User')
+        .select('email')
+        .eq('id', profile.userId)
+        .single();
+      if (userError || !userRow) {
+        alert('User not found.');
+        return;
+      }
+      authResponse = await supabase.auth.signInWithPassword({
+        email: userRow.email,
+        password,
+      });
+    }
+
+    if (authResponse.error) {
+      alert(authResponse.error.message);
+      return;
+    }
+
+    const loggedInUser = authResponse.data.user;
+    if (loggedInUser) {
+      const { data: prof } = await supabase
+        .from('Profile')
+        .select('display')
+        .eq('userId', loggedInUser.id)
+        .single();
+      if (!prof || !prof.display || prof.display === 'Trader') {
+        const newName = prompt('Choose a username:') || '';
+        if (newName) {
+          const { data: existingName } = await supabase
+            .from('Profile')
+            .select('id')
+            .eq('display', newName);
+          if (existingName && existingName.length > 0) {
+            alert('Username already taken.');
+          } else {
+            await supabase.from('Profile').upsert({
+              userId: loggedInUser.id,
+              display: newName,
+            });
+          }
+        }
+      }
+      setUser(loggedInUser);
+    }
   }
 
   async function signOut() {
@@ -116,10 +210,14 @@ export default function Home() {
           <div className="sign-up-section">
             <h2>Begin Your Trading Legacy</h2>
             <p>Join the frontier. Build trade routes. Shape the new world.</p>
-            <button onClick={signIn} className="btn-primary btn-large">
-              Start Trading with Magic Link
-            </button>
-            <p className="signup-note">No password needed. We'll email you a secure login link.</p>
+            <div className="auth-buttons">
+              <button onClick={signUp} className="btn-primary btn-large">
+                Sign Up
+              </button>
+              <button onClick={signIn} className="btn-secondary btn-large">
+                Log In
+              </button>
+            </div>
           </div>
         )}
       </section>
