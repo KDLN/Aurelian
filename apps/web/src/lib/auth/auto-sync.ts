@@ -1,6 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 // Cache to avoid redundant sync operations
 const syncedUsers = new Set<string>();
@@ -106,8 +104,6 @@ export async function ensureUserSynced(authUser: any) {
     console.error('Auto-sync error for user:', userId, error);
     // Don't throw - we want the API to still work even if sync fails
     return null;
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
@@ -124,8 +120,6 @@ export async function userExists(userId: string): Promise<boolean> {
   } catch (error) {
     console.error('User exists check failed:', error);
     return false;
-  } finally {
-    await prisma.$disconnect();
   }
 }
 

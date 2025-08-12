@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import { createClient } from '@supabase/supabase-js';
 import { ensureUserExistsOptimized } from '@/lib/auth/auto-sync';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -128,7 +126,5 @@ export async function GET(request: NextRequest) {
       error: 'Failed to fetch blueprints',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
   }
 }
