@@ -319,6 +319,9 @@ export default function GuildPage() {
         <a href="/guild/warehouse" className="game-btn game-btn-small">
           📦 Guild Warehouse
         </a>
+        <a href="/guild/channels" className="game-btn game-btn-small">
+          💬 Guild Chat
+        </a>
         <a href="/guild/achievements" className="game-btn game-btn-small">
           🏆 Achievements
         </a>
