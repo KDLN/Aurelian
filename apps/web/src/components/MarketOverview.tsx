@@ -75,11 +75,12 @@ export default function MarketOverview({ className = '', showDetailedStats = tru
     return () => clearInterval(interval);
   }, []);
 
-  const formatPrice = (price: number) => `${price.toLocaleString()}g`;
+  const formatPrice = (price: number | undefined | null) => `${(price || 0).toLocaleString()}g`;
   
-  const formatPercent = (percent: number) => {
-    const sign = percent > 0 ? '+' : '';
-    return `${sign}${percent.toFixed(1)}%`;
+  const formatPercent = (percent: number | undefined | null) => {
+    const value = percent || 0;
+    const sign = value > 0 ? '+' : '';
+    return `${sign}${value.toFixed(1)}%`;
   };
 
   const getTrendIcon = (trend: string) => {
@@ -207,7 +208,7 @@ export default function MarketOverview({ className = '', showDetailedStats = tru
                   {formatPercent(item.priceChangePercent)}
                 </td>
                 <td className="game-right">
-                  {item.volume24h.toLocaleString()}
+                  {(item.volume24h || 0).toLocaleString()}
                 </td>
                 <td className={getActivityColor(item.activityLevel)}>
                   <div className="game-center">

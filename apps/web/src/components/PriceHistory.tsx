@@ -88,11 +88,12 @@ export default function PriceHistory({
     setSelectedPeriod(newPeriod);
   };
 
-  const formatPrice = (price: number) => `${price.toLocaleString()}g`;
+  const formatPrice = (price: number | undefined | null) => `${(price || 0).toLocaleString()}g`;
   
-  const formatPercent = (percent: number) => {
-    const sign = percent > 0 ? '+' : '';
-    return `${sign}${percent.toFixed(1)}%`;
+  const formatPercent = (percent: number | undefined | null) => {
+    const value = percent || 0;
+    const sign = value > 0 ? '+' : '';
+    return `${sign}${value.toFixed(1)}%`;
   };
 
   const renderSimpleChart = (ticks: PriceTick[]) => {
@@ -233,8 +234,8 @@ export default function PriceHistory({
         
         {!compact && (
           <div className="game-right">
-            <div className="game-small game-muted">Volume: {analytics.totalVolume.toLocaleString()}</div>
-            <div className="game-small game-muted">Volatility: {(analytics.volatility * 100).toFixed(1)}%</div>
+            <div className="game-small game-muted">Volume: {(analytics.totalVolume || 0).toLocaleString()}</div>
+            <div className="game-small game-muted">Volatility: {((analytics.volatility || 0) * 100).toFixed(1)}%</div>
           </div>
         )}
       </div>
