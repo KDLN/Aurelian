@@ -216,29 +216,35 @@ export default function Home() {
       <section className="features-section">
         <h2>Forge Your Trading Empire</h2>
         <div className="features-grid">
-          <div className="feature-card">
+          <div className="feature-card live-feature">
+            <div className="feature-status">✅ LIVE</div>
             <h3>⚖️ Dynamic Markets</h3>
-            <p>Real-time prices fluctuate based on supply and demand. What's worthless here might be precious there.</p>
+            <p>Real-time prices fluctuate based on supply and demand. Advanced market analytics and trading intelligence available now.</p>
           </div>
-          <div className="feature-card">
+          <div className="feature-card coming-soon">
+            <div className="feature-status">🚧 COMING SOON</div>
             <h3>🗺️ Dangerous Routes</h3>
             <p>Chart paths through lawless territories. Higher risks bring higher rewards—if you survive.</p>
           </div>
-          <div className="feature-card">
+          <div className="feature-card live-feature">
+            <div className="feature-status">✅ LIVE</div>
             <h3>⚔️ Strategic Missions</h3>
             <p>Send caravans on expeditions. Balance speed against safety. Time your arrivals perfectly.</p>
           </div>
-          <div className="feature-card">
+          <div className="feature-card live-feature">
+            <div className="feature-status">✅ LIVE</div>
             <h3>🔨 Master Crafting</h3>
-            <p>Transform raw materials into valuable goods. Corner markets with exclusive products.</p>
+            <p>Transform raw materials into valuable goods. Complete crafting system with blueprints and quality bonuses.</p>
           </div>
-          <div className="feature-card">
+          <div className="feature-card coming-soon">
+            <div className="feature-status">🚧 COMING SOON</div>
             <h3>📜 Binding Contracts</h3>
             <p>Negotiate deals with other traders. Honor your word or face the consequences.</p>
           </div>
-          <div className="feature-card">
+          <div className="feature-card live-feature">
+            <div className="feature-status">✅ LIVE</div>
             <h3>🏛️ Living Economy</h3>
-            <p>Every transaction matters. Watch cities rise or fall based on trade flow.</p>
+            <p>Every transaction matters. Real-time auction house with market events and price intelligence.</p>
           </div>
         </div>
       </section>
@@ -273,6 +279,7 @@ export default function Home() {
               <div className="quick-links">
                 <a href="/warehouse" className="btn-primary">📦 Warehouse</a>
                 <a href="/auction" className="btn-primary">💰 Auction House</a>
+                <a href="/market" className="btn-primary featured-link">📊 Market Dashboard</a>
                 <a href="/missions" className="btn-primary">🗺️ Missions</a>
                 <a href="/crafting" className="btn-primary">🔨 Crafting</a>
               </div>
@@ -380,19 +387,20 @@ export default function Home() {
           <div>
             <h4>Trading Posts</h4>
             <ul>
-              <li><a href="/warehouse">Warehouse Management</a></li>
-              <li><a href="/auction">Live Auction House</a></li>
-              <li><a href="/crafting">Crafting Workshop</a></li>
-              <li><a href="/contracts">Trade Contracts</a></li>
+              <li><a href="/warehouse">📦 Warehouse Management</a> <span className="status-live">LIVE</span></li>
+              <li><a href="/auction">💰 Live Auction House</a> <span className="status-live">LIVE</span></li>
+              <li><a href="/market">📊 Market Dashboard</a> <span className="status-new">NEW</span></li>
+              <li><a href="/crafting">🔨 Crafting Workshop</a> <span className="status-live">LIVE</span></li>
+              <li><a href="/contracts">📜 Trade Contracts</a> <span className="status-soon">SOON</span></li>
             </ul>
           </div>
           <div>
             <h4>The Frontier</h4>
             <ul>
-              <li><a href="/missions">Caravan Missions</a></li>
-              <li><a href="/hub">Trading Hub</a></li>
-              <li><a href="/play">Multiplayer World</a></li>
-              <li><a href="/minimap">World Map</a></li>
+              <li><a href="/missions">🗺️ Caravan Missions</a> <span className="status-live">LIVE</span></li>
+              <li><a href="/hub">🏛️ Trading Hub</a> <span className="status-live">LIVE</span></li>
+              <li><a href="/play">⚔️ Multiplayer World</a> <span className="status-live">LIVE</span></li>
+              <li><a href="/minimap">🗺️ World Map</a> <span className="status-soon">SOON</span></li>
             </ul>
           </div>
           <div>

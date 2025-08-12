@@ -7,6 +7,61 @@
   font-family: 'Courier New', monospace;
 }
 
+/* Status indicators */
+.feature-status {
+  font-size: 10px;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  display: inline-block;
+}
+
+.live-feature .feature-status {
+  background: #2d5016;
+  color: #68b06e;
+  border: 1px solid #4a8a50;
+}
+
+.coming-soon .feature-status {
+  background: #4a3c00;
+  color: #b7b34d;
+  border: 1px solid #9a9840;
+}
+
+.status-live {
+  font-size: 9px;
+  color: #68b06e;
+  background: #2d5016;
+  padding: 1px 4px;
+  border-radius: 3px;
+  margin-left: 6px;
+}
+
+.status-new {
+  font-size: 9px;
+  color: #d65b5b;
+  background: #4d1f1f;
+  padding: 1px 4px;
+  border-radius: 3px;
+  margin-left: 6px;
+}
+
+.status-soon {
+  font-size: 9px;
+  color: #b7b34d;
+  background: #4a3c00;
+  padding: 1px 4px;
+  border-radius: 3px;
+  margin-left: 6px;
+}
+
+.featured-link {
+  background: linear-gradient(135deg, #d65b5b 0%, #b04545 100%) !important;
+  border-color: #a04545 !important;
+  box-shadow: 0 0 10px rgba(214, 91, 91, 0.3);
+}
+
 /* Hero Section */
 .hero-section {
   position: relative;
