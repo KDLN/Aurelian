@@ -50,52 +50,29 @@ export default function Home() {
       return;
     }
 
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    // Use proper Supabase pattern: pass metadata during signup
+    const { data, error } = await supabase.auth.signUp({ 
+      email, 
+      password,
+      options: {
+        data: {
+          username: username,
+          display_name: username
+        }
+      }
+    });
+    
     if (error) {
       setErrorMsg('Sign up failed: ' + error.message);
       return;
     }
     
-    const u = data.user;
-    if (u) {
-      try {
-        // Sync user with our database using the simplified sync endpoint
-        const syncResponse = await fetch('/api/simple-sync', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            userId: u.id,
-            email: u.email,
-            username: username
-          }),
-        });
-
-        if (!syncResponse.ok) {
-          const errorData = await syncResponse.json();
-          console.error('User sync error:', errorData);
-          if (errorData.error?.includes('already taken') || errorData.error?.includes('23505')) {
-            setErrorMsg('Username already taken.');
-          } else {
-            // Show detailed error for debugging
-            const detailMsg = errorData.details ? ` Details: ${errorData.details}` : '';
-            const stackMsg = errorData.stack ? ` Stack: ${errorData.stack.substring(0, 200)}...` : '';
-            setErrorMsg('Failed to create user profile: ' + (errorData.error || 'Unknown error') + detailMsg + stackMsg);
-          }
-          return;
-        }
-
-        setErrorMsg('Account created! Check your email to verify before logging in.');
-        setEmail('');
-        setPassword('');
-        setUsername('');
-        setAuthMode('login');
-      } catch (err) {
-        console.error('Sign-up error:', err);
-        setErrorMsg('An unexpected error occurred. Please try again.');
-      }
-    }
+    // With proper triggers, the User, Profile, and Wallet should be created automatically
+    setErrorMsg('Account created! Check your email to verify before logging in.');
+    setEmail('');
+    setPassword('');
+    setUsername('');
+    setAuthMode('login');
   }
 
   async function handleSignIn(e: FormEvent) {
@@ -132,23 +109,7 @@ export default function Home() {
     }
     const loggedInUser = authResponse.data.user;
     if (loggedInUser) {
-      // Ensure user is synced with our database
-      try {
-        await fetch('/api/simple-sync', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            userId: loggedInUser.id,
-            email: loggedInUser.email
-          }),
-        });
-      } catch (syncError) {
-        console.warn('User sync failed on login:', syncError);
-        // Continue with login even if sync fails
-      }
-
+      // Check if user needs to set a custom username
       const { data: prof } = await supabase
         .from('Profile')
         .select('display')
