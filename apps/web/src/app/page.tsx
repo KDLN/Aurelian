@@ -119,17 +119,43 @@ export default function Home() {
       setErrorMsg('Username must be 3-20 characters and contain only letters, numbers, or _.');
       return;
     }
-    const { error } = await supabase
+
+    // Check if username is already taken
+    const { data: existingProfile } = await supabase
       .from('Profile')
-      .upsert({ userId: user.id, display: newUsername });
-    if (error) {
-      if ((error as any).code === '23505') {
-        setErrorMsg('Username already taken.');
-      } else {
-        setErrorMsg('Failed to save username.');
-      }
+      .select('id')
+      .eq('display', newUsername)
+      .neq('userId', user.id)
+      .single();
+    
+    if (existingProfile) {
+      setErrorMsg('Username already taken.');
       return;
     }
+
+    // Try to update existing profile first
+    const { error: updateError } = await supabase
+      .from('Profile')
+      .update({ display: newUsername })
+      .eq('userId', user.id);
+
+    if (updateError) {
+      // If update fails, try to create new profile
+      const { error: insertError } = await supabase
+        .from('Profile')
+        .insert({ userId: user.id, display: newUsername });
+      
+      if (insertError) {
+        if ((insertError as any).code === '23505') {
+          setErrorMsg('Username already taken.');
+        } else {
+          setErrorMsg('Failed to save profile. Please try again.');
+          console.error('Profile save error:', insertError);
+        }
+        return;
+      }
+    }
+
     setNeedsUsername(false);
     setNewUsername('');
     setUser({ ...user });
