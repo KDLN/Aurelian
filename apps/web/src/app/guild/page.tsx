@@ -644,7 +644,15 @@ export default function GuildPage() {
         {activeTab === 'members' && (
           <div className="game-card">
             <h3>Guild Members</h3>
-            <p className="game-muted">Member management is available at <a href="/guild/members">/guild/members</a></p>
+            <div style={{ textAlign: 'center', margin: '20px 0' }}>
+              <a href="/guild/members" className="game-btn game-btn-primary">
+                👥 Manage Members
+              </a>
+            </div>
+            <p className="game-muted game-small">
+              View all guild members, manage roles, and send invitations. 
+              {['LEADER', 'OFFICER'].includes(guild.userRole) ? ' You have management permissions.' : ' Contact a leader or officer for role changes.'}
+            </p>
           </div>
         )}
 
@@ -747,7 +755,15 @@ export default function GuildPage() {
         {activeTab === 'wars' && (
           <div className="game-card">
             <h3>Wars & Alliances</h3>
-            <p className="game-muted">War system is available at <a href="/guild/wars">/guild/wars</a></p>
+            <div style={{ textAlign: 'center', margin: '20px 0' }}>
+              <a href="/guild/wars" className="game-btn game-btn-primary">
+                ⚔️ View Wars & Alliances
+              </a>
+            </div>
+            <p className="game-muted game-small">
+              Manage guild relationships, declare wars, and form alliances with other guilds.
+              {['LEADER', 'OFFICER'].includes(guild.userRole) ? ' You can manage diplomatic relations.' : ' Only leaders and officers can manage diplomatic relations.'}
+            </p>
           </div>
         )}
       </div>
