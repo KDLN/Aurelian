@@ -50,14 +50,14 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    if (!guildWarehouse || guildWarehouse.qty < amount) {
+    if (!guildWarehouse || guildWarehouse.quantity < amount) {
       return NextResponse.json({ error: 'Insufficient items in guild warehouse' }, { status: 400 });
     }
 
     // Perform the withdrawal transaction
     await prisma.$transaction(async (tx) => {
       // Remove items from guild warehouse
-      if (guildWarehouse.qty === amount) {
+      if (guildWarehouse.quantity === amount) {
         // Remove the warehouse record entirely if withdrawing all items
         await tx.guildWarehouse.delete({
           where: {
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
             }
           },
           data: {
-            qty: guildWarehouse.qty - amount
+            quantity: guildWarehouse.quantity - amount
           }
         });
       }

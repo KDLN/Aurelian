@@ -52,6 +52,9 @@ export async function GET(request: NextRequest) {
         { item: { category: 'asc' } },
         { item: { name: 'asc' } }
       ]
+    }).catch(error => {
+      console.error('Prisma error in guild warehouse:', error);
+      throw error;
     });
 
     return NextResponse.json({

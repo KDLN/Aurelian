@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabaseClient';
 type WarehouseItem = {
   id: string;
   itemId: string;
-  qty: number;
+  quantity: number;
   item: {
     id: string;
     name: string;
@@ -237,7 +237,7 @@ export default function GuildWarehousePage() {
                       </div>
                     </div>
                     <div className="game-center">
-                      <div className="game-big">{item.qty.toLocaleString()}</div>
+                      <div className="game-big">{item.quantity.toLocaleString()}</div>
                       <div className="game-small game-muted">in stock</div>
                     </div>
                   </div>
@@ -267,7 +267,7 @@ export default function GuildWarehousePage() {
                       <input
                         type="number"
                         min="1"
-                        max={item.qty}
+                        max={item.quantity}
                         value={depositAmounts[item.itemId] || ''}
                         onChange={(e) => setDepositAmounts(prev => ({
                           ...prev,
@@ -306,13 +306,13 @@ export default function GuildWarehousePage() {
                   <div key={item.id} className="game-space-between" style={{ padding: '8px 0', borderBottom: '1px solid #533b2c' }}>
                     <div>
                       <strong>{item.item.name}</strong>
-                      <div className="game-small game-muted">Available: {item.qty}</div>
+                      <div className="game-small game-muted">Available: {item.quantity}</div>
                     </div>
                     <div className="game-flex" style={{ gap: '8px', alignItems: 'center' }}>
                       <input
                         type="number"
                         min="1"
-                        max={item.qty}
+                        max={item.quantity}
                         value={withdrawAmounts[item.itemId] || ''}
                         onChange={(e) => setWithdrawAmounts(prev => ({
                           ...prev,
@@ -325,7 +325,7 @@ export default function GuildWarehousePage() {
                       <button
                         className="game-btn game-btn-primary game-btn-small"
                         onClick={() => handleWithdraw(item.itemId, withdrawAmounts[item.itemId] || 0)}
-                        disabled={!withdrawAmounts[item.itemId] || withdrawAmounts[item.itemId] <= 0 || withdrawAmounts[item.itemId] > item.qty}
+                        disabled={!withdrawAmounts[item.itemId] || withdrawAmounts[item.itemId] <= 0 || withdrawAmounts[item.itemId] > item.quantity}
                       >
                         Withdraw
                       </button>

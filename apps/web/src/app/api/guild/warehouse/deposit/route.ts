@@ -94,14 +94,14 @@ export async function POST(request: NextRequest) {
           }
         },
         update: {
-          qty: {
+          quantity: {
             increment: amount
           }
         },
         create: {
           guildId: membership.guildId,
           itemId: itemId,
-          qty: amount
+          quantity: amount
         }
       });
 
