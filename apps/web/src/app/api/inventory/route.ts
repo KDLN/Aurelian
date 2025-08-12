@@ -37,15 +37,16 @@ export async function GET(request: NextRequest) {
         item: {
           select: {
             id: true,
+            key: true,
             name: true,
-            description: true,
-            category: true,
-            baseValue: true
+            rarity: true,
+            stack: true,
+            meta: true
           }
         }
       },
       orderBy: [
-        { item: { category: 'asc' } },
+        { item: { rarity: 'asc' } },
         { item: { name: 'asc' } }
       ]
     });

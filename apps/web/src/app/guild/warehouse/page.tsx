@@ -10,10 +10,11 @@ type WarehouseItem = {
   quantity: number;
   item: {
     id: string;
+    key: string;
     name: string;
-    description: string;
-    category: string;
-    baseValue: number;
+    rarity: string;
+    stack: number;
+    meta: any;
   };
 };
 
@@ -24,10 +25,11 @@ type UserInventoryItem = {
   location: string;
   item: {
     id: string;
+    key: string;
     name: string;
-    description: string;
-    category: string;
-    baseValue: number;
+    rarity: string;
+    stack: number;
+    meta: any;
   };
 };
 
@@ -231,9 +233,9 @@ export default function GuildWarehousePage() {
                   <div key={item.id} className="game-space-between" style={{ padding: '8px 0', borderBottom: '1px solid #533b2c' }}>
                     <div>
                       <strong>{item.item.name}</strong>
-                      <div className="game-small game-muted">{item.item.description}</div>
+                      <div className="game-small game-muted">{item.item.key}</div>
                       <div className="game-small">
-                        Category: {item.item.category} • Value: {item.item.baseValue}g each
+                        Rarity: {item.item.rarity} • Stack: {item.item.stack}
                       </div>
                     </div>
                     <div className="game-center">
