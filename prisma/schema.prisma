@@ -84,6 +84,11 @@ model User {
   guildLogs         GuildLog[]
   guildInvitesReceived GuildInvite[] @relation("GuildInviteReceived")
   guildInvitesSent     GuildInvite[] @relation("GuildInviteSent")
+  
+  // Chat relations
+  chatMessages      ChatMessage[]
+  chatReactions     ChatReaction[]
+  chatMentions      ChatMention[]
 }
 
 model Profile {
@@ -542,6 +547,7 @@ model GuildChannel {
   createdAt   DateTime @default(now())
   
   guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  chatMessages ChatMessage[]
   
   @@unique([guildId, name])
   @@index([guildId])
@@ -603,4 +609,67 @@ model MissionInstance {
   @@index([userId, status])
   @@index([endTime])
   @@index([userId, caravanSlot, status])
+}
+
+// ---------- Chat System ----------
+enum ChannelType {
+  GENERAL
+  TRADE
+  GUILD
+}
+
+model ChatMessage {
+  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  content         String       @db.Text
+  userId          String       @db.Uuid
+  channelType     ChannelType
+  guildChannelId  String?      @db.Uuid // For guild-specific channels
+  parentMessageId String?      @db.Uuid @map("parent_message_id") // For replies
+  editedAt        DateTime?    @map("edited_at")
+  deletedAt       DateTime?    @map("deleted_at")
+  metadata        Json?        // attachments, embeds, etc
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guildChannel    GuildChannel? @relation(fields: [guildChannelId], references: [id], onDelete: Cascade)
+  parentMessage   ChatMessage? @relation("MessageReplies", fields: [parentMessageId], references: [id], onDelete: SetNull)
+  replies         ChatMessage[] @relation("MessageReplies")
+  reactions       ChatReaction[]
+  mentions        ChatMention[]
+  
+  @@index([channelType, createdAt])
+  @@index([guildChannelId, createdAt])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model ChatReaction {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  messageId String   @db.Uuid @map("message_id")
+  userId    String   @db.Uuid
+  emoji     String   // Unicode emoji or custom emoji code
+  createdAt DateTime @default(now())
+  
+  message   ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+  @@index([userId])
+}
+
+model ChatMention {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  messageId String   @db.Uuid @map("message_id")
+  userId    String   @db.Uuid // User being mentioned
+  type      String   @default("user") // "user", "role", "everyone"
+  createdAt DateTime @default(now())
+  
+  message   ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([messageId, userId, type])
+  @@index([messageId])
+  @@index([userId])
 }

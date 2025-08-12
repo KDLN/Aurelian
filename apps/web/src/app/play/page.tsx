@@ -4,6 +4,7 @@ import { Client, Room } from 'colyseus.js';
 import { useEffect, useRef, useState } from 'react';
 import { GameRenderer } from '../../lib/sprites/gameRenderer';
 import { loadCharacterAppearance } from '../../lib/sprites/characterOptions';
+import { FloatingChatWidget } from '@/components/chat';
 
 type P = { id:string; x:number; y:number; color?:string; name?:string };
 
@@ -131,6 +132,9 @@ export default function Play(){
           background: '#231913'
         }} 
       />
+      
+      {/* Floating Chat Widget */}
+      <FloatingChatWidget />
     </div>
   );
 }

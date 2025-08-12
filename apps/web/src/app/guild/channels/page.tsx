@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import GameLayout from '@/components/GameLayout';
 import { supabase } from '@/lib/supabaseClient';
 import { GuildChannel } from '@/types/guild';
+import { ChatSystem } from '@/components/chat';
 
 export default function GuildChannelsPage() {
   const [channels, setChannels] = useState<GuildChannel[]>([]);
@@ -278,62 +279,19 @@ export default function GuildChannelsPage() {
           </div>
         )}
 
-        {/* Selected Channel */}
-        {selectedChannel ? (
-          <div className="game-card">
-            <div className="game-space-between" style={{ marginBottom: '16px' }}>
-              <div>
-                <h3>#{selectedChannel.name}</h3>
-                {selectedChannel.description && (
-                  <p className="game-muted game-small">{selectedChannel.description}</p>
-                )}
-              </div>
-              {selectedChannel.roleRequired && (
-                <span className={`game-pill ${getRoleColor(selectedChannel.roleRequired)}`}>
-                  {selectedChannel.roleRequired}+ Only
-                </span>
-              )}
-            </div>
-
-            {/* Chat Area - Placeholder for now */}
-            <div style={{ 
-              border: '1px solid #533b2c', 
-              borderRadius: '4px', 
-              padding: '16px', 
-              minHeight: '400px',
-              background: '#1a1511',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexDirection: 'column'
-            }}>
-              <div className="game-muted">💬 Chat System Coming Soon</div>
-              <div className="game-small game-muted" style={{ marginTop: '8px' }}>
-                Real-time guild chat will be implemented here
-              </div>
-            </div>
-
-            {/* Message Input - Placeholder */}
-            <div style={{ marginTop: '16px', display: 'flex', gap: '8px' }}>
-              <input
-                type="text"
-                placeholder={`Message #${selectedChannel.name}`}
-                className="game-input"
-                style={{ flex: 1 }}
-                disabled
-              />
-              <button className="game-btn game-btn-primary" disabled>
-                Send
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="game-card">
-            <div className="game-center">
-              <div className="game-muted">Select a channel to start chatting</div>
-            </div>
-          </div>
-        )}
+        {/* Guild Chat System */}
+        <div style={{ height: '600px' }}>
+          <ChatSystem
+            initialChannel="guild"
+            guildChannels={channels.map(ch => ({
+              id: ch.id,
+              name: ch.name,
+              description: ch.description,
+              roleRequired: ch.roleRequired
+            }))}
+            className="chat-container"
+          />
+        </div>
 
         {/* Chat Instructions */}
         <div className="game-card">

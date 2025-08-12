@@ -159,6 +159,7 @@ export default function MarketDashboard() {
           </div>
         </div>
 
+
         {/* Market Disclaimer */}
         <div className="game-card game-muted" style={{ textAlign: 'center', padding: '12px' }}>
           <div className="game-small">

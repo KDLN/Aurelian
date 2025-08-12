@@ -6,6 +6,7 @@ import { useUserData } from '@/hooks/useUserData';
 import { loadCharacterAppearance } from '@/lib/sprites/characterOptions';
 import { CharacterAppearance } from '@/lib/sprites/characterSprites';
 import CharacterViewer from './CharacterViewer';
+import { ChatSystem } from '@/components/chat';
 import '@/lib/game/styles.css';
 
 interface GameLayoutProps {
@@ -15,6 +16,14 @@ interface GameLayoutProps {
   showCharacterViewer?: boolean;
   characterActivity?: 'idle' | 'walking' | 'trading' | 'crafting' | 'combat' | 'mission';
   characterLocation?: string;
+  showChat?: boolean;
+  chatInitialChannel?: 'general' | 'trade' | 'guild';
+  guildChannels?: Array<{
+    id: string;
+    name: string;
+    description?: string;
+    roleRequired?: string;
+  }>;
 }
 
 export default function GameLayout({
@@ -23,7 +32,10 @@ export default function GameLayout({
   sidebar,
   showCharacterViewer = true,
   characterActivity = 'idle',
-  characterLocation = 'Hub'
+  characterLocation = 'Hub',
+  showChat = true,
+  chatInitialChannel = 'general',
+  guildChannels = []
 }: GameLayoutProps) {
   const { world, subscribe } = useGameWorld();
   const { wallet, user } = useUserData();
@@ -31,6 +43,12 @@ export default function GameLayout({
   const [currentPath, setCurrentPath] = useState('');
   const [characterAppearance, setCharacterAppearance] = useState<CharacterAppearance | null>(null);
   const [username, setUsername] = useState<string>('Anonymous Trader');
+  const [userGuildChannels, setUserGuildChannels] = useState<Array<{
+    id: string;
+    name: string;
+    description?: string;
+    roleRequired?: string;
+  }>>([]);
 
   useEffect(() => {
     const unsubscribe = subscribe(() => forceUpdate(x => x + 1));
@@ -66,35 +84,50 @@ export default function GameLayout({
     loadAppearance();
   }, []);
 
-  // Load username from profile
+  // Load username and guild info from profile
   useEffect(() => {
-    const loadUsername = async () => {
+    const loadUserData = async () => {
       if (user?.id) {
         try {
           const { supabase } = await import('@/lib/supabaseClient');
           const { data: { session } } = await supabase.auth.getSession();
           
           if (session?.access_token) {
-            const response = await fetch('/api/profile', {
+            // Load profile info
+            const profileResponse = await fetch('/api/profile', {
               headers: {
                 'Authorization': `Bearer ${session.access_token}`
               }
             });
             
-            if (response.ok) {
-              const data = await response.json();
-              if (data.profile?.display) {
-                setUsername(data.profile.display);
+            if (profileResponse.ok) {
+              const profileData = await profileResponse.json();
+              if (profileData.profile?.display) {
+                setUsername(profileData.profile.display);
+              }
+            }
+
+            // Load guild info
+            const guildResponse = await fetch('/api/guild/info', {
+              headers: {
+                'Authorization': `Bearer ${session.access_token}`
+              }
+            });
+            
+            if (guildResponse.ok) {
+              const guildData = await guildResponse.json();
+              if (guildData.success && guildData.inGuild && guildData.guild?.channels) {
+                setUserGuildChannels(guildData.guild.channels);
               }
             }
           }
         } catch (error) {
-          console.error('Error loading username:', error);
+          console.error('Error loading user data:', error);
         }
       }
     };
     
-    loadUsername();
+    loadUserData();
   }, [user]);
 
   const navigation = [
@@ -257,8 +290,28 @@ export default function GameLayout({
           </div>
         </div>
 
-        <div className="game-panel game-panel-right">
-          {children}
+        <div className="game-panel game-panel-right" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          {/* Main Content Area */}
+          <div style={{ flex: '1', overflow: 'auto', marginBottom: '16px' }}>
+            {children}
+          </div>
+          
+          {/* Chat Area - Bottom Half */}
+          {showChat && (
+            <div style={{ 
+              height: '400px', 
+              minHeight: '300px',
+              borderTop: '2px solid #533b2c',
+              paddingTop: '8px'
+            }}>
+              <ChatSystem
+                initialChannel={chatInitialChannel}
+                guildChannels={userGuildChannels.length > 0 ? userGuildChannels : guildChannels}
+                isCompact={true}
+                className=""
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -6,6 +6,8 @@ import { MovementRoom } from './rooms/movement';
 import { AuctionTickerRoom } from './rooms/ticker';
 import { EnhancedTickerRoom } from './rooms/enhanced-ticker';
 import { AuctionRoom } from './rooms/auction';
+import { PublicChatRoom } from './rooms/public-chat-room';
+import { GuildChatRoom } from './rooms/guild-chat-room';
 
 const app = express();
 app.get('/', (_req: Request, res: Response) => res.send('Aurelian Realtime Server v2.0 - Ready'));
@@ -19,6 +21,11 @@ gameServer.define('movement', MovementRoom);
 gameServer.define('auction_ticker', AuctionTickerRoom); // Keep old for backward compatibility
 gameServer.define('enhanced_ticker', EnhancedTickerRoom); // New advanced ticker
 gameServer.define('auction', AuctionRoom);
+
+// Chat rooms
+gameServer.define('chat_general', PublicChatRoom, { channelType: 'GENERAL' });
+gameServer.define('chat_trade', PublicChatRoom, { channelType: 'TRADE' });
+gameServer.define('chat_guild', GuildChatRoom);
 
 const port = Number(process.env.PORT || 8787);
 server.listen(port, ()=> console.log(`Realtime running on :${port}`));
