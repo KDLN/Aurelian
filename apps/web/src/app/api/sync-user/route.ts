@@ -24,6 +24,8 @@ export async function POST(request: NextRequest) {
       create: {
         id: userId,
         email: email || 'unknown@example.com',
+        caravanSlotsUnlocked: 3,
+        caravanSlotsPremium: 0,
         createdAt: new Date(),
         updatedAt: new Date()
       }

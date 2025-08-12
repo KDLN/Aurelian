@@ -59,33 +59,37 @@ export default function Home() {
     const u = data.user;
     if (u) {
       try {
-        // Create User record first
-        const { error: userError } = await supabase
-          .from('User')
-          .upsert({ 
-            id: u.id, 
-            email: u.email,
-            caravanSlotsUnlocked: 3,
-            caravanSlotsPremium: 0
-          });
+        // Sync user with our database using the sync-user endpoint
+        const syncResponse = await fetch('/api/sync-user', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: u.id,
+            email: u.email
+          }),
+        });
 
-        if (userError && userError.code !== '23505') { // Ignore duplicate key errors
-          console.error('User creation error:', userError);
+        if (!syncResponse.ok) {
+          const errorData = await syncResponse.json();
+          console.error('User sync error:', errorData);
           setErrorMsg('Failed to create user profile.');
           return;
         }
 
-        // Create Profile record
+        // Update the profile with the chosen username
         const { error: profileError } = await supabase
           .from('Profile')
-          .insert({ userId: u.id, display: username });
+          .update({ display: username })
+          .eq('userId', u.id);
 
         if (profileError) {
           if (profileError.code === '23505') {
             setErrorMsg('Username already taken.');
           } else {
-            console.error('Profile creation error:', profileError);
-            setErrorMsg('Failed to save profile: ' + profileError.message);
+            console.error('Profile update error:', profileError);
+            setErrorMsg('Failed to save username: ' + profileError.message);
           }
           return;
         }
@@ -136,12 +140,29 @@ export default function Home() {
     }
     const loggedInUser = authResponse.data.user;
     if (loggedInUser) {
+      // Ensure user is synced with our database
+      try {
+        await fetch('/api/sync-user', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: loggedInUser.id,
+            email: loggedInUser.email
+          }),
+        });
+      } catch (syncError) {
+        console.warn('User sync failed on login:', syncError);
+        // Continue with login even if sync fails
+      }
+
       const { data: prof } = await supabase
         .from('Profile')
         .select('display')
         .eq('userId', loggedInUser.id)
         .single();
-      if (!prof || !prof.display || prof.display === 'Trader') {
+      if (!prof || !prof.display || prof.display.startsWith('Trader')) {
         setNeedsUsername(true);
       }
       setUser(loggedInUser);
