@@ -4,33 +4,55 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export async function GET(request: NextRequest) {
-  const requestUrl = new URL(request.url);
-  const code = requestUrl.searchParams.get('code');
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
-  if (code) {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-    const { data: { user }, error } = await supabase.auth.exchangeCodeForSession(code);
+export async function POST(request: NextRequest) {
+  try {
+    // Get JWT token from headers
+    const token = request.headers.get('authorization')?.replace('Bearer ', '');
     
-    if (user && !error) {
-      // Automatically sync user with database on successful auth
-      await syncUserToDatabase(user);
+    if (!token) {
+      return NextResponse.json({ error: 'No token provided' }, { status: 401 });
     }
-  }
 
-  // URL to redirect to after sign in process completes
-  return NextResponse.redirect(requestUrl.origin);
+    // Verify token and get user
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    }
+
+    console.log(`Manual sync request for user: ${user.id} (${user.email})`);
+
+    // Sync user to database using the same logic as auth callback
+    await syncUserToDatabase(user);
+
+    return NextResponse.json({ 
+      success: true, 
+      message: `User ${user.email} synced successfully`,
+      userId: user.id 
+    });
+
+  } catch (error) {
+    console.error('Manual sync error:', error);
+    return NextResponse.json({
+      error: 'Failed to sync user',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
+  } finally {
+    await prisma.$disconnect();
+  }
 }
 
 async function syncUserToDatabase(user: any) {
   try {
-    console.log(`Auto-syncing user: ${user.id} (${user.email})`);
+    console.log(`Syncing user: ${user.id} (${user.email})`);
     
     // Create user in our database
-    await prisma.user.upsert({
+    const userRecord = await prisma.user.upsert({
       where: { id: user.id },
       update: {
         email: user.email,
@@ -66,7 +88,7 @@ async function syncUserToDatabase(user: any) {
     // Create/update wallet with starting gold
     await prisma.wallet.upsert({
       where: { userId: user.id },
-      update: { gold: 1000 },
+      update: {}, // Don't update existing gold
       create: {
         userId: user.id,
         gold: 1000
@@ -85,7 +107,7 @@ async function syncUserToDatabase(user: any) {
             location: 'warehouse'
           }
         },
-        update: { qty: 50 },
+        update: {}, // Don't update existing inventory
         create: {
           userId: user.id,
           itemId: item.id,
@@ -95,11 +117,11 @@ async function syncUserToDatabase(user: any) {
       });
     }
     
-    console.log(`Successfully auto-synced user ${user.id} with starting inventory`);
+    console.log(`Successfully synced user ${user.id} with database`);
+    return userRecord;
     
   } catch (error) {
-    console.error('Auto-sync error:', error);
-  } finally {
-    await prisma.$disconnect();
+    console.error('Database sync error:', error);
+    throw error;
   }
 }

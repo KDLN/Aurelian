@@ -1,27 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { verifyJWT } from '@/lib/auth/jwt';
+import { createClient } from '@supabase/supabase-js';
+import { ensureUserSynced } from '@/lib/auth/auto-sync';
 
 const prisma = new PrismaClient();
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export async function GET(request: NextRequest) {
   try {
-    // Verify authentication
+    // Verify authentication and auto-sync user
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
     const token = authHeader.slice(7);
-    const payload = await verifyJWT(token);
-    if (!payload?.sub) {
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    const userId = payload.sub;
+    // Auto-sync user to ensure they exist in our database with all fields
+    await ensureUserSynced(user);
+    const userId = user.id;
 
     // Get user's crafting level to filter available blueprints
-    const user = await prisma.user.findUnique({
+    const userRecord = await prisma.user.findUnique({
       where: { id: userId },
       select: { 
         craftingLevel: true,
@@ -30,7 +38,7 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    if (!user) {
+    if (!userRecord) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
@@ -43,7 +51,7 @@ export async function GET(request: NextRequest) {
           // User meets level requirement AND has unlocked it
           {
             AND: [
-              { requiredLevel: { lte: user.craftingLevel } },
+              { requiredLevel: { lte: userRecord.craftingLevel } },
               {
                 unlockedBy: {
                   some: { userId: userId }
@@ -100,7 +108,7 @@ export async function GET(request: NextRequest) {
           ...blueprint,
           inputs: inputsWithDetails,
           isUnlocked: blueprint.starterRecipe || blueprint.unlockedBy.length > 0,
-          canCraft: blueprint.requiredLevel <= user.craftingLevel
+          canCraft: blueprint.requiredLevel <= userRecord.craftingLevel
         };
       })
     );
@@ -108,9 +116,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       blueprints: blueprintsWithDetails,
       userStats: {
-        level: user.craftingLevel,
-        xp: user.craftingXP,
-        xpNext: user.craftingXPNext
+        level: userRecord.craftingLevel,
+        xp: userRecord.craftingXP,
+        xpNext: userRecord.craftingXPNext
       }
     });
 

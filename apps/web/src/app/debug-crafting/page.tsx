@@ -13,6 +13,40 @@ export default function DebugCraftingPage() {
     fetchDebugData();
   }, []);
 
+  const syncUser = async () => {
+    try {
+      setLoading(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.access_token) {
+        setError('Not authenticated');
+        return;
+      }
+
+      const response = await fetch('/api/auth/sync-user', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        alert(`Success: ${result.message}`);
+        // Refresh debug data after sync
+        await fetchDebugData();
+      } else {
+        alert(`Error: ${result.error}`);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const fetchDebugData = async () => {
     try {
       setLoading(true);
@@ -111,9 +145,14 @@ export default function DebugCraftingPage() {
               </pre>
             </div>
             
-            <button className="game-btn game-btn-primary" onClick={fetchDebugData}>
-              Refresh Debug Data
-            </button>
+            <div className="game-flex" style={{ gap: '0.5rem' }}>
+              <button className="game-btn game-btn-primary" onClick={fetchDebugData}>
+                Refresh Debug Data
+              </button>
+              <button className="game-btn game-btn-secondary" onClick={syncUser}>
+                Sync User to Database
+              </button>
+            </div>
           </div>
         )}
       </div>

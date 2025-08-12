@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { prisma } from '@/lib/prisma';
+import { ensureUserSynced } from '@/lib/auth/auto-sync';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,6 +48,9 @@ export async function GET(request: NextRequest) {
       console.log('❌ [Missions GET] No user found for token');
       return NextResponse.json({ error: 'Invalid token - no user' }, { status: 401 });
     }
+
+    // Auto-sync user to ensure they exist in our database with all fields
+    await ensureUserSynced(user);
     
     console.log('✅ [Missions GET] User authenticated:', user.id);
 

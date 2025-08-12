@@ -9,9 +9,9 @@ SELECT
   crafting_xp,
   crafting_xp_next,
   caravan_slots_unlocked,
-  created_at
+  "createdAt"
 FROM "User" 
-ORDER BY created_at DESC 
+ORDER BY "createdAt" DESC 
 LIMIT 5;
 
 -- 2. Check all blueprints in database
