@@ -37,29 +37,68 @@ export default function Home() {
       setErrorMsg('Password must be at least 8 characters.');
       return;
     }
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) {
-      setErrorMsg('Sign up failed.');
+
+    // Check if username is already taken before creating account
+    const { data: existingProfile } = await supabase
+      .from('Profile')
+      .select('id')
+      .eq('display', username)
+      .single();
+    
+    if (existingProfile) {
+      setErrorMsg('Username already taken.');
       return;
     }
+
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) {
+      setErrorMsg('Sign up failed: ' + error.message);
+      return;
+    }
+    
     const u = data.user;
     if (u) {
-      const { error: profileError } = await supabase
-        .from('Profile')
-        .upsert({ userId: u.id, display: username });
-      if (profileError) {
-        if ((profileError as any).code === '23505') {
-          setErrorMsg('Username already taken.');
-        } else {
-          setErrorMsg('Failed to save profile.');
+      try {
+        // Create User record first
+        const { error: userError } = await supabase
+          .from('User')
+          .upsert({ 
+            id: u.id, 
+            email: u.email,
+            caravanSlotsUnlocked: 3,
+            caravanSlotsPremium: 0
+          });
+
+        if (userError && userError.code !== '23505') { // Ignore duplicate key errors
+          console.error('User creation error:', userError);
+          setErrorMsg('Failed to create user profile.');
+          return;
         }
-        return;
+
+        // Create Profile record
+        const { error: profileError } = await supabase
+          .from('Profile')
+          .insert({ userId: u.id, display: username });
+
+        if (profileError) {
+          if (profileError.code === '23505') {
+            setErrorMsg('Username already taken.');
+          } else {
+            console.error('Profile creation error:', profileError);
+            setErrorMsg('Failed to save profile: ' + profileError.message);
+          }
+          return;
+        }
+
+        setErrorMsg('Account created! Check your email to verify before logging in.');
+        setEmail('');
+        setPassword('');
+        setUsername('');
+        setAuthMode('login');
+      } catch (err) {
+        console.error('Sign-up error:', err);
+        setErrorMsg('An unexpected error occurred. Please try again.');
       }
-      setErrorMsg('Account created! Check your email to verify before logging in.');
-      setEmail('');
-      setPassword('');
-      setUsername('');
-      setAuthMode('login');
     }
   }
 
