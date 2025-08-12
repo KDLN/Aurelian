@@ -68,7 +68,14 @@ export async function POST(request: NextRequest) {
           name,
           tag: tag.toUpperCase(),
           emblem,
-          description
+          description,
+          level: 1,
+          xp: 0,
+          xpNext: 1000,
+          treasury: 0,
+          maxMembers: 50,
+          isActive: true,
+          updatedAt: new Date()
         }
       });
       
@@ -79,7 +86,9 @@ export async function POST(request: NextRequest) {
         data: {
           guildId: newGuild.id,
           userId: user.id,
-          role: 'LEADER'
+          role: 'LEADER',
+          contributionPoints: 0,
+          lastActive: new Date()
         }
       });
 
@@ -88,7 +97,8 @@ export async function POST(request: NextRequest) {
         data: {
           guildId: newGuild.id,
           name: 'general',
-          description: 'General guild discussion'
+          description: 'General guild discussion',
+          isActive: true
         }
       });
 
@@ -97,7 +107,8 @@ export async function POST(request: NextRequest) {
           guildId: newGuild.id,
           name: 'officers',
           description: 'Officer-only discussions',
-          roleRequired: 'OFFICER'
+          roleRequired: 'OFFICER',
+          isActive: true
         }
       });
 
