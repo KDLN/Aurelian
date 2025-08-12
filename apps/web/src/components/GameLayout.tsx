@@ -26,10 +26,11 @@ export default function GameLayout({
   characterLocation = 'Hub'
 }: GameLayoutProps) {
   const { world, subscribe } = useGameWorld();
-  const { wallet } = useUserData();
+  const { wallet, user } = useUserData();
   const [, forceUpdate] = useState(0);
   const [currentPath, setCurrentPath] = useState('');
   const [characterAppearance, setCharacterAppearance] = useState<CharacterAppearance | null>(null);
+  const [username, setUsername] = useState<string>('Anonymous Trader');
 
   useEffect(() => {
     const unsubscribe = subscribe(() => forceUpdate(x => x + 1));
@@ -65,6 +66,30 @@ export default function GameLayout({
     loadAppearance();
   }, []);
 
+  // Load username from profile
+  useEffect(() => {
+    const loadUsername = async () => {
+      if (user?.id) {
+        try {
+          const { supabase } = await import('@/lib/supabaseClient');
+          const { data: profile } = await supabase
+            .from('Profile')
+            .select('display')
+            .eq('userId', user.id)
+            .single();
+          
+          if (profile?.display) {
+            setUsername(profile.display);
+          }
+        } catch (error) {
+          console.error('Error loading username:', error);
+        }
+      }
+    };
+    
+    loadUsername();
+  }, [user]);
+
   const navigation = [
     { href: '/hub', label: 'Hub' },
     { href: '/auction', label: 'Auction' },
@@ -79,16 +104,95 @@ export default function GameLayout({
     <div className="game">
       <div className="game-container">
         <div className="game-panel game-panel-left">
+          {/* Character Viewer at the top */}
+          {showCharacterViewer && characterAppearance && (
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ 
+                background: '#1a1511',
+                border: '2px solid #533b2c',
+                borderRadius: '4px',
+                overflow: 'hidden',
+                height: '108px',
+                position: 'relative'
+              }}>
+                <CharacterViewer
+                  position="inline"
+                  activity={characterActivity}
+                  location={characterLocation}
+                  skinTone={characterAppearance.base}
+                  outfit={characterAppearance.outfit}
+                  hair={characterAppearance.hair}
+                  hat={characterAppearance.hat || ''}
+                  size={100}
+                  autoWalk={true}
+                  walkAreaWidth={336}
+                  showBorder={false}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Player Stats Section */}
+          <div style={{ 
+            background: 'rgba(83, 59, 44, 0.2)',
+            border: '1px solid #533b2c',
+            borderRadius: '4px',
+            padding: '12px',
+            marginBottom: '16px'
+          }}>
+            <div style={{ marginBottom: '8px' }}>
+              <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#f1e5c8' }}>
+                {username}
+              </div>
+              <div style={{ fontSize: '12px', color: '#9b8c70', marginTop: '2px' }}>
+                Beacon Trader
+              </div>
+            </div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '12px' }}>
+              <div className="game-space-between">
+                <span style={{ color: '#9b8c70' }}>Level:</span>
+                <span style={{ color: '#f1e5c8' }}>1</span>
+              </div>
+              <div className="game-space-between">
+                <span style={{ color: '#9b8c70' }}>Gold:</span>
+                <span style={{ color: '#d4af37' }}>
+                  {wallet ? wallet.gold.toLocaleString() : '0'}
+                </span>
+              </div>
+              <div className="game-space-between">
+                <span style={{ color: '#9b8c70' }}>EXP:</span>
+                <span style={{ color: '#f1e5c8' }}>0 / 100</span>
+              </div>
+              <div className="game-space-between">
+                <span style={{ color: '#9b8c70' }}>Reputation:</span>
+                <span style={{ color: '#6eb5ff' }}>Neutral</span>
+              </div>
+            </div>
+            
+            {/* Experience Bar */}
+            <div style={{ marginTop: '8px' }}>
+              <div style={{ 
+                background: '#1a1511',
+                border: '1px solid #533b2c',
+                borderRadius: '2px',
+                height: '8px',
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                <div style={{
+                  background: 'linear-gradient(90deg, #6eb5ff, #4a8acc)',
+                  height: '100%',
+                  width: '0%',
+                  transition: 'width 0.3s ease'
+                }} />
+              </div>
+            </div>
+          </div>
+
           <div>
             <h1>{title}</h1>
             <div className="game-muted">{world.getTimeString()}</div>
-          </div>
-
-          <div className="game-flex">
-            <span>Gold:</span>
-            <span className="game-pill game-pill-good">
-              {wallet ? wallet.gold.toLocaleString() : world.gold.toLocaleString()}
-            </span>
           </div>
 
           <div>
@@ -131,34 +235,6 @@ export default function GameLayout({
           {sidebar && (
             <div>
               {sidebar}
-            </div>
-          )}
-
-          {showCharacterViewer && characterAppearance && (
-            <div>
-              <h3>Player Activity</h3>
-              <div style={{ 
-                background: '#1a1511',
-                border: '2px solid #533b2c',
-                borderRadius: '4px',
-                padding: '4px 0',
-                marginTop: '8px',
-                overflow: 'hidden',
-                height: '108px'
-              }}>
-                <CharacterViewer
-                  position="inline"
-                  activity={characterActivity}
-                  location={characterLocation}
-                  skinTone={characterAppearance.base}
-                  outfit={characterAppearance.outfit}
-                  hair={characterAppearance.hair}
-                  hat={characterAppearance.hat || ''}
-                  size={100}
-                  autoWalk={true}
-                  walkAreaWidth={260}
-                />
-              </div>
             </div>
           )}
 
