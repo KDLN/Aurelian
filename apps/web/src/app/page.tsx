@@ -1,11 +1,19 @@
 'use client';
 import { supabase } from '../lib/supabaseClient';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, FormEvent } from 'react';
 import './page.css';
 
 export default function Home() {
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [authMode, setAuthMode] = useState<'none' | 'signup' | 'login'>('none');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
+  const [identifier, setIdentifier] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [needsUsername, setNeedsUsername] = useState(false);
+  const [newUsername, setNewUsername] = useState('');
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -14,17 +22,123 @@ export default function Home() {
     });
   }, []);
 
-  async function signIn() {
-    const email = prompt('Enter your email for magic link:') || '';
-    if (!email) return;
-    const { error } = await supabase.auth.signInWithOtp({ email });
-    if (error) alert(error.message); 
-    else alert('Check your email for the magic link!');
+  function validateUsername(name: string) {
+    return /^[a-zA-Z0-9_]{3,20}$/.test(name);
+  }
+
+  async function handleSignUp(e: FormEvent) {
+    e.preventDefault();
+    setErrorMsg('');
+    if (!validateUsername(username)) {
+      setErrorMsg('Username must be 3-20 characters and contain only letters, numbers, or _.');
+      return;
+    }
+    if (password.length < 8) {
+      setErrorMsg('Password must be at least 8 characters.');
+      return;
+    }
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) {
+      setErrorMsg('Sign up failed.');
+      return;
+    }
+    const u = data.user;
+    if (u) {
+      const { error: profileError } = await supabase
+        .from('Profile')
+        .upsert({ userId: u.id, display: username });
+      if (profileError) {
+        if ((profileError as any).code === '23505') {
+          setErrorMsg('Username already taken.');
+        } else {
+          setErrorMsg('Failed to save profile.');
+        }
+        return;
+      }
+      setErrorMsg('Account created! Check your email to verify before logging in.');
+      setEmail('');
+      setPassword('');
+      setUsername('');
+      setAuthMode('login');
+    }
+  }
+
+  async function handleSignIn(e: FormEvent) {
+    e.preventDefault();
+    setErrorMsg('');
+    if (!identifier || !password) {
+      setErrorMsg('Missing credentials.');
+      return;
+    }
+    let authResponse;
+    if (identifier.includes('@')) {
+      authResponse = await supabase.auth.signInWithPassword({
+        email: identifier,
+        password,
+      });
+    } else {
+      const { data: profileUser, error } = await supabase
+        .from('Profile')
+        .select('user:User(email)')
+        .eq('display', identifier)
+        .single();
+      if (error || !profileUser?.user?.email) {
+        setErrorMsg('Invalid credentials.');
+        return;
+      }
+      authResponse = await supabase.auth.signInWithPassword({
+        email: profileUser.user.email,
+        password,
+      });
+    }
+    if (authResponse.error) {
+      setErrorMsg('Invalid credentials.');
+      return;
+    }
+    const loggedInUser = authResponse.data.user;
+    if (loggedInUser) {
+      const { data: prof } = await supabase
+        .from('Profile')
+        .select('display')
+        .eq('userId', loggedInUser.id)
+        .single();
+      if (!prof || !prof.display || prof.display === 'Trader') {
+        setNeedsUsername(true);
+      }
+      setUser(loggedInUser);
+      setAuthMode('none');
+      setIdentifier('');
+      setPassword('');
+    }
+  }
+
+  async function saveUsername(e: FormEvent) {
+    e.preventDefault();
+    setErrorMsg('');
+    if (!validateUsername(newUsername)) {
+      setErrorMsg('Username must be 3-20 characters and contain only letters, numbers, or _.');
+      return;
+    }
+    const { error } = await supabase
+      .from('Profile')
+      .upsert({ userId: user.id, display: newUsername });
+    if (error) {
+      if ((error as any).code === '23505') {
+        setErrorMsg('Username already taken.');
+      } else {
+        setErrorMsg('Failed to save username.');
+      }
+      return;
+    }
+    setNeedsUsername(false);
+    setNewUsername('');
+    setUser({ ...user });
   }
 
   async function signOut() {
     await supabase.auth.signOut();
     setUser(null);
+    setAuthMode('none');
   }
 
   return (
@@ -93,33 +207,129 @@ export default function Home() {
         {isLoading ? (
           <div className="auth-status">Loading...</div>
         ) : user ? (
-          <div className="logged-in-section">
-            <div className="auth-status">
-              Trading as <strong>{user.email}</strong>
-              <button onClick={signOut} className="btn-secondary">Sign Out</button>
+          needsUsername ? (
+            <div className="sign-up-section">
+              <h2>Choose a Username</h2>
+              <form onSubmit={saveUsername} className="auth-form">
+                <input
+                  value={newUsername}
+                  onChange={(e) => setNewUsername(e.target.value)}
+                  placeholder="Username"
+                  required
+                />
+                <button type="submit" className="btn-primary btn-large">
+                  Save
+                </button>
+              </form>
+              {errorMsg && <p className="auth-error">{errorMsg}</p>}
             </div>
-            <h2>Continue Your Journey</h2>
-            <div className="quick-links">
-              <a href="/warehouse" className="btn-primary">📦 Warehouse</a>
-              <a href="/auction" className="btn-primary">💰 Auction House</a>
-              <a href="/missions" className="btn-primary">🗺️ Missions</a>
-              <a href="/crafting" className="btn-primary">🔨 Crafting</a>
+          ) : (
+            <div className="logged-in-section">
+              <div className="auth-status">
+                Trading as <strong>{user.email}</strong>
+                <button onClick={signOut} className="btn-secondary">Sign Out</button>
+              </div>
+              <h2>Continue Your Journey</h2>
+              <div className="quick-links">
+                <a href="/warehouse" className="btn-primary">📦 Warehouse</a>
+                <a href="/auction" className="btn-primary">💰 Auction House</a>
+                <a href="/missions" className="btn-primary">🗺️ Missions</a>
+                <a href="/crafting" className="btn-primary">🔨 Crafting</a>
+              </div>
+              <div className="secondary-links">
+                <a href="/profile">Profile</a>
+                <a href="/contracts">Contracts</a>
+                <a href="/hub">Trading Hub</a>
+                <a href="/creator">Character Creator</a>
+              </div>
             </div>
-            <div className="secondary-links">
-              <a href="/profile">Profile</a>
-              <a href="/contracts">Contracts</a>
-              <a href="/hub">Trading Hub</a>
-              <a href="/creator">Character Creator</a>
-            </div>
-          </div>
+          )
         ) : (
           <div className="sign-up-section">
             <h2>Begin Your Trading Legacy</h2>
             <p>Join the frontier. Build trade routes. Shape the new world.</p>
-            <button onClick={signIn} className="btn-primary btn-large">
-              Start Trading with Magic Link
-            </button>
-            <p className="signup-note">No password needed. We'll email you a secure login link.</p>
+            {authMode === 'signup' ? (
+              <form onSubmit={handleSignUp} className="auth-form">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Email"
+                  required
+                />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Password"
+                  required
+                />
+                <input
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Username"
+                  required
+                />
+                <button type="submit" className="btn-primary btn-large">
+                  Create Account
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode('none');
+                    setErrorMsg('');
+                  }}
+                  className="btn-secondary btn-large"
+                >
+                  Cancel
+                </button>
+              </form>
+            ) : authMode === 'login' ? (
+              <form onSubmit={handleSignIn} className="auth-form">
+                <input
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  placeholder="Email or Username"
+                  required
+                />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Password"
+                  required
+                />
+                <button type="submit" className="btn-primary btn-large">
+                  Log In
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode('none');
+                    setErrorMsg('');
+                  }}
+                  className="btn-secondary btn-large"
+                >
+                  Cancel
+                </button>
+              </form>
+            ) : (
+              <div className="auth-buttons">
+                <button
+                  onClick={() => setAuthMode('signup')}
+                  className="btn-primary btn-large"
+                >
+                  Sign Up
+                </button>
+                <button
+                  onClick={() => setAuthMode('login')}
+                  className="btn-secondary btn-large"
+                >
+                  Log In
+                </button>
+              </div>
+            )}
+            {errorMsg && <p className="auth-error">{errorMsg}</p>}
           </div>
         )}
       </section>
