@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 export async function POST(request: NextRequest) {
   try {
     // Get user data from request body (sent from client)
-    const { userId, email } = await request.json();
+    const { userId, email, username } = await request.json();
     
     if (!userId) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 });
@@ -31,15 +31,31 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // Create profile
+    // Create profile with provided username or email-based default
+    const displayName = username || email?.split('@')[0] || 'Anonymous';
+    
+    // If a specific username was provided, check if it's already taken
+    if (username) {
+      const existingProfile = await prisma.profile.findFirst({
+        where: {
+          display: username,
+          userId: { not: userId }
+        }
+      });
+      
+      if (existingProfile) {
+        return NextResponse.json({ error: 'Username already taken' }, { status: 400 });
+      }
+    }
+    
     await prisma.profile.upsert({
       where: { userId: userId },
       update: {
-        display: email?.split('@')[0] || 'Anonymous'
+        display: displayName
       },
       create: {
         userId: userId,
-        display: email?.split('@')[0] || 'Anonymous'
+        display: displayName
       }
     });
 

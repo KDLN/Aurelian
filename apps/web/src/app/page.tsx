@@ -59,7 +59,7 @@ export default function Home() {
     const u = data.user;
     if (u) {
       try {
-        // Sync user with our database using the sync-user endpoint
+        // Sync user with our database using the sync-user endpoint, including username
         const syncResponse = await fetch('/api/sync-user', {
           method: 'POST',
           headers: {
@@ -67,29 +67,18 @@ export default function Home() {
           },
           body: JSON.stringify({
             userId: u.id,
-            email: u.email
+            email: u.email,
+            username: username
           }),
         });
 
         if (!syncResponse.ok) {
           const errorData = await syncResponse.json();
           console.error('User sync error:', errorData);
-          setErrorMsg('Failed to create user profile.');
-          return;
-        }
-
-        // Update the profile with the chosen username
-        const { error: profileError } = await supabase
-          .from('Profile')
-          .update({ display: username })
-          .eq('userId', u.id);
-
-        if (profileError) {
-          if (profileError.code === '23505') {
+          if (errorData.error?.includes('already taken') || errorData.error?.includes('23505')) {
             setErrorMsg('Username already taken.');
           } else {
-            console.error('Profile update error:', profileError);
-            setErrorMsg('Failed to save username: ' + profileError.message);
+            setErrorMsg('Failed to create user profile: ' + (errorData.error || 'Unknown error'));
           }
           return;
         }
