@@ -59,8 +59,8 @@ export default function Home() {
     const u = data.user;
     if (u) {
       try {
-        // Sync user with our database using the sync-user endpoint, including username
-        const syncResponse = await fetch('/api/sync-user', {
+        // Sync user with our database using the simplified sync endpoint
+        const syncResponse = await fetch('/api/simple-sync', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -78,7 +78,10 @@ export default function Home() {
           if (errorData.error?.includes('already taken') || errorData.error?.includes('23505')) {
             setErrorMsg('Username already taken.');
           } else {
-            setErrorMsg('Failed to create user profile: ' + (errorData.error || 'Unknown error'));
+            // Show detailed error for debugging
+            const detailMsg = errorData.details ? ` Details: ${errorData.details}` : '';
+            const stackMsg = errorData.stack ? ` Stack: ${errorData.stack.substring(0, 200)}...` : '';
+            setErrorMsg('Failed to create user profile: ' + (errorData.error || 'Unknown error') + detailMsg + stackMsg);
           }
           return;
         }
@@ -131,7 +134,7 @@ export default function Home() {
     if (loggedInUser) {
       // Ensure user is synced with our database
       try {
-        await fetch('/api/sync-user', {
+        await fetch('/api/simple-sync', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
