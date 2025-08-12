@@ -6,6 +6,7 @@ import { useMissions, useStartMission, useCompleteMission, useMissionHelpers } f
 import { MissionDef, MissionInstance, MissionsData } from '@/lib/api/missions';
 import { useUserDataQuery } from '@/hooks/useUserDataQuery';
 import MissionTimer from '@/components/MissionTimer';
+import { getCaravanStatus, formatTimeRemaining, getRiskColor as getCaravanRiskColor, getCaravanSlotName } from '@/lib/caravan-slots';
 
 export default function MissionsPage() {
   const { data, isLoading, error, refetch } = useMissions(); // Uses optimized 60s polling
@@ -113,11 +114,15 @@ export default function MissionsPage() {
     return activeMissions.filter(m => isReady(m.endTime)).length;
   }, [activeMissions, isReady]);
 
+  const caravanStatus = useMemo(() => {
+    return getCaravanStatus(activeMissions, 3); // Default 3 caravan slots
+  }, [activeMissions]);
+
   const sidebar = useMemo(() => (
     <div>
       <h3>Mission Guide</h3>
       <p className="game-muted game-small">
-        Select missions to send your caravans on expeditions. Higher risk missions offer better rewards.
+        You have 3 caravan slots available. Select missions to send your caravans on expeditions. Higher risk missions offer better rewards.
       </p>
       
       <div className="game-flex-col">
@@ -280,44 +285,76 @@ export default function MissionsPage() {
             onClick={handleStartMission}
             disabled={!selectedMission || 
                      activeMissions.some(m => m.missionId === selectedMission) ||
+                     caravanStatus.availableSlots === 0 ||
                      startMissionMutation.isPending}
           >
-            {startMissionMutation.isPending ? 'Starting...' : 'Start Mission'}
+            {startMissionMutation.isPending ? 'Starting...' : 
+             caravanStatus.availableSlots === 0 ? 'All Caravans Busy' :
+             'Start Mission'}
           </button>
         </div>
 
         <div className="game-card">
-          <h3>Active Missions ({activeMissions.length})</h3>
-          {activeMissions.length > 0 ? (
-            <div className="game-flex-col">
-              {activeMissionsWithStatus.map(mission => (
-                <div key={mission.id} className="game-card">
-                  <div className="game-space-between">
-                    <div>
-                      <strong>{mission.missionDef?.name || 'Unknown Mission'}</strong>
-                      <div className="game-muted game-small">
-                        {mission.missionDef?.fromHub} → {mission.missionDef?.toHub}
+          <h3>Your Caravans ({caravanStatus.occupiedSlots}/{caravanStatus.totalSlots})</h3>
+          <div className="game-flex-col">
+            {caravanStatus.slots.map(slot => (
+              <div key={slot.slotNumber} className="game-card" style={{ 
+                backgroundColor: slot.isOccupied ? '#2a4d32' : '#1a1a1a',
+                borderColor: slot.isOccupied ? '#68b06e' : '#333'
+              }}>
+                <div className="game-space-between">
+                  <div>
+                    <strong>{getCaravanSlotName(slot.slotNumber)}</strong>
+                    {slot.isOccupied && slot.mission ? (
+                      <div>
+                        <div className="game-good" style={{ fontSize: '14px' }}>
+                          {slot.mission.name}
+                        </div>
+                        <div className="game-muted game-small">
+                          {(() => {
+                            const activeMission = activeMissionsWithStatus.find(m => m.id === slot.mission?.id);
+                            const missionDef = activeMission?.missionDef;
+                            return missionDef ? `${missionDef.fromHub} → ${missionDef.toHub}` : 'Route unknown';
+                          })()}
+                        </div>
                       </div>
-                    </div>
-                    <span className={`game-pill game-pill-${getRiskColor(mission.missionDef?.riskLevel || 'LOW')}`}>
-                      {mission.missionDef?.riskLevel || 'LOW'}
-                    </span>
+                    ) : (
+                      <div className="game-muted game-small">Available</div>
+                    )}
                   </div>
                   
-                  <MissionTimer
-                    startTime={mission.startTime}
-                    endTime={mission.endTime}
-                    onComplete={handleCompleteMission}
-                    missionInstanceId={mission.id}
-                    riskColor={getRiskColor(mission.missionDef?.riskLevel || 'LOW')}
-                    isCompleting={completingMissions.has(mission.id)}
-                  />
+                  <div style={{ textAlign: 'right' }}>
+                    {slot.isOccupied && slot.mission ? (
+                      <div>
+                        <span className={`game-pill game-pill-${getRiskColor(slot.mission.riskLevel)}`}>
+                          {slot.mission.riskLevel}
+                        </span>
+                        <div style={{ marginTop: '0.5rem' }}>
+                          {(() => {
+                            const activeMission = activeMissionsWithStatus.find(m => m.id === slot.mission?.id);
+                            return activeMission ? (
+                              <MissionTimer
+                                startTime={activeMission.startTime}
+                                endTime={activeMission.endTime}
+                                onComplete={handleCompleteMission}
+                                missionInstanceId={activeMission.id}
+                                riskColor={getRiskColor(slot.mission.riskLevel)}
+                                isCompleting={completingMissions.has(activeMission.id)}
+                              />
+                            ) : (
+                              <div className="game-small">Timer unavailable</div>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="game-pill">Empty</span>
+                    )}
+                  </div>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <p className="game-muted">No active missions. Start one from the available missions above!</p>
-          )}
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="game-card">

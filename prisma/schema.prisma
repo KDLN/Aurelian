@@ -55,6 +55,10 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Caravan system fields
+  caravanSlotsUnlocked Int @default(3) @map("caravan_slots_unlocked")
+  caravanSlotsPremium  Int @default(0) @map("caravan_slots_premium")
+
   profile       Profile?
   characters    Character[]
   wallets       Wallet[]
@@ -358,10 +362,14 @@ model MissionInstance {
   itemsReceived Json?   // actual items received
   createdAt   DateTime @default(now())
   completedAt DateTime?
+  
+  // Caravan slot assignment (1-4)
+  caravanSlot Int      @default(1) @map("caravan_slot")
 
   user    User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   mission MissionDef @relation(fields: [missionId], references: [id], onDelete: Cascade)
 
   @@index([userId, status])
   @@index([endTime])
+  @@index([userId, caravanSlot, status])
 }

@@ -105,6 +105,7 @@ export async function GET(request: NextRequest) {
           actualReward: true,
           itemsReceived: true,
           completedAt: true,
+          caravanSlot: true,
           mission: {
             select: {
               id: true,
@@ -119,7 +120,7 @@ export async function GET(request: NextRequest) {
           }
         },
         orderBy: {
-          startTime: 'desc'
+          caravanSlot: 'asc'
         }
       });
       
@@ -256,7 +257,7 @@ export async function POST(request: NextRequest) {
 
     try {
       // Optimize by doing checks in parallel
-      const [missionDef, existingMission] = await Promise.all([
+      const [missionDef, activeMissions, userCaravanSlots] = await Promise.all([
         prisma.missionDef.findUnique({
           where: { id: missionId },
           select: {
@@ -266,13 +267,16 @@ export async function POST(request: NextRequest) {
             isActive: true,
           }
         }),
-        prisma.missionInstance.findFirst({
+        prisma.missionInstance.findMany({
           where: {
             userId: user.id,
-            missionId,
             status: 'active'
           },
-          select: { id: true }
+          select: { id: true, missionId: true, caravanSlot: true }
+        }),
+        prisma.user.findUnique({
+          where: { id: user.id },
+          select: { caravanSlotsUnlocked: true, caravanSlotsPremium: true }
         })
       ]);
 
@@ -280,8 +284,30 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Mission not found or inactive' }, { status: 404 });
       }
 
+      // Check if user already has this specific mission active
+      const existingMission = activeMissions.find(m => m.missionId === missionId);
       if (existingMission) {
         return NextResponse.json({ error: 'Mission already in progress' }, { status: 400 });
+      }
+
+      // Check available caravan slots
+      const totalSlots = (userCaravanSlots?.caravanSlotsUnlocked || 3) + (userCaravanSlots?.caravanSlotsPremium || 0);
+      const occupiedSlots = activeMissions.map(m => m.caravanSlot);
+      
+      // Find first available slot
+      let availableSlot = null;
+      for (let slot = 1; slot <= totalSlots; slot++) {
+        if (!occupiedSlots.includes(slot)) {
+          availableSlot = slot;
+          break;
+        }
+      }
+
+      if (availableSlot === null) {
+        return NextResponse.json({ 
+          error: 'All caravan slots are busy', 
+          details: { totalSlots, occupiedSlots } 
+        }, { status: 400 });
       }
 
       // Calculate end time based on base duration
@@ -293,7 +319,8 @@ export async function POST(request: NextRequest) {
         missionId,
         missionName: missionDef.name,
         duration: missionDef.baseDuration,
-        endTime: endTime.toISOString()
+        endTime: endTime.toISOString(),
+        caravanSlot: availableSlot
       });
       // Create new mission instance
       const missionInstance = await prisma.missionInstance.create({
@@ -301,7 +328,8 @@ export async function POST(request: NextRequest) {
           userId: user.id,
           missionId,
           status: 'active',
-          endTime
+          endTime,
+          caravanSlot: availableSlot
         },
         include: {
           mission: true

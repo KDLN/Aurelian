@@ -25,6 +25,7 @@ export interface MissionInstance {
   itemsReceived?: { itemKey: string; qty: number }[];
   completedAt?: string;
   mission?: MissionDef;
+  caravanSlot: number; // Which caravan slot (1-4) this mission is using
 }
 
 export interface MissionsData {
