@@ -17,7 +17,8 @@ export async function GET(request: NextRequest) {
     
     const itemId = searchParams.get('itemId');
     const itemKey = searchParams.get('itemKey');
-    const hubId = searchParams.get('hubId');
+    const hubIdParam = searchParams.get('hubId');
+    const hubId = hubIdParam || undefined;
     const period = searchParams.get('period') as '1h' | '6h' | '24h' | '7d' | '30d' || '24h';
     const limit = parseInt(searchParams.get('limit') || '100');
 
@@ -61,7 +62,7 @@ export async function GET(request: NextRequest) {
     const priceHistory = await prisma.priceTick.findMany({
       where: {
         itemId: resolvedItemId,
-        hubId: hubId || undefined,
+        hubId: hubId,
         at: { gte: startTime }
       },
       select: {
