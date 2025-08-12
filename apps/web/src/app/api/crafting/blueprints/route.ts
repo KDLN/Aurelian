@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { createClient } from '@supabase/supabase-js';
-import { ensureUserSynced } from '@/lib/auth/auto-sync';
+import { ensureUserExistsOptimized } from '@/lib/auth/auto-sync';
 
 const prisma = new PrismaClient();
 const supabase = createClient(
@@ -24,8 +24,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    // Auto-sync user to ensure they exist in our database with all fields
-    await ensureUserSynced(user);
+    // Auto-sync user only if they don't exist (optimized)
+    await ensureUserExistsOptimized(user);
     const userId = user.id;
 
     // Get user's crafting level to filter available blueprints

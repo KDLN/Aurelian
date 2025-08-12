@@ -2,16 +2,26 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+// Cache to avoid redundant sync operations
+const syncedUsers = new Set<string>();
+const SYNC_CACHE_TTL = 300000; // 5 minutes
+
 /**
  * Automatically sync Supabase auth user with our database User table
  * This ensures users always have proper records with all required fields
- * Call this in any protected API route after JWT verification
+ * Only syncs if user hasn't been synced recently (5 min cache)
  */
 export async function ensureUserSynced(authUser: any) {
+  const userId = authUser.sub || authUser.id;
+  
+  // Skip if user was recently synced
+  if (syncedUsers.has(userId)) {
+    return;
+  }
+  
   try {
-    console.log(`Auto-syncing user: ${authUser.sub || authUser.id} (${authUser.email})`);
+    console.log(`Auto-syncing user: ${userId} (${authUser.email})`);
     
-    const userId = authUser.sub || authUser.id;
     const email = authUser.email;
     
     // Upsert user with all current system defaults
@@ -84,15 +94,65 @@ export async function ensureUserSynced(authUser: any) {
       }
     }
 
+    // Cache user as synced for 5 minutes
+    syncedUsers.add(userId);
+    setTimeout(() => {
+      syncedUsers.delete(userId);
+    }, SYNC_CACHE_TTL);
+
     return userRecord;
     
   } catch (error) {
-    console.error('Auto-sync error for user:', authUser.sub || authUser.id, error);
+    console.error('Auto-sync error for user:', userId, error);
     // Don't throw - we want the API to still work even if sync fails
     return null;
   } finally {
     await prisma.$disconnect();
   }
+}
+
+/**
+ * Check if user exists in database (fast check)
+ */
+export async function userExists(userId: string): Promise<boolean> {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true }
+    });
+    return !!user;
+  } catch (error) {
+    console.error('User exists check failed:', error);
+    return false;
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+/**
+ * Optimized sync that only runs if user doesn't exist in database
+ */
+export async function ensureUserExistsOptimized(authUser: any) {
+  const userId = authUser.sub || authUser.id;
+  
+  // Skip if user was recently synced
+  if (syncedUsers.has(userId)) {
+    return;
+  }
+
+  // Fast check if user exists before attempting sync
+  const exists = await userExists(userId);
+  if (exists) {
+    // Cache that we checked this user
+    syncedUsers.add(userId);
+    setTimeout(() => {
+      syncedUsers.delete(userId);
+    }, SYNC_CACHE_TTL);
+    return;
+  }
+
+  // User doesn't exist, do full sync
+  await ensureUserSynced(authUser);
 }
 
 /**
@@ -107,8 +167,8 @@ export async function verifyAndSyncUser(token: string, supabase: any) {
     return { user: null, error: 'Invalid token' };
   }
 
-  // Auto-sync user to our database
-  await ensureUserSynced(user);
+  // Optimized sync - only if user doesn't exist
+  await ensureUserExistsOptimized(user);
 
   return { user, error: null };
 }
