@@ -285,13 +285,38 @@ export default function GuildPage() {
   }
 
   if (error) {
+    const handleSyncUser = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const response = await fetch('/api/auth/sync-user', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`
+            }
+          });
+          const result = await response.json();
+          console.log('Sync result:', result);
+          alert('User synced! Try creating a guild again.');
+        }
+      } catch (err) {
+        console.error('Sync error:', err);
+        alert('Sync failed');
+      }
+    };
+
     return (
       <GameLayout title="Guild" sidebar={sidebar}>
         <div className="game-card">
           <div className="game-center game-bad">Error: {error}</div>
-          <button className="game-btn" onClick={loadGuildData}>
-            Retry
-          </button>
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '16px' }}>
+            <button className="game-btn" onClick={loadGuildData}>
+              Retry
+            </button>
+            <button className="game-btn game-btn-primary" onClick={handleSyncUser}>
+              Sync User
+            </button>
+          </div>
         </div>
       </GameLayout>
     );
@@ -350,13 +375,44 @@ export default function GuildPage() {
               Guilds provide shared warehouses, group missions, and competitive gameplay.
             </p>
             
-            <div className="game-flex" style={{ gap: '12px', marginTop: '16px' }}>
+            <div className="game-flex" style={{ gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
               <a href="/guild/create" className="game-btn game-btn-primary">
                 🏛️ Create Guild
               </a>
               <a href="/guild/browse" className="game-btn">
                 🔍 Browse Guilds
               </a>
+              <button 
+                className="game-btn game-btn-warning game-btn-small"
+                onClick={async () => {
+                  try {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (session) {
+                      const response = await fetch('/api/auth/sync-user', {
+                        method: 'POST',
+                        headers: {
+                          'Authorization': `Bearer ${session.access_token}`
+                        }
+                      });
+                      const result = await response.json();
+                      console.log('Sync result:', result);
+                      
+                      if (response.ok) {
+                        alert('User synced! You can now create a guild.');
+                      } else {
+                        alert(`Sync failed: ${result.error || result.details || 'Unknown error'}`);
+                      }
+                    } else {
+                      alert('Please log in first');
+                    }
+                  } catch (err) {
+                    console.error('Sync error:', err);
+                    alert(`Sync failed: ${err.message}`);
+                  }
+                }}
+              >
+                🔄 Sync User
+              </button>
             </div>
           </div>
 
