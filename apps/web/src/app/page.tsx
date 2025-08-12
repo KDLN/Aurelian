@@ -82,12 +82,12 @@ export default function Home() {
         .select('user:User(email)')
         .eq('display', identifier)
         .single();
-      if (error || !profileUser?.user?.email) {
+      if (error || !profileUser?.user || !Array.isArray(profileUser.user) || profileUser.user.length === 0 || !profileUser.user[0]?.email) {
         setErrorMsg('Invalid credentials.');
         return;
       }
       authResponse = await supabase.auth.signInWithPassword({
-        email: profileUser.user.email,
+        email: profileUser.user[0].email,
         password,
       });
     }
