@@ -127,6 +127,7 @@ model ItemDef {
   priceTicks    PriceTick[]
   contracts     Contract[]
   blueprintsOut Blueprint[] @relation("BlueprintOutput")
+  marketEvents  MarketEvent[]
 }
 
 model Inventory {
@@ -258,13 +259,46 @@ model LedgerTx {
 }
 
 model PriceTick {
-  id     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  itemId String   @db.Uuid
-  price  Int
-  at     DateTime @default(now())
-  item   ItemDef  @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  itemId            String   @db.Uuid
+  hubId             String?  @db.Uuid // Regional price differences
+  price             Int      // Current price
+  volume            Int      @default(0) // Trade volume at this price
+  high              Int?     // Highest price in this period
+  low               Int?     // Lowest price in this period
+  supplyDemandRatio Float?   // S/D ratio used for calculation
+  priceMultiplier   Float?   // Multiplier applied
+  trend             String?  // 'up', 'down', 'stable'
+  volatility        Float?   // Market volatility
+  at                DateTime @default(now())
+  
+  item              ItemDef  @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  hub               Hub?     @relation(fields: [hubId], references: [id], onDelete: Cascade)
 
   @@index([itemId, at])
+  @@index([hubId, at])
+  @@index([itemId, hubId, at])
+}
+
+model MarketEvent {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  type            String    // 'shortage', 'surplus', 'discovery', 'disruption'
+  itemId          String?   @db.Uuid // Specific item affected (null for global events)
+  hubId           String?   @db.Uuid // Specific hub affected (null for global events)
+  severity        String    @default("medium") // 'low', 'medium', 'high'
+  description     String?
+  priceMultiplier Float     @default(1.0) // Effect on prices
+  startedAt       DateTime  @default(now())
+  endsAt          DateTime? // When event expires
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  
+  item            ItemDef?  @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  hub             Hub?      @relation(fields: [hubId], references: [id], onDelete: Cascade)
+
+  @@index([isActive, startedAt])
+  @@index([itemId, isActive])
+  @@index([hubId, isActive])
 }
 
 // ---------- Contracts (bulk supply) ----------
@@ -300,6 +334,8 @@ model Hub {
   linksB    Link[]         @relation("Link_b")
   routeFrom RouteBooking[] @relation("Route_from")
   routeTo   RouteBooking[] @relation("Route_to")
+  priceTicks PriceTick[]   // Regional price tracking
+  marketEvents MarketEvent[]
 }
 
 model Link {

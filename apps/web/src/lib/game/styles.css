@@ -354,6 +354,123 @@
   border-color: #a04545;
 }
 
+/* Market Components */
+.game-stat {
+  text-align: center;
+  padding: 8px;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+}
+
+.game-stat-value {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+
+.game-stat-label {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.game-table-container {
+  overflow-x: auto;
+  margin: 8px -4px;
+}
+
+.game-table {
+  width: 100%;
+  font-size: 12px;
+  border-collapse: collapse;
+}
+
+.game-table th {
+  background: var(--panel);
+  color: var(--muted);
+  padding: 6px 8px;
+  text-align: left;
+  font-weight: bold;
+  border-bottom: 2px solid var(--edge);
+}
+
+.game-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--input-border);
+}
+
+.game-table tbody tr:hover {
+  background: var(--input-bg);
+}
+
+.game-right {
+  text-align: right;
+}
+
+.game-center {
+  text-align: center;
+}
+
+.game-alert {
+  padding: 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  border: 1px solid;
+}
+
+.game-alert-good {
+  background: rgba(104, 176, 110, 0.1);
+  border-color: var(--good);
+  color: var(--good);
+}
+
+.game-alert-warn {
+  background: rgba(183, 179, 77, 0.1);
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
+.game-alert-bad {
+  background: rgba(214, 106, 91, 0.1);
+  border-color: var(--bad);
+  color: var(--bad);
+}
+
+.game-error {
+  color: var(--bad);
+  text-align: center;
+  padding: 12px;
+}
+
+.compact-price-card {
+  margin-bottom: 4px;
+}
+
+.compact-price-card .game-card {
+  padding: 6px;
+  margin-bottom: 2px;
+}
+
+.price-chart {
+  position: relative;
+  background: var(--input-bg);
+}
+
+.game-event {
+  transition: all 0.2s ease;
+}
+
+.game-event:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.game-events-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
 /* Mobile responsive */
 @media (max-width: 768px) {
   .game-container {
@@ -367,5 +484,14 @@
   
   .game-panel-right {
     order: 1;
+  }
+
+  .game-grid-2,
+  .game-grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .game-table-container {
+    font-size: 11px;
   }
 }

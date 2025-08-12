@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import GameLayout from '@/components/GameLayout';
+import MarketOverview from '@/components/MarketOverview';
 import { useGameWorld } from '@/lib/game/world';
 import { useUserData } from '@/hooks/useUserData';
 import { getRTClient } from '@/lib/rtClient';
@@ -222,6 +223,10 @@ export default function AuctionPage() {
         {isConnected ? ' ✅ Connected' : ' ⚠️ Connecting...'}
       </p>
       
+      <a href="/market" className="game-btn game-btn-small" style={{ display: 'block', textAlign: 'center', marginBottom: '12px', textDecoration: 'none' }}>
+        📊 Market Dashboard
+      </a>
+      
       <h3>Current Prices</h3>
       <div className="game-flex-col">
         {Object.keys(world.commodities).map(item => (
@@ -257,6 +262,8 @@ export default function AuctionPage() {
       sidebar={sidebar}
     >
       <div className="game-flex-col">
+        {/* Market Overview - Shows real market data */}
+        <MarketOverview showDetailedStats={false} />
         <div className="game-card">
           <h3>List New Item</h3>
           <div className="game-grid-3">
