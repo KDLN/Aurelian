@@ -15,9 +15,29 @@ export async function POST(request: NextRequest) {
     
     // Step 1: Create User record (minimal)
     console.log('Creating User record...');
+    
+    // Check if a user with this email already exists but different ID
+    if (email) {
+      const existingEmailUser = await prisma.user.findFirst({
+        where: { 
+          email: email,
+          id: { not: userId }
+        }
+      });
+      
+      if (existingEmailUser) {
+        return NextResponse.json({ 
+          error: 'Email already registered with different account' 
+        }, { status: 400 });
+      }
+    }
+    
     const user = await prisma.user.upsert({
       where: { id: userId },
-      update: { email: email },
+      update: { 
+        email: email,
+        updatedAt: new Date()
+      },
       create: {
         id: userId,
         email: email || 'unknown@example.com',
@@ -30,6 +50,22 @@ export async function POST(request: NextRequest) {
     // Step 2: Create Profile record (minimal)
     console.log('Creating Profile record...');
     const displayName = username || email?.split('@')[0] || 'Anonymous';
+    
+    // Check if username is already taken (only if a specific username was provided)
+    if (username) {
+      const existingProfile = await prisma.profile.findFirst({
+        where: {
+          display: username,
+          userId: { not: userId }
+        }
+      });
+      
+      if (existingProfile) {
+        return NextResponse.json({ 
+          error: 'Username already taken' 
+        }, { status: 400 });
+      }
+    }
     
     const profile = await prisma.profile.upsert({
       where: { userId: userId },
