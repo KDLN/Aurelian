@@ -68,14 +68,7 @@ export async function POST(request: NextRequest) {
           name,
           tag: tag.toUpperCase(),
           emblem,
-          description,
-          level: 1,
-          xp: 0,
-          xpNext: 1000,
-          treasury: 0,
-          maxMembers: 50,
-          isActive: true,
-          updatedAt: new Date()
+          description
         }
       });
       
@@ -86,9 +79,7 @@ export async function POST(request: NextRequest) {
         data: {
           guildId: newGuild.id,
           userId: user.id,
-          role: 'LEADER',
-          contributionPoints: 0,
-          lastActive: new Date()
+          role: 'LEADER'
         }
       });
 
@@ -97,8 +88,7 @@ export async function POST(request: NextRequest) {
         data: {
           guildId: newGuild.id,
           name: 'general',
-          description: 'General guild discussion',
-          isActive: true
+          description: 'General guild discussion'
         }
       });
 
@@ -107,8 +97,7 @@ export async function POST(request: NextRequest) {
           guildId: newGuild.id,
           name: 'officers',
           description: 'Officer-only discussions',
-          roleRequired: 'OFFICER',
-          isActive: true
+          roleRequired: 'OFFICER'
         }
       });
 
@@ -151,9 +140,12 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error creating guild:', error);
+    console.error('Detailed error creating guild:', error);
+    console.error('Error name:', error?.name);
+    console.error('Error message:', error?.message);
+    console.error('Error stack:', error?.stack);
     return NextResponse.json(
-      { error: 'Failed to create guild' },
+      { error: 'Failed to create guild', details: error?.message },
       { status: 500 }
     );
   }
