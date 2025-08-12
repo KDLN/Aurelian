@@ -58,6 +58,8 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
+    console.log('Creating guild with data:', { name, tag: tag.toUpperCase(), emblem, description });
+
     // Create guild and add creator as leader
     const guild = await prisma.$transaction(async (tx) => {
       // Create the guild
@@ -69,6 +71,8 @@ export async function POST(request: NextRequest) {
           description
         }
       });
+      
+      console.log('Guild created:', newGuild.id);
 
       // Add creator as guild leader
       await tx.guildMember.create({

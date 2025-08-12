@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import { createClient } from '@supabase/supabase-js';
+import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
-
-// Initialize Prisma
-const prisma = new PrismaClient();
 
 // Initialize Supabase client
 const supabase = createClient(

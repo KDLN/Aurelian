@@ -43,13 +43,7 @@ export async function GET(request: NextRequest) {
             members: {
               select: {
                 role: true,
-                user: {
-                  select: {
-                    profile: {
-                      select: { display: true }
-                    }
-                  }
-                }
+                userId: true
               },
               orderBy: { joinedAt: 'asc' },
               take: 5 // Show recent members

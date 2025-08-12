@@ -135,7 +135,7 @@ export default function CharacterViewer({
       if (hair && !shouldHideHair && page === 'p1') {
         spritesToLoad.push({ 
           key: 'hair', 
-          path: `${basePath}/char_a_p1/4har/char_a_p1_4har_${hair}_${skinTone}.png` 
+          path: `${basePath}/char_a_p1/4har/char_a_p1_4har_${hair}.png` 
         });
       }
 

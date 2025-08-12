@@ -72,14 +72,21 @@ export default function GameLayout({
       if (user?.id) {
         try {
           const { supabase } = await import('@/lib/supabaseClient');
-          const { data: profile } = await supabase
-            .from('Profile')
-            .select('display')
-            .eq('userId', user.id)
-            .single();
+          const { data: { session } } = await supabase.auth.getSession();
           
-          if (profile?.display) {
-            setUsername(profile.display);
+          if (session?.access_token) {
+            const response = await fetch('/api/profile', {
+              headers: {
+                'Authorization': `Bearer ${session.access_token}`
+              }
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+              if (data.profile?.display) {
+                setUsername(data.profile.display);
+              }
+            }
           }
         } catch (error) {
           console.error('Error loading username:', error);
