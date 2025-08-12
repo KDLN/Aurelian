@@ -73,7 +73,7 @@ model User {
 model Profile {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId    String   @unique @db.Uuid
-  display   String   @default("Trader")
+  display   String   @unique @default("Trader")
   avatar    Json? // store creator selections (colors, parts)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
