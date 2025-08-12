@@ -46,6 +46,13 @@ export async function GET(request: NextRequest) {
       resolvedItemId = item.id;
     }
 
+    // Ensure we have a valid itemId
+    if (!resolvedItemId) {
+      return NextResponse.json({
+        error: 'Unable to resolve item ID'
+      }, { status: 400 });
+    }
+
     // Calculate time range based on period
     const now = new Date();
     const timeRanges = {
