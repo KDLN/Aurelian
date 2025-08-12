@@ -24,6 +24,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
+    console.log('Getting guild info for user:', user.id);
+
     // Get user's guild membership with detailed information
     const membership = await prisma.guildMember.findUnique({
       where: { userId: user.id },
@@ -68,6 +70,9 @@ export async function GET(request: NextRequest) {
           }
         }
       }
+    }).catch(error => {
+      console.error('Prisma error in guild info:', error);
+      throw error;
     });
 
     if (!membership) {
