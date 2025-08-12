@@ -63,7 +63,9 @@ export default function GuildPage() {
   const [invitations, setInvitations] = useState<GuildInvitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'wars' | 'invites'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'treasury' | 'wars' | 'invites'>('overview');
+  const [treasuryAmount, setTreasuryAmount] = useState<number>(0);
+  const [treasuryReason, setTreasuryReason] = useState<string>('');
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -123,6 +125,80 @@ export default function GuildPage() {
       setError(err instanceof Error ? err.message : 'Failed to load guild data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleTreasuryDeposit = async () => {
+    try {
+      if (!treasuryAmount || treasuryAmount <= 0) {
+        alert('Please enter a valid amount');
+        return;
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const response = await fetch('/api/guild/treasury/deposit', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ amount: treasuryAmount })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to deposit gold');
+      }
+
+      const result = await response.json();
+      alert(result.message);
+      setTreasuryAmount(0);
+      loadGuildData();
+
+    } catch (err) {
+      console.error('Error depositing to treasury:', err);
+      alert(err instanceof Error ? err.message : 'Failed to deposit gold');
+    }
+  };
+
+  const handleTreasuryWithdraw = async () => {
+    try {
+      if (!treasuryAmount || treasuryAmount <= 0) {
+        alert('Please enter a valid amount');
+        return;
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const response = await fetch('/api/guild/treasury/withdraw', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          amount: treasuryAmount,
+          reason: treasuryReason || 'Guild expenses'
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to withdraw gold');
+      }
+
+      const result = await response.json();
+      alert(result.message);
+      setTreasuryAmount(0);
+      setTreasuryReason('');
+      loadGuildData();
+
+    } catch (err) {
+      console.error('Error withdrawing from treasury:', err);
+      alert(err instanceof Error ? err.message : 'Failed to withdraw gold');
     }
   };
 
@@ -203,6 +279,12 @@ export default function GuildPage() {
           onClick={() => setActiveTab('members')}
         >
           👥 Members
+        </button>
+        <button 
+          className={`game-btn ${activeTab === 'treasury' ? 'game-btn-primary' : ''}`}
+          onClick={() => setActiveTab('treasury')}
+        >
+          💰 Treasury
         </button>
         <button 
           className={`game-btn ${activeTab === 'wars' ? 'game-btn-primary' : ''}`}
@@ -563,6 +645,102 @@ export default function GuildPage() {
           <div className="game-card">
             <h3>Guild Members</h3>
             <p className="game-muted">Member management is available at <a href="/guild/members">/guild/members</a></p>
+          </div>
+        )}
+
+        {activeTab === 'treasury' && (
+          <div className="game-flex-col">
+            <div className="game-card">
+              <h3>Guild Treasury</h3>
+              <div className="game-center" style={{ margin: '16px 0' }}>
+                <div className="game-big game-good">{guild.treasury.toLocaleString()}g</div>
+                <div className="game-small game-muted">Current Balance</div>
+              </div>
+            </div>
+
+            <div className="game-card">
+              <h3>💰 Deposit Gold</h3>
+              <p className="game-muted game-small">Contribute to your guild's treasury to fund shared activities.</p>
+              <div className="game-flex" style={{ gap: '8px', alignItems: 'center', margin: '16px 0' }}>
+                <input
+                  type="number"
+                  min="1"
+                  value={treasuryAmount || ''}
+                  onChange={(e) => setTreasuryAmount(parseInt(e.target.value) || 0)}
+                  className="game-input"
+                  placeholder="Amount to deposit"
+                  style={{ flex: 1 }}
+                />
+                <button
+                  className="game-btn game-btn-primary"
+                  onClick={handleTreasuryDeposit}
+                  disabled={!treasuryAmount || treasuryAmount <= 0}
+                >
+                  Deposit
+                </button>
+              </div>
+            </div>
+
+            {['LEADER', 'OFFICER'].includes(guild.userRole) && (
+              <div className="game-card">
+                <h3>💸 Withdraw Gold</h3>
+                <p className="game-muted game-small">Leaders and Officers can withdraw gold for guild expenses.</p>
+                <div className="game-flex-col" style={{ gap: '8px', margin: '16px 0' }}>
+                  <div className="game-flex" style={{ gap: '8px', alignItems: 'center' }}>
+                    <input
+                      type="number"
+                      min="1"
+                      max={guild.treasury}
+                      value={treasuryAmount || ''}
+                      onChange={(e) => setTreasuryAmount(parseInt(e.target.value) || 0)}
+                      className="game-input"
+                      placeholder="Amount to withdraw"
+                      style={{ flex: 1 }}
+                    />
+                    <button
+                      className="game-btn game-btn-warning"
+                      onClick={handleTreasuryWithdraw}
+                      disabled={!treasuryAmount || treasuryAmount <= 0 || treasuryAmount > guild.treasury}
+                    >
+                      Withdraw
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    value={treasuryReason}
+                    onChange={(e) => setTreasuryReason(e.target.value)}
+                    className="game-input"
+                    placeholder="Reason for withdrawal (optional)"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="game-card">
+              <h3>Recent Treasury Activity</h3>
+              {guild.recentActivity.filter(activity => 
+                activity.action === 'treasury_deposit' || activity.action === 'treasury_withdraw'
+              ).length > 0 ? (
+                <div className="game-flex-col">
+                  {guild.recentActivity
+                    .filter(activity => activity.action === 'treasury_deposit' || activity.action === 'treasury_withdraw')
+                    .slice(0, 5)
+                    .map((activity, index) => (
+                    <div key={index} className="game-space-between">
+                      <div>
+                        {activity.action === 'treasury_deposit' ? '💰' : '💸'} <strong>{activity.user}</strong>
+                        <span className="game-small"> {activity.action.replace('treasury_', '').replace('_', ' ')}ed {activity.details?.amount?.toLocaleString()}g</span>
+                      </div>
+                      <div className="game-small game-muted">
+                        {formatTimeAgo(activity.createdAt)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="game-muted">No recent treasury activity</p>
+              )}
+            </div>
           </div>
         )}
 
