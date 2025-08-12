@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
     const priceHistory = await prisma.priceTick.findMany({
       where: {
         itemId: resolvedItemId,
-        hubId: hubId || null,
+        hubId: hubId || undefined,
         at: { gte: startTime }
       },
       select: {

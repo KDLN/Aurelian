@@ -26,11 +26,18 @@ export async function GET(request: NextRequest) {
     // Get all items or specific item
     let itemsToAnalyze;
     if (itemId || itemKey) {
-      const whereClause = itemId ? { id: itemId } : { key: itemKey };
-      const item = await prisma.itemDef.findUnique({
-        where: whereClause,
-        select: { id: true, key: true, name: true }
-      });
+      let item;
+      if (itemId) {
+        item = await prisma.itemDef.findUnique({
+          where: { id: itemId },
+          select: { id: true, key: true, name: true }
+        });
+      } else if (itemKey) {
+        item = await prisma.itemDef.findUnique({
+          where: { key: itemKey },
+          select: { id: true, key: true, name: true }
+        });
+      }
       
       if (!item) {
         return NextResponse.json({
