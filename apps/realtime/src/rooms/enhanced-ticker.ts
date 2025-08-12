@@ -26,6 +26,7 @@ export class EnhancedTickerRoom extends Room {
   private marketService: MarketDataService | null = null;
   private priceCache = new Map<string, number>(); // itemId -> current price
   private tickerInterval: any;
+  private isUpdatingPrices = false; // Race condition prevention
 
   async onCreate() {
     console.log('Enhanced ticker room created');
@@ -111,13 +112,20 @@ export class EnhancedTickerRoom extends Room {
   }
 
   private async updateMarketPrices() {
-    if (!this.marketService) {
-      // Fallback to simple price updates without database
-      this.updatePricesWithoutDatabase();
+    // Prevent race conditions with concurrent updates
+    if (this.isUpdatingPrices) {
+      console.log('Price update already in progress, skipping...');
       return;
     }
 
+    this.isUpdatingPrices = true;
+
     try {
+      if (!this.marketService) {
+        // Fallback to simple price updates without database
+        this.updatePricesWithoutDatabase();
+        return;
+      }
       const items = await this.marketService.getAllTradeableItems();
       const updates: PriceUpdate[] = [];
 
@@ -192,6 +200,8 @@ export class EnhancedTickerRoom extends Room {
 
     } catch (error) {
       console.error('Error in updateMarketPrices:', error);
+    } finally {
+      this.isUpdatingPrices = false;
     }
   }
 

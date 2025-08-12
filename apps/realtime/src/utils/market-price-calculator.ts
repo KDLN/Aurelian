@@ -60,11 +60,14 @@ export class MarketPriceCalculator {
     // Calculate price changes over recent periods
     const changes = [];
     for (let i = 1; i < priceHistory.length; i++) {
+      // Prevent division by zero
+      if (priceHistory[i-1] === 0) continue;
       const change = Math.abs((priceHistory[i] - priceHistory[i-1]) / priceHistory[i-1]);
       changes.push(change);
     }
 
     // Average volatility with some dampening
+    if (changes.length === 0) return baseVolatility;
     const avgVolatility = changes.reduce((sum, change) => sum + change, 0) / changes.length;
     return Math.min(0.25, baseVolatility + avgVolatility * 0.5); // Max 25% volatility
   }

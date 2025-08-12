@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 interface TrendAnalysis {
   itemId: string;
@@ -236,7 +234,5 @@ export async function GET(request: NextRequest) {
       error: 'Failed to fetch market trends',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
   }
 }

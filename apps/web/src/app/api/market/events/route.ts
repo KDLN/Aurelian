@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
   try {
@@ -162,16 +160,73 @@ export async function GET(request: NextRequest) {
       error: 'Failed to fetch market events',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
 // POST endpoint to create new market events (for admin/automated systems)
+// Input validation helper
+function validateMarketEventInput(body: any): { isValid: boolean; error?: string } {
+  const { type, itemId, hubId, severity, description, priceMultiplier, duration } = body;
+
+  // Required field validation
+  if (!type || typeof type !== 'string') {
+    return { isValid: false, error: 'Event type is required and must be a string' };
+  }
+
+  // Type validation
+  if (!['shortage', 'surplus', 'discovery', 'disruption'].includes(type)) {
+    return { isValid: false, error: 'Invalid event type. Must be: shortage, surplus, discovery, or disruption' };
+  }
+
+  // Severity validation
+  if (severity && !['low', 'medium', 'high'].includes(severity)) {
+    return { isValid: false, error: 'Invalid severity. Must be: low, medium, or high' };
+  }
+
+  // Price multiplier validation
+  if (priceMultiplier !== undefined) {
+    if (typeof priceMultiplier !== 'number' || priceMultiplier <= 0 || priceMultiplier > 10) {
+      return { isValid: false, error: 'Price multiplier must be a number between 0 and 10' };
+    }
+  }
+
+  // Duration validation (if provided)
+  if (duration !== undefined) {
+    if (typeof duration !== 'number' || duration <= 0 || duration > 10080) { // Max 1 week
+      return { isValid: false, error: 'Duration must be a positive number in minutes, max 10080 (1 week)' };
+    }
+  }
+
+  // Description length validation
+  if (description && (typeof description !== 'string' || description.length > 500)) {
+    return { isValid: false, error: 'Description must be a string with max 500 characters' };
+  }
+
+  // ItemId validation (if provided)
+  if (itemId && typeof itemId !== 'string') {
+    return { isValid: false, error: 'ItemId must be a string' };
+  }
+
+  // HubId validation (if provided)  
+  if (hubId && typeof hubId !== 'string') {
+    return { isValid: false, error: 'HubId must be a string' };
+  }
+
+  return { isValid: true };
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     
+    // Validate input
+    const validation = validateMarketEventInput(body);
+    if (!validation.isValid) {
+      return NextResponse.json({
+        error: validation.error
+      }, { status: 400 });
+    }
+
     const {
       type,
       itemId,
@@ -181,25 +236,6 @@ export async function POST(request: NextRequest) {
       priceMultiplier = 1.0,
       duration // in minutes
     } = body;
-
-    // Validate required fields
-    if (!type) {
-      return NextResponse.json({
-        error: 'Event type is required'
-      }, { status: 400 });
-    }
-
-    if (!['shortage', 'surplus', 'discovery', 'disruption'].includes(type)) {
-      return NextResponse.json({
-        error: 'Invalid event type. Must be: shortage, surplus, discovery, or disruption'
-      }, { status: 400 });
-    }
-
-    if (!['low', 'medium', 'high'].includes(severity)) {
-      return NextResponse.json({
-        error: 'Invalid severity. Must be: low, medium, or high'
-      }, { status: 400 });
-    }
 
     // Calculate end time if duration provided
     const endsAt = duration ? new Date(Date.now() + duration * 60 * 1000) : null;
@@ -254,7 +290,5 @@ export async function POST(request: NextRequest) {
       error: 'Failed to create market event',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
   }
 }

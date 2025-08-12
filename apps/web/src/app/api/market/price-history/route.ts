@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 interface PriceHistoryQuery {
   itemId?: string;
@@ -157,7 +155,5 @@ export async function GET(request: NextRequest) {
       error: 'Failed to fetch price history',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
   }
 }
