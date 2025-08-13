@@ -108,7 +108,7 @@ export function ChatSystem({
       const client = new Client(wsUrl.replace(/^http/, 'ws'));
       clientRef.current = client;
 
-      await connectToChannel(activeChannel, session.access_token);
+      await connectToChannel(activeChannel, session.access_token, activeGuildChannel);
       setConnected(true);
 
     } catch (err) {
@@ -119,7 +119,7 @@ export function ChatSystem({
     }
   };
 
-  const connectToChannel = async (channel: ChannelType, token: string) => {
+  const connectToChannel = async (channel: ChannelType, token: string, guildChannelIdParam?: string) => {
     if (!clientRef.current) return;
 
     // Disconnect from current room
@@ -139,12 +139,13 @@ export function ChatSystem({
         roomName = 'chat_trade';
         break;
       case 'guild':
-        if (!activeGuildChannel) {
+        const guildChannel = guildChannelIdParam || activeGuildChannel;
+        if (!guildChannel) {
           setError('No guild channel selected');
           return;
         }
         roomName = 'chat_guild';
-        roomOptions.guildChannelId = activeGuildChannel;
+        roomOptions.guildChannelId = guildChannel;
         break;
       default:
         setError('Invalid channel type');
@@ -238,7 +239,7 @@ export function ChatSystem({
       setActiveGuildChannel(guildChannelId);
     }
 
-    await connectToChannel(channel, session.access_token);
+    await connectToChannel(channel, session.access_token, guildChannelId);
   };
 
   const sendMessage = (content: string, metadata?: any) => {

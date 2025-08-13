@@ -18,17 +18,27 @@ export class GuildChatRoom extends ChatRoom {
     MEMBER: 1
   };
 
-  onCreate(options: any) {
-    this.guildId = options.guildId;
+  async onCreate(options: any) {
     this.guildChannelId = options.guildChannelId;
-    this.channelName = options.channelName || 'general';
-    this.requiredRole = options.requiredRole;
-    
+
+    // Look up channel details to determine guild and permissions
+    const channel = await prisma.guildChannel.findUnique({
+      where: { id: this.guildChannelId }
+    });
+
+    if (!channel) {
+      throw new Error('Guild channel not found');
+    }
+
+    this.guildId = channel.guildId;
+    this.channelName = channel.name || 'general';
+    this.requiredRole = channel.roleRequired as GuildRole | undefined;
+
     console.log(`GuildChatRoom created for guild ${this.guildId}, channel: ${this.channelName}`);
-    
+
     // Call parent onCreate
     super.onCreate(options);
-    
+
     // Set up guild-specific message handlers
     this.setupGuildCommands();
   }
