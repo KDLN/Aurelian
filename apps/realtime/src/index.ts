@@ -25,7 +25,8 @@ gameServer.define('auction', AuctionRoom);
 // Chat rooms
 gameServer.define('chat_general', PublicChatRoom, { channelType: 'GENERAL' });
 gameServer.define('chat_trade', PublicChatRoom, { channelType: 'TRADE' });
-gameServer.define('chat_guild', GuildChatRoom);
+// Create separate rooms for each guild channel
+gameServer.define('chat_guild', GuildChatRoom).filterBy(['guildChannelId']);
 
 const port = Number(process.env.PORT || 8787);
 server.listen(port, ()=> console.log(`Realtime running on :${port}`));

@@ -2,6 +2,9 @@ import { Client } from 'colyseus';
 import { ChatRoom, ChatUser, ChatMessage } from './chat-room';
 import { prisma } from '../utils/prisma';
 
+// Guild invite expiration (7 days)
+const GUILD_INVITE_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
+
 export type GuildRole = 'LEADER' | 'OFFICER' | 'TRADER' | 'MEMBER';
 
 export class GuildChatRoom extends ChatRoom {
@@ -18,17 +21,41 @@ export class GuildChatRoom extends ChatRoom {
     MEMBER: 1
   };
 
-  onCreate(options: any) {
-    this.guildId = options.guildId;
+  async onCreate(options: any) {
     this.guildChannelId = options.guildChannelId;
-    this.channelName = options.channelName || 'general';
-    this.requiredRole = options.requiredRole;
-    
-    console.log(`GuildChatRoom created for guild ${this.guildId}, channel: ${this.channelName}`);
-    
+
+    // Look up channel details to determine guild and permissions with simple retry logic
+    let channel = null;
+    const maxRetries = 3;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        channel = await prisma.guildChannel.findUnique({
+          where: { id: this.guildChannelId }
+        });
+        break;
+      } catch (err) {
+        if (attempt === maxRetries) {
+          console.error('Failed to load guild channel:', err);
+          throw err;
+        }
+        // small backoff before retrying
+        await new Promise(res => setTimeout(res, 100 * attempt));
+      }
+    }
+
+    if (!channel) {
+      throw new Error('Guild channel not found');
+    }
+
+    this.guildId = channel.guildId;
+    this.channelName = channel.name || 'general';
+    this.requiredRole = channel.roleRequired as GuildRole | undefined;
+
+    console.info(`GuildChatRoom created for guild ${this.guildId}, channel: ${this.channelName}`);
+
     // Call parent onCreate
     super.onCreate(options);
-    
+
     // Set up guild-specific message handlers
     this.setupGuildCommands();
   }
@@ -77,27 +104,44 @@ export class GuildChatRoom extends ChatRoom {
 
   protected async saveMessage(user: ChatUser, message: any): Promise<ChatMessage> {
     try {
-      // Save message to database
-      const savedMessage = await prisma.chatMessage.create({
-        data: {
-          content: message.content.trim(),
-          userId: user.userId,
-          channelType: 'GUILD',
-          guildChannelId: this.guildChannelId,
-          metadata: message.metadata || null
-        },
-        include: {
-          user: {
-            include: {
-              profile: true,
-              guildMembership: {
-                include: {
-                  guild: true
+      // Save message and log guild activity in a transaction
+      const savedMessage = await prisma.$transaction(async (tx) => {
+        const msg = await tx.chatMessage.create({
+          data: {
+            content: message.content.trim(),
+            userId: user.userId,
+            channelType: 'GUILD',
+            guildChannelId: this.guildChannelId,
+            metadata: message.metadata || null
+          },
+          include: {
+            user: {
+              include: {
+                profile: true,
+                guildMembership: {
+                  include: {
+                    guild: true
+                  }
                 }
               }
             }
           }
-        }
+        });
+
+        await tx.guildLog.create({
+          data: {
+            guildId: this.guildId,
+            userId: user.userId,
+            action: 'chat_message',
+            details: {
+              channelName: this.channelName,
+              messageId: msg.id,
+              messageLength: message.content.length
+            }
+          }
+        });
+
+        return msg;
       });
 
       // Convert to ChatMessage format
@@ -116,20 +160,6 @@ export class GuildChatRoom extends ChatRoom {
         }
       };
 
-      // Log guild activity
-      await prisma.guildLog.create({
-        data: {
-          guildId: this.guildId,
-          userId: user.userId,
-          action: 'chat_message',
-          details: {
-            channelName: this.channelName,
-            messageId: savedMessage.id,
-            messageLength: message.content.length
-          }
-        }
-      });
-
       return chatMessage;
     } catch (error) {
       console.error('Failed to save guild chat message:', error);
@@ -142,7 +172,7 @@ export class GuildChatRoom extends ChatRoom {
     this.broadcast('chat_message', message);
     
     // Log for debugging
-    console.log(`Broadcasting guild message in ${this.channelName} from ${message.displayName}: ${message.content}`);
+    console.info(`Broadcasting guild message in ${this.channelName} from ${message.displayName}: ${message.content}`);
   }
 
   protected async getMessageHistory(user: ChatUser, before?: string, limit: number = 50): Promise<ChatMessage[]> {
@@ -264,7 +294,7 @@ export class GuildChatRoom extends ChatRoom {
           userId: targetUser.id,
           invitedBy: user.userId,
           message: args.message || '',
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+          expiresAt: new Date(Date.now() + GUILD_INVITE_EXPIRY_MS)
         }
       });
 
