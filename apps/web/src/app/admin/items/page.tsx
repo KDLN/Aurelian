@@ -62,15 +62,25 @@ export default function AdminItemsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="p-8">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Item Management</h1>
-        <button
-          onClick={() => setShowCreateForm(true)}
-          className="bg-[#8b6f31] hover:bg-[#c5a572] text-[#231913] px-4 py-2 rounded font-semibold transition-colors"
-        >
-          Create New Item
-        </button>
+        <div>
+          <h1 className="text-3xl font-bold text-[#f1e5c8] mb-2">Item Management</h1>
+          <p className="text-[#9a8464]">Create, edit, and manage all game items and materials</p>
+        </div>
+        <div className="flex space-x-4">
+          <div className="bg-[#2a1f17] px-4 py-2 rounded-lg border border-[#8b6f31]">
+            <span className="text-[#9a8464] text-sm">Total Items: </span>
+            <span className="text-[#c5a572] font-semibold">{items.length}</span>
+          </div>
+          <button
+            onClick={() => setShowCreateForm(true)}
+            className="bg-[#8b6f31] hover:bg-[#c5a572] text-[#231913] px-6 py-3 rounded-lg font-semibold transition-colors flex items-center space-x-2"
+          >
+            <span>➕</span>
+            <span>Create New Item</span>
+          </button>
+        </div>
       </div>
 
       {(showCreateForm || editingItem) && (
@@ -92,54 +102,62 @@ export default function AdminItemsPage() {
         />
       )}
 
-      <div className="bg-[#2a1f17] border border-[#8b6f31] rounded-lg">
-        <div className="grid grid-cols-7 gap-4 p-4 border-b border-[#8b6f31] font-semibold">
-          <div>Key</div>
-          <div>Name</div>
-          <div>Rarity</div>
-          <div>Stack Size</div>
-          <div>Equipment</div>
-          <div>Meta</div>
-          <div>Actions</div>
+      <div className="bg-[#2a1f17] border border-[#8b6f31] rounded-xl overflow-hidden">
+        <div className="bg-[#3d2f22] px-6 py-4 border-b border-[#8b6f31]">
+          <div className="grid grid-cols-7 gap-4 font-semibold text-[#f1e5c8]">
+            <div>Key</div>
+            <div>Name</div>
+            <div>Rarity</div>
+            <div>Stack Size</div>
+            <div>Equipment</div>
+            <div>Meta</div>
+            <div>Actions</div>
+          </div>
         </div>
 
-        {items.map((item) => (
-          <div
-            key={item.id}
-            className="grid grid-cols-7 gap-4 p-4 border-b border-[#3d2f22] hover:bg-[#3d2f22] transition-colors"
-          >
-            <div className="font-mono text-sm">{item.key}</div>
-            <div>{item.name}</div>
-            <div>
-              <span className={`px-2 py-1 rounded text-xs ${getRarityColor(item.rarity)}`}>
-                {item.rarity}
-              </span>
+        <div className="max-h-[600px] overflow-y-auto">
+          {items.map((item, index) => (
+            <div
+              key={item.id}
+              className={`grid grid-cols-7 gap-4 p-4 hover:bg-[#3d2f22] transition-colors ${
+                index !== items.length - 1 ? 'border-b border-[#3d2f22]' : ''
+              }`}
+            >
+              <div className="font-mono text-sm text-[#c5a572]">{item.key}</div>
+              <div className="font-medium text-[#f1e5c8]">{item.name}</div>
+              <div>
+                <span className={`px-3 py-1 rounded-full text-xs font-medium ${getRarityColor(item.rarity)}`}>
+                  {item.rarity}
+                </span>
+              </div>
+              <div className="text-[#9a8464]">{item.stack}</div>
+              <div className="text-center">
+                {item.meta?.isEquipment ? (
+                  <span className="text-green-400 text-lg">✓</span>
+                ) : (
+                  <span className="text-[#9a8464]">—</span>
+                )}
+              </div>
+              <div className="text-xs text-[#9a8464]">
+                {item.meta ? Object.keys(item.meta).join(', ') : 'None'}
+              </div>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setEditingItem(item)}
+                  className="text-[#c5a572] hover:text-[#f1e5c8] text-sm font-medium transition-colors"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => deleteItem(item.id)}
+                  className="text-red-400 hover:text-red-300 text-sm font-medium transition-colors"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
-            <div>{item.stack}</div>
-            <div>{item.meta?.isEquipment ? '✓' : ''}</div>
-            <div className="text-xs text-[#9a8464]">
-              {item.meta ? Object.keys(item.meta).join(', ') : 'None'}
-            </div>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => setEditingItem(item)}
-                className="text-[#c5a572] hover:text-[#f1e5c8] text-sm"
-              >
-                Edit
-              </button>
-              <button
-                onClick={() => deleteItem(item.id)}
-                className="text-red-400 hover:text-red-300 text-sm"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-4 text-[#9a8464] text-sm">
-        Total items: {items.length}
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -200,10 +218,18 @@ function ItemForm({
   };
 
   return (
-    <div className="bg-[#2a1f17] border border-[#8b6f31] rounded-lg p-6 mb-8">
-      <h2 className="text-xl font-bold mb-4">
-        {item ? 'Edit Item' : 'Create New Item'}
-      </h2>
+    <div className="bg-[#2a1f17] border border-[#8b6f31] rounded-xl p-8 mb-8">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold text-[#f1e5c8]">
+          {item ? 'Edit Item' : 'Create New Item'}
+        </h2>
+        <button
+          onClick={onCancel}
+          className="text-[#9a8464] hover:text-[#f1e5c8] text-xl transition-colors"
+        >
+          ✕
+        </button>
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
@@ -286,19 +312,20 @@ function ItemForm({
           )}
         </div>
 
-        <div className="flex space-x-4">
-          <button
-            type="submit"
-            className="bg-[#8b6f31] hover:bg-[#c5a572] text-[#231913] px-4 py-2 rounded font-semibold transition-colors"
-          >
-            {item ? 'Update' : 'Create'} Item
-          </button>
+        <div className="flex justify-end space-x-4 pt-6 border-t border-[#8b6f31]">
           <button
             type="button"
             onClick={onCancel}
-            className="bg-[#5a4a3a] hover:bg-[#6b5a4a] text-[#f1e5c8] px-4 py-2 rounded font-semibold transition-colors"
+            className="bg-[#5a4a3a] hover:bg-[#6b5a4a] text-[#f1e5c8] px-6 py-3 rounded-lg font-semibold transition-colors"
           >
             Cancel
+          </button>
+          <button
+            type="submit"
+            className="bg-[#8b6f31] hover:bg-[#c5a572] text-[#231913] px-6 py-3 rounded-lg font-semibold transition-colors flex items-center space-x-2"
+          >
+            <span>{item ? '💾' : '➕'}</span>
+            <span>{item ? 'Update' : 'Create'} Item</span>
           </button>
         </div>
       </form>
