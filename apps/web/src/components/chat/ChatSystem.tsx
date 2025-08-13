@@ -153,10 +153,15 @@ export function ChatSystem({
       setMessages([]);
       setUsers([]);
       setTyping([]);
+      
+      // Set connected state to true after successful join
+      setConnected(true);
+      setError('');
 
     } catch (error) {
       console.error(`Failed to join ${roomName}:`, error);
       setError(`Failed to join ${channel} channel`);
+      setConnected(false);
     }
   };
 
