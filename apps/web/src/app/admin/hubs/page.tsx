@@ -102,23 +102,41 @@ export default function AdminHubsPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">Loading hubs...</div>
+      <div className="p-6 lg:p-8 max-w-7xl mx-auto">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-slate-600 dark:text-slate-400">Loading hubs and routes...</div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Hub & Route Management</h1>
-        <div className="flex space-x-4">
-          <button
-            onClick={() => setShowCreateForm(true)}
-            className="bg-[#8b6f31] hover:bg-[#c5a572] text-[#231913] px-4 py-2 rounded font-semibold transition-colors"
-          >
-            Create New Hub
-          </button>
+    <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
+      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">Hub & Route Management</h1>
+          <p className="text-slate-600 dark:text-slate-400">Manage trading hubs and route connections</p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="bg-white dark:bg-slate-800 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+            <span className="text-slate-600 dark:text-slate-400 text-sm">Hubs: {hubs.length} | Routes: {links.length}</span>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowCreateForm(true)}
+              className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2 shadow-sm"
+            >
+              <span>➕</span>
+              <span>Create Hub</span>
+            </button>
+            <button
+              onClick={() => setShowLinkForm(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2 shadow-sm"
+            >
+              <span>🔗</span>
+              <span>Add Route</span>
+            </button>
+          </div>
         </div>
       </div>
 
