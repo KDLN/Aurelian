@@ -80,22 +80,34 @@ export default function AdminMissionsPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">Loading missions...</div>
+      <div className="p-6 lg:p-8 max-w-7xl mx-auto">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-slate-600 dark:text-slate-400">Loading missions...</div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Mission Management</h1>
-        <button
-          onClick={() => setShowCreateForm(true)}
-          className="bg-[#8b6f31] hover:bg-[#c5a572] text-[#231913] px-4 py-2 rounded font-semibold transition-colors"
-        >
-          Create New Mission
-        </button>
+    <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
+      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">Mission Management</h1>
+          <p className="text-slate-600 dark:text-slate-400">Configure missions, routes, and rewards</p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="bg-white dark:bg-slate-800 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+            <span className="text-slate-600 dark:text-slate-400 text-sm">Total Missions: </span>
+            <span className="text-slate-900 dark:text-slate-100 font-semibold">{missions.length}</span>
+          </div>
+          <button
+            onClick={() => setShowCreateForm(true)}
+            className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2 shadow-sm"
+          >
+            <span>➕</span>
+            <span>Create New Mission</span>
+          </button>
+        </div>
       </div>
 
       {(showCreateForm || editingMission) && (
@@ -117,75 +129,85 @@ export default function AdminMissionsPage() {
         />
       )}
 
-      <div className="bg-[#2a1f17] border border-[#8b6f31] rounded-lg">
-        <div className="grid grid-cols-9 gap-2 p-4 border-b border-[#8b6f31] font-semibold text-sm">
-          <div>Name</div>
-          <div>Route</div>
-          <div>Distance</div>
-          <div>Duration</div>
-          <div>Reward</div>
-          <div>Risk</div>
-          <div>Item Rewards</div>
-          <div>Status</div>
-          <div>Actions</div>
+      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden shadow-sm">
+        <div className="bg-slate-50 dark:bg-slate-700 px-6 py-4 border-b border-slate-200 dark:border-slate-600">
+          <div className="grid grid-cols-9 gap-4 font-semibold text-slate-900 dark:text-slate-100 text-sm">
+            <div>Name</div>
+            <div>Route</div>
+            <div>Distance</div>
+            <div>Duration</div>
+            <div>Reward</div>
+            <div>Risk</div>
+            <div>Item Rewards</div>
+            <div>Status</div>
+            <div>Actions</div>
+          </div>
         </div>
 
-        {missions.map((mission) => (
-          <div
-            key={mission.id}
-            className="grid grid-cols-9 gap-2 p-4 border-b border-[#3d2f22] hover:bg-[#3d2f22] transition-colors text-sm"
-          >
-            <div className="font-medium">{mission.name}</div>
-            <div className="text-[#9a8464]">
-              {mission.fromHub} → {mission.toHub}
+        <div className="max-h-[600px] overflow-y-auto">
+          {missions.length === 0 ? (
+            <div className="p-12 text-center">
+              <div className="text-slate-400 dark:text-slate-500 text-lg mb-2">🗺️</div>
+              <div className="text-slate-600 dark:text-slate-400 font-medium mb-1">No missions found</div>
+              <div className="text-slate-500 dark:text-slate-500 text-sm">Create your first mission to get started</div>
             </div>
-            <div>{mission.distance}km</div>
-            <div>{Math.floor(mission.baseDuration / 60)}h {mission.baseDuration % 60}m</div>
-            <div className="text-green-400">{mission.baseReward}g</div>
-            <div>
-              <span className={`px-2 py-1 rounded text-xs ${getRiskColor(mission.riskLevel)}`}>
-                {mission.riskLevel}
-              </span>
-            </div>
-            <div className="text-xs">
-              {mission.itemRewards?.map((reward, i) => (
-                <div key={i} className="text-[#9a8464]">
-                  {reward.itemKey} x{reward.qty}
-                </div>
-              )) || 'None'}
-            </div>
-            <div>
-              <button
-                onClick={() => toggleActive(mission)}
-                className={`px-2 py-1 rounded text-xs ${
-                  mission.isActive
-                    ? 'bg-green-600 text-green-100'
-                    : 'bg-red-600 text-red-100'
+          ) : (
+            missions.map((mission, index) => (
+              <div
+                key={mission.id}
+                className={`grid grid-cols-9 gap-4 p-4 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-sm ${
+                  index !== missions.length - 1 ? 'border-b border-slate-100 dark:border-slate-700' : ''
                 }`}
               >
-                {mission.isActive ? 'Active' : 'Inactive'}
-              </button>
-            </div>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => setEditingMission(mission)}
-                className="text-[#c5a572] hover:text-[#f1e5c8] text-sm"
-              >
-                Edit
-              </button>
-              <button
-                onClick={() => deleteMission(mission.id)}
-                className="text-red-400 hover:text-red-300 text-sm"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-4 text-[#9a8464] text-sm">
-        Total missions: {missions.length} | Active: {missions.filter(m => m.isActive).length}
+                <div className="font-medium text-slate-900 dark:text-slate-100">{mission.name}</div>
+                <div className="text-slate-600 dark:text-slate-400">
+                  {mission.fromHub} → {mission.toHub}
+                </div>
+                <div className="text-slate-600 dark:text-slate-400">{mission.distance}km</div>
+                <div className="text-slate-600 dark:text-slate-400">{Math.floor(mission.baseDuration / 60)}h {mission.baseDuration % 60}m</div>
+                <div className="text-green-600 dark:text-green-400 font-medium">{mission.baseReward}g</div>
+                <div>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRiskColor(mission.riskLevel)}`}>
+                    {mission.riskLevel}
+                  </span>
+                </div>
+                <div className="text-xs space-y-1">
+                  {mission.itemRewards?.map((reward, i) => (
+                    <div key={i} className="text-slate-500 dark:text-slate-400">
+                      {reward.itemKey} x{reward.qty}
+                    </div>
+                  )) || <span className="text-slate-400 dark:text-slate-500">None</span>}
+                </div>
+                <div>
+                  <button
+                    onClick={() => toggleActive(mission)}
+                    className={`px-2 py-1 rounded-full text-xs font-medium transition-colors ${
+                      mission.isActive
+                        ? 'bg-green-500 dark:bg-green-600 text-green-100 hover:bg-green-600 dark:hover:bg-green-700'
+                        : 'bg-red-500 dark:bg-red-600 text-red-100 hover:bg-red-600 dark:hover:bg-red-700'
+                    }`}
+                  >
+                    {mission.isActive ? 'Active' : 'Inactive'}
+                  </button>
+                </div>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => setEditingMission(mission)}
+                    className="text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 text-sm font-medium transition-colors"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => deleteMission(mission.id)}
+                    className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 text-sm font-medium transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );
@@ -440,12 +462,12 @@ function MissionForm({
 function getRiskColor(risk: MissionRisk): string {
   switch (risk) {
     case 'LOW':
-      return 'bg-green-600 text-green-100';
+      return 'bg-green-500 dark:bg-green-600 text-green-100';
     case 'MEDIUM':
-      return 'bg-yellow-600 text-yellow-100';
+      return 'bg-yellow-500 dark:bg-yellow-600 text-yellow-100';
     case 'HIGH':
-      return 'bg-red-600 text-red-100';
+      return 'bg-red-500 dark:bg-red-600 text-red-100';
     default:
-      return 'bg-gray-600 text-gray-100';
+      return 'bg-slate-500 dark:bg-slate-600 text-slate-100';
   }
 }

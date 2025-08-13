@@ -55,27 +55,29 @@ export default function AdminItemsPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">Loading items...</div>
+      <div className="p-6 lg:p-8 max-w-7xl mx-auto">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-slate-600 dark:text-slate-400">Loading items...</div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-8">
-      <div className="flex justify-between items-center mb-8">
+    <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
+      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
         <div>
-          <h1 className="text-3xl font-bold text-[#f1e5c8] mb-2">Item Management</h1>
-          <p className="text-[#9a8464]">Create, edit, and manage all game items and materials</p>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">Item Management</h1>
+          <p className="text-slate-600 dark:text-slate-400">Create, edit, and manage all game items and materials</p>
         </div>
-        <div className="flex space-x-4">
-          <div className="bg-[#2a1f17] px-4 py-2 rounded-lg border border-[#8b6f31]">
-            <span className="text-[#9a8464] text-sm">Total Items: </span>
-            <span className="text-[#c5a572] font-semibold">{items.length}</span>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="bg-white dark:bg-slate-800 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+            <span className="text-slate-600 dark:text-slate-400 text-sm">Total Items: </span>
+            <span className="text-slate-900 dark:text-slate-100 font-semibold">{items.length}</span>
           </div>
           <button
             onClick={() => setShowCreateForm(true)}
-            className="bg-[#8b6f31] hover:bg-[#c5a572] text-[#231913] px-6 py-3 rounded-lg font-semibold transition-colors flex items-center space-x-2"
+            className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2 shadow-sm"
           >
             <span>➕</span>
             <span>Create New Item</span>
@@ -102,9 +104,9 @@ export default function AdminItemsPage() {
         />
       )}
 
-      <div className="bg-[#2a1f17] border border-[#8b6f31] rounded-xl overflow-hidden">
-        <div className="bg-[#3d2f22] px-6 py-4 border-b border-[#8b6f31]">
-          <div className="grid grid-cols-7 gap-4 font-semibold text-[#f1e5c8]">
+      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden shadow-sm">
+        <div className="bg-slate-50 dark:bg-slate-700 px-6 py-4 border-b border-slate-200 dark:border-slate-600">
+          <div className="grid grid-cols-7 gap-4 font-semibold text-slate-900 dark:text-slate-100 text-sm">
             <div>Key</div>
             <div>Name</div>
             <div>Rarity</div>
@@ -116,47 +118,55 @@ export default function AdminItemsPage() {
         </div>
 
         <div className="max-h-[600px] overflow-y-auto">
-          {items.map((item, index) => (
-            <div
-              key={item.id}
-              className={`grid grid-cols-7 gap-4 p-4 hover:bg-[#3d2f22] transition-colors ${
-                index !== items.length - 1 ? 'border-b border-[#3d2f22]' : ''
-              }`}
-            >
-              <div className="font-mono text-sm text-[#c5a572]">{item.key}</div>
-              <div className="font-medium text-[#f1e5c8]">{item.name}</div>
-              <div>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${getRarityColor(item.rarity)}`}>
-                  {item.rarity}
-                </span>
-              </div>
-              <div className="text-[#9a8464]">{item.stack}</div>
-              <div className="text-center">
-                {item.meta?.isEquipment ? (
-                  <span className="text-green-400 text-lg">✓</span>
-                ) : (
-                  <span className="text-[#9a8464]">—</span>
-                )}
-              </div>
-              <div className="text-xs text-[#9a8464]">
-                {item.meta ? Object.keys(item.meta).join(', ') : 'None'}
-              </div>
-              <div className="flex space-x-3">
-                <button
-                  onClick={() => setEditingItem(item)}
-                  className="text-[#c5a572] hover:text-[#f1e5c8] text-sm font-medium transition-colors"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => deleteItem(item.id)}
-                  className="text-red-400 hover:text-red-300 text-sm font-medium transition-colors"
-                >
-                  Delete
-                </button>
-              </div>
+          {items.length === 0 ? (
+            <div className="p-12 text-center">
+              <div className="text-slate-400 dark:text-slate-500 text-lg mb-2">📦</div>
+              <div className="text-slate-600 dark:text-slate-400 font-medium mb-1">No items found</div>
+              <div className="text-slate-500 dark:text-slate-500 text-sm">Create your first item to get started</div>
             </div>
-          ))}
+          ) : (
+            items.map((item, index) => (
+              <div
+                key={item.id}
+                className={`grid grid-cols-7 gap-4 p-4 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors ${
+                  index !== items.length - 1 ? 'border-b border-slate-100 dark:border-slate-700' : ''
+                }`}
+              >
+                <div className="font-mono text-sm text-slate-600 dark:text-slate-400">{item.key}</div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">{item.name}</div>
+                <div>
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${getRarityColor(item.rarity)}`}>
+                    {item.rarity}
+                  </span>
+                </div>
+                <div className="text-slate-600 dark:text-slate-400">{item.stack}</div>
+                <div className="text-center">
+                  {item.meta?.isEquipment ? (
+                    <span className="text-green-600 dark:text-green-400 text-lg">✓</span>
+                  ) : (
+                    <span className="text-slate-400 dark:text-slate-500">—</span>
+                  )}
+                </div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">
+                  {item.meta ? Object.keys(item.meta).join(', ') : 'None'}
+                </div>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => setEditingItem(item)}
+                    className="text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 text-sm font-medium transition-colors"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => deleteItem(item.id)}
+                    className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 text-sm font-medium transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>
@@ -218,49 +228,51 @@ function ItemForm({
   };
 
   return (
-    <div className="bg-[#2a1f17] border border-[#8b6f31] rounded-xl p-8 mb-8">
+    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-6 lg:p-8 mb-8 shadow-sm">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-[#f1e5c8]">
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
           {item ? 'Edit Item' : 'Create New Item'}
         </h2>
         <button
           onClick={onCancel}
-          className="text-[#9a8464] hover:text-[#f1e5c8] text-xl transition-colors"
+          className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 text-xl transition-colors rounded-md p-1 hover:bg-slate-100 dark:hover:bg-slate-700"
         >
           ✕
         </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Key</label>
+            <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Key</label>
             <input
               type="text"
               value={formData.key}
               onChange={(e) => setFormData({ ...formData, key: e.target.value })}
-              className="w-full bg-[#3d2f22] border border-[#8b6f31] rounded px-3 py-2 text-[#f1e5c8]"
+              className="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md px-3 py-2 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+              placeholder="item_key"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Name</label>
+            <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Name</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full bg-[#3d2f22] border border-[#8b6f31] rounded px-3 py-2 text-[#f1e5c8]"
+              className="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md px-3 py-2 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+              placeholder="Item Name"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Rarity</label>
+            <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Rarity</label>
             <select
               value={formData.rarity}
               onChange={(e) => setFormData({ ...formData, rarity: e.target.value as ItemRarity })}
-              className="w-full bg-[#3d2f22] border border-[#8b6f31] rounded px-3 py-2 text-[#f1e5c8]"
+              className="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md px-3 py-2 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
             >
               <option value="COMMON">Common</option>
               <option value="UNCOMMON">Uncommon</option>
@@ -271,58 +283,61 @@ function ItemForm({
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Stack Size</label>
+            <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Stack Size</label>
             <input
               type="number"
               value={formData.stack}
               onChange={(e) => setFormData({ ...formData, stack: parseInt(e.target.value) || 1 })}
-              className="w-full bg-[#3d2f22] border border-[#8b6f31] rounded px-3 py-2 text-[#f1e5c8]"
+              className="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md px-3 py-2 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
               min="1"
+              placeholder="1"
               required
             />
           </div>
         </div>
 
-        <div className="flex items-center space-x-4">
-          <label className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              checked={formData.isEquipment}
-              onChange={(e) => setFormData({ ...formData, isEquipment: e.target.checked })}
-              className="rounded"
-            />
-            <span>Is Equipment</span>
-          </label>
+        <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <label className="flex items-center space-x-3">
+              <input
+                type="checkbox"
+                checked={formData.isEquipment}
+                onChange={(e) => setFormData({ ...formData, isEquipment: e.target.checked })}
+                className="rounded border-slate-300 dark:border-slate-600 text-orange-600 focus:ring-orange-500"
+              />
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Is Equipment</span>
+            </label>
 
-          {formData.isEquipment && (
-            <div>
-              <label className="block text-sm font-medium mb-1">Equipment Slot</label>
-              <select
-                value={formData.equipmentSlot}
-                onChange={(e) => setFormData({ ...formData, equipmentSlot: e.target.value })}
-                className="bg-[#3d2f22] border border-[#8b6f31] rounded px-3 py-2 text-[#f1e5c8]"
-              >
-                <option value="">Select Slot</option>
-                <option value="WEAPON">Weapon</option>
-                <option value="ARMOR">Armor</option>
-                <option value="TOOL">Tool</option>
-                <option value="ACCESSORY">Accessory</option>
-              </select>
-            </div>
-          )}
+            {formData.isEquipment && (
+              <div className="flex-1">
+                <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Equipment Slot</label>
+                <select
+                  value={formData.equipmentSlot}
+                  onChange={(e) => setFormData({ ...formData, equipmentSlot: e.target.value })}
+                  className="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md px-3 py-2 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+                >
+                  <option value="">Select Slot</option>
+                  <option value="WEAPON">Weapon</option>
+                  <option value="ARMOR">Armor</option>
+                  <option value="TOOL">Tool</option>
+                  <option value="ACCESSORY">Accessory</option>
+                </select>
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="flex justify-end space-x-4 pt-6 border-t border-[#8b6f31]">
+        <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-slate-200 dark:border-slate-700">
           <button
             type="button"
             onClick={onCancel}
-            className="bg-[#5a4a3a] hover:bg-[#6b5a4a] text-[#f1e5c8] px-6 py-3 rounded-lg font-semibold transition-colors"
+            className="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 px-6 py-2.5 rounded-md font-medium transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="bg-[#8b6f31] hover:bg-[#c5a572] text-[#231913] px-6 py-3 rounded-lg font-semibold transition-colors flex items-center space-x-2"
+            className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2.5 rounded-md font-medium transition-colors flex items-center justify-center space-x-2 shadow-sm"
           >
             <span>{item ? '💾' : '➕'}</span>
             <span>{item ? 'Update' : 'Create'} Item</span>
@@ -336,16 +351,16 @@ function ItemForm({
 function getRarityColor(rarity: ItemRarity): string {
   switch (rarity) {
     case 'COMMON':
-      return 'bg-gray-600 text-gray-100';
+      return 'bg-slate-500 dark:bg-slate-600 text-slate-100';
     case 'UNCOMMON':
-      return 'bg-green-600 text-green-100';
+      return 'bg-green-500 dark:bg-green-600 text-green-100';
     case 'RARE':
-      return 'bg-blue-600 text-blue-100';
+      return 'bg-blue-500 dark:bg-blue-600 text-blue-100';
     case 'EPIC':
-      return 'bg-purple-600 text-purple-100';
+      return 'bg-purple-500 dark:bg-purple-600 text-purple-100';
     case 'LEGENDARY':
-      return 'bg-orange-600 text-orange-100';
+      return 'bg-orange-500 dark:bg-orange-600 text-orange-100';
     default:
-      return 'bg-gray-600 text-gray-100';
+      return 'bg-slate-500 dark:bg-slate-600 text-slate-100';
   }
 }

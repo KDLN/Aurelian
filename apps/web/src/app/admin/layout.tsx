@@ -21,61 +21,59 @@ export default function AdminLayout({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#1a120e] text-[#f1e5c8] flex">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex">
       {/* Sidebar */}
-      <div className={`bg-[#2a1f17] border-r border-[#8b6f31] transition-all duration-300 ${
+      <div className={`bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 transition-all duration-300 ${
         sidebarCollapsed ? 'w-16' : 'w-64'
       }`}>
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="p-6 border-b border-[#8b6f31]">
+          <div className="p-6 border-b border-slate-200 dark:border-slate-700">
             <Link href="/admin" className="flex items-center space-x-3">
-              <div className="bg-gradient-to-br from-[#c5a572] to-[#8b6f31] w-10 h-10 rounded-lg flex items-center justify-center text-[#231913] font-bold text-lg">
+              <div className="bg-gradient-to-br from-orange-400 to-orange-600 w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-lg">
                 ⚡
               </div>
               {!sidebarCollapsed && (
                 <div>
-                  <h1 className="text-xl font-bold text-[#f1e5c8]">Aurelian</h1>
-                  <p className="text-sm text-[#9a8464]">Admin Panel</p>
+                  <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">Aurelian</h1>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Admin Panel</p>
                 </div>
               )}
             </Link>
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-4">
-            <div className="space-y-2">
-              {adminSections.map((section) => {
-                const isActive = pathname === section.href;
-                return (
-                  <Link
-                    key={section.id}
-                    href={section.href}
-                    className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                      isActive
-                        ? 'bg-[#8b6f31] text-[#231913] font-semibold'
-                        : 'text-[#c5a572] hover:bg-[#3d2f22] hover:text-[#f1e5c8]'
-                    }`}
-                  >
-                    <span className="text-xl">{section.icon}</span>
-                    {!sidebarCollapsed && <span>{section.title}</span>}
-                  </Link>
-                );
-              })}
-            </div>
+          <nav className="flex-1 p-4 space-y-2">
+            {adminSections.map((section) => {
+              const isActive = pathname === section.href;
+              return (
+                <Link
+                  key={section.id}
+                  href={section.href}
+                  className={`flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300'
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-100'
+                  }`}
+                >
+                  <span className="text-lg">{section.icon}</span>
+                  {!sidebarCollapsed && <span>{section.title}</span>}
+                </Link>
+              );
+            })}
           </nav>
 
           {/* Footer */}
-          <div className="p-4 border-t border-[#8b6f31]">
+          <div className="p-4 border-t border-slate-200 dark:border-slate-700 space-y-2">
             <button
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="w-full flex items-center justify-center px-4 py-2 text-[#9a8464] hover:text-[#f1e5c8] transition-colors"
+              className="w-full flex items-center justify-center px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors rounded-md hover:bg-slate-100 dark:hover:bg-slate-700"
             >
               {sidebarCollapsed ? '→' : '←'}
             </button>
             <Link
               href="/"
-              className="mt-2 w-full flex items-center justify-center px-4 py-2 text-[#9a8464] hover:text-[#f1e5c8] transition-colors text-sm"
+              className="w-full flex items-center justify-center px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors text-sm rounded-md hover:bg-slate-100 dark:hover:bg-slate-700"
             >
               {!sidebarCollapsed && '← Back to Game'}
               {sidebarCollapsed && '🎮'}
@@ -85,20 +83,20 @@ export default function AdminLayout({
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
         {/* Top Bar */}
-        <header className="bg-[#2a1f17] border-b border-[#8b6f31] px-6 py-4">
+        <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-[#f1e5c8]">
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                 {adminSections.find(s => pathname === s.href)?.title || 'Dashboard'}
               </h2>
-              <p className="text-[#9a8464]">
+              <p className="text-slate-500 dark:text-slate-400 mt-1">
                 Manage your game content and configuration
               </p>
             </div>
             <div className="flex items-center space-x-4">
-              <div className="bg-[#3d2f22] px-3 py-1 rounded-full text-sm text-[#c5a572]">
+              <div className="bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 px-3 py-1 rounded-full text-sm font-medium">
                 Admin Mode
               </div>
             </div>
@@ -106,7 +104,7 @@ export default function AdminLayout({
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-auto bg-slate-50 dark:bg-slate-900">
           {children}
         </main>
       </div>

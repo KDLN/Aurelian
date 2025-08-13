@@ -119,36 +119,34 @@ export default function AdminHubsPage() {
           >
             Create New Hub
           </button>
-          <button
-            onClick={() => setShowLinkForm(true)}
-            className="bg-[#5a4a3a] hover:bg-[#6b5a4a] text-[#f1e5c8] px-4 py-2 rounded font-semibold transition-colors"
-          >
-            Create New Route
-          </button>
+          </div>
         </div>
       </div>
 
-      <div className="flex space-x-4 mb-6">
-        <button
-          onClick={() => setActiveTab('hubs')}
-          className={`px-4 py-2 rounded transition-colors ${
-            activeTab === 'hubs'
-              ? 'bg-[#8b6f31] text-[#231913]'
-              : 'bg-[#5a4a3a] text-[#f1e5c8] hover:bg-[#6b5a4a]'
-          }`}
-        >
-          Hubs ({hubs.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('links')}
-          className={`px-4 py-2 rounded transition-colors ${
-            activeTab === 'links'
-              ? 'bg-[#8b6f31] text-[#231913]'
-              : 'bg-[#5a4a3a] text-[#f1e5c8] hover:bg-[#6b5a4a]'
-          }`}
-        >
-          Routes ({links.length})
-        </button>
+      {/* Tab Navigation */}
+      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm">
+        <div className="flex border-b border-slate-200 dark:border-slate-700">
+          <button
+            onClick={() => setActiveTab('hubs')}
+            className={`flex-1 px-6 py-4 font-medium transition-colors ${
+              activeTab === 'hubs'
+                ? 'text-orange-600 dark:text-orange-400 border-b-2 border-orange-600 dark:border-orange-400 bg-orange-50 dark:bg-orange-900/20'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-700'
+            }`}
+          >
+            🏢 Trading Hubs ({hubs.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('links')}
+            className={`flex-1 px-6 py-4 font-medium transition-colors ${
+              activeTab === 'links'
+                ? 'text-orange-600 dark:text-orange-400 border-b-2 border-orange-600 dark:border-orange-400 bg-orange-50 dark:bg-orange-900/20'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-700'
+            }`}
+          >
+            🔗 Routes ({links.length})
+          </button>
+        </div>
       </div>
 
       {(showCreateForm || editingHub) && (
