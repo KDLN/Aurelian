@@ -47,6 +47,43 @@ export default function DebugCraftingPage() {
     }
   };
 
+  const startDebugCrafting = async (blueprintId: string) => {
+    try {
+      setLoading(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.access_token) {
+        setError('Not authenticated');
+        return;
+      }
+
+      const response = await fetch('/api/crafting/debug-start', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          blueprintId: blueprintId,
+          quantity: 1
+        })
+      });
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        alert(`Success: ${result.message}`);
+        await fetchDebugData();
+      } else {
+        alert(`Error: ${result.error || result.details}`);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const fetchDebugData = async () => {
     try {
       setLoading(true);
@@ -134,6 +171,16 @@ export default function DebugCraftingPage() {
                   <div>Is Unlocked: {bp.isUnlocked ? 'Yes' : 'No'}</div>
                   <div>Can Craft: {bp.canCraft ? 'Yes' : 'No'}</div>
                   <div>Output: {bp.output?.name}</div>
+                  {bp.canCraft && (
+                    <button 
+                      className="game-btn game-btn-primary" 
+                      style={{ marginTop: '0.5rem', fontSize: '12px' }}
+                      onClick={() => startDebugCrafting(bp.id)}
+                      disabled={loading}
+                    >
+                      Start 2s Debug Craft
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

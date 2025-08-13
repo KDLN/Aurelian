@@ -62,19 +62,23 @@ export class GameRenderer {
     const dx = x - player.x;
     const dy = y - player.y;
     
-    if (Math.abs(dx) > Math.abs(dy)) {
-      player.lastDirection = dx > 0 ? 'east' : 'west';
-    } else if (dy !== 0) {
-      player.lastDirection = dy > 0 ? 'south' : 'north';
+    // Only update direction if there's significant movement
+    if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
+      if (Math.abs(dx) > Math.abs(dy)) {
+        player.lastDirection = dx > 0 ? 'east' : 'west';
+      } else if (dy !== 0) {
+        player.lastDirection = dy > 0 ? 'south' : 'north';
+      }
     }
 
-    player.isMoving = dx !== 0 || dy !== 0;
+    const wasMoving = player.isMoving;
+    player.isMoving = Math.abs(dx) > 1 || Math.abs(dy) > 1;
     player.lastPosition = { x: player.x, y: player.y };
     player.x = x;
     player.y = y;
 
-    // Update sprite animation
-    if (player.sprite) {
+    // Update sprite animation - force update if movement state changed
+    if (player.sprite && (player.isMoving !== wasMoving || player.isMoving)) {
       const animationType = player.isMoving ? 'walk' : 'idle';
       player.sprite.setAnimation(animationType, player.lastDirection);
     }

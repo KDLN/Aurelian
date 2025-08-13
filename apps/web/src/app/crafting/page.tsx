@@ -15,12 +15,14 @@ interface Blueprint {
   description?: string;
   isUnlocked: boolean;
   canCraft: boolean;
+  maxCraftable: number;
   output: {
     name: string;
     rarity: string;
   };
   inputs: Array<{
     qty: number;
+    available: number;
     item: {
       name: string;
       rarity: string;
@@ -77,6 +79,47 @@ export default function CraftingPage() {
       }
     } catch (err) {
       setMessage(`❌ ${err instanceof Error ? err.message : 'Failed to complete crafting'}`);
+    }
+  };
+
+  const handleDebugCraft = async () => {
+    if (!selectedBlueprint || quantity < 1) return;
+    
+    try {
+      clearError();
+      
+      // Get session token for authorization
+      const { data: { session } } = await import('@/lib/supabaseClient').then(m => m.supabase.auth.getSession());
+      
+      if (!session?.access_token) {
+        setMessage('❌ Authentication failed');
+        return;
+      }
+
+      const response = await fetch('/api/crafting/debug-start', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          blueprintId: selectedBlueprint.id,
+          quantity: quantity
+        })
+      });
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        setMessage(`🚀 ${result.message}`);
+        setQuantity(1);
+        // Refresh crafting data to show new job
+        window.location.reload();
+      } else {
+        setMessage(`❌ ${result.error || result.details}`);
+      }
+    } catch (err) {
+      setMessage(`❌ ${err instanceof Error ? err.message : 'Failed to start debug crafting'}`);
     }
   };
 
@@ -298,7 +341,7 @@ export default function CraftingPage() {
                               <span style={{ color: getRarityColor(input.item.rarity) }}>
                                 {input.item.name}
                               </span>
-                              <span>{input.qty}</span>
+                              <span>{input.qty} ({input.available} available)</span>
                             </div>
                           ))}
                         </div>
@@ -347,16 +390,31 @@ export default function CraftingPage() {
                 </div>
 
                 <div style={{ marginBottom: '16px' }}>
-                  <label className="game-small">Quantity</label>
-                  <input
-                    type="number"
-                    value={quantity}
-                    onChange={(e) => setQuantity(Math.max(1, Math.min(50, Number(e.target.value))))}
-                    min="1"
-                    max="50"
-                    style={{ width: '100%', marginTop: '4px' }}
-                    disabled={!selectedBlueprint.isUnlocked || !selectedBlueprint.canCraft}
-                  />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <label className="game-small">Quantity</label>
+                    <div style={{ fontSize: '12px', color: '#9b8c70' }}>
+                      Max: {selectedBlueprint.maxCraftable}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="number"
+                      value={quantity}
+                      onChange={(e) => setQuantity(Math.max(1, Math.min(selectedBlueprint.maxCraftable, Number(e.target.value))))}
+                      min="1"
+                      max={selectedBlueprint.maxCraftable}
+                      style={{ flex: 1 }}
+                      disabled={!selectedBlueprint.isUnlocked || !selectedBlueprint.canCraft || selectedBlueprint.maxCraftable === 0}
+                    />
+                    <button
+                      onClick={() => setQuantity(selectedBlueprint.maxCraftable)}
+                      className="game-btn"
+                      style={{ padding: '4px 8px', fontSize: '12px' }}
+                      disabled={!selectedBlueprint.isUnlocked || !selectedBlueprint.canCraft || selectedBlueprint.maxCraftable === 0}
+                    >
+                      Max
+                    </button>
+                  </div>
                 </div>
 
                 <div style={{ marginBottom: '16px' }}>
@@ -371,33 +429,50 @@ export default function CraftingPage() {
 
                 <div style={{ marginBottom: '16px' }}>
                   <div className="game-small" style={{ marginBottom: '8px' }}>Required Materials:</div>
-                  {selectedBlueprint.inputs.map((input, i) => (
-                    <div key={i} style={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between',
-                      fontSize: '12px',
-                      color: '#9b8c70',
-                      marginBottom: '2px'
-                    }}>
-                      <span style={{ color: getRarityColor(input.item.rarity) }}>
-                        {input.item.name}
-                      </span>
-                      <span>{input.qty * quantity} needed</span>
-                    </div>
-                  ))}
+                  {selectedBlueprint.inputs.map((input, i) => {
+                    const needed = input.qty * quantity;
+                    const hasEnough = input.available >= needed;
+                    return (
+                      <div key={i} style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between',
+                        fontSize: '12px',
+                        color: hasEnough ? '#9b8c70' : '#dc2626',
+                        marginBottom: '2px'
+                      }}>
+                        <span style={{ color: getRarityColor(input.item.rarity) }}>
+                          {input.item.name}
+                        </span>
+                        <span>{needed} needed ({input.available} available)</span>
+                      </div>
+                    );
+                  })}
                 </div>
 
                 <button 
                   onClick={handleCraft}
-                  disabled={!selectedBlueprint.isUnlocked || !selectedBlueprint.canCraft || isLoading}
+                  disabled={!selectedBlueprint.isUnlocked || !selectedBlueprint.canCraft || isLoading || selectedBlueprint.maxCraftable === 0}
                   className="game-btn game-btn-primary"
-                  style={{ width: '100%' }}
+                  style={{ width: '100%', marginBottom: '8px' }}
                 >
                   {isLoading ? 'Starting...' : 
                    !selectedBlueprint.isUnlocked ? 'Recipe Locked' :
                    !selectedBlueprint.canCraft ? `Requires Level ${selectedBlueprint.requiredLevel}` :
+                   selectedBlueprint.maxCraftable === 0 ? 'Insufficient Materials' :
                    'Start Crafting'}
                 </button>
+                
+                <button 
+                  onClick={handleDebugCraft}
+                  disabled={!selectedBlueprint.isUnlocked || !selectedBlueprint.canCraft || isLoading || selectedBlueprint.maxCraftable === 0}
+                  className="game-btn game-btn-warning"
+                  style={{ width: '100%', fontSize: '12px' }}
+                >
+                  🚀 DEBUG: Start 2s Craft
+                </button>
+                <div className="game-muted game-small" style={{ textAlign: 'center', marginTop: '0.25rem' }}>
+                  Completes in 2 seconds for testing
+                </div>
               </div>
             ) : (
               <p className="game-muted">Select a recipe from the list to begin crafting.</p>

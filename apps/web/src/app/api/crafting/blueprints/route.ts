@@ -83,30 +83,55 @@ export async function GET(request: NextRequest) {
       ]
     });
 
-    // Parse inputs JSON and add item details
+    // Get user's warehouse inventory
+    const warehouseInventory = await prisma.inventory.findMany({
+      where: {
+        userId: userId,
+        location: 'warehouse'
+      },
+      select: {
+        itemId: true,
+        qty: true
+      }
+    });
+
+    const inventoryMap = new Map(warehouseInventory.map(inv => [inv.itemId, inv.qty]));
+
+    // Parse inputs JSON and add item details + inventory info
     const blueprintsWithDetails = await Promise.all(
       availableBlueprints.map(async (blueprint) => {
         const inputs = Array.isArray(blueprint.inputs) ? blueprint.inputs : [];
         
-        // Get item details for inputs
+        // Get item details for inputs and calculate max craftable
         const inputsWithDetails = await Promise.all(
           inputs.map(async (input: any) => {
             const item = await prisma.itemDef.findUnique({
               where: { id: input.itemId },
               select: { id: true, key: true, name: true, rarity: true }
             });
+            const available = inventoryMap.get(input.itemId) || 0;
             return {
               ...input,
-              item
+              item,
+              available
             };
           })
         );
+
+        // Calculate maximum craftable quantity based on materials
+        let maxCraftable = 0;
+        if (inputsWithDetails.length > 0) {
+          maxCraftable = Math.min(
+            ...inputsWithDetails.map(input => Math.floor(input.available / input.qty))
+          );
+        }
 
         return {
           ...blueprint,
           inputs: inputsWithDetails,
           isUnlocked: blueprint.starterRecipe || blueprint.unlockedBy.length > 0,
-          canCraft: blueprint.requiredLevel <= userRecord.craftingLevel
+          canCraft: blueprint.requiredLevel <= userRecord.craftingLevel,
+          maxCraftable
         };
       })
     );

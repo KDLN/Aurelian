@@ -27,7 +27,7 @@
 .game-container {
   height: calc(100vh - 100px);
   display: grid;
-  grid-template-columns: 360px 1fr;
+  grid-template-columns: 340px 1fr;
   gap: 12px;
   padding: 12px;
   box-sizing: border-box;
@@ -47,6 +47,10 @@
   display: grid;
   gap: 10px;
   align-content: start;
+}
+
+.game-panel-left > div {
+  padding-right: 12px;
 }
 
 .game-panel-right {
@@ -331,6 +335,8 @@
   gap: 4px;
   margin-bottom: 16px;
   flex-wrap: wrap;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .game-nav a {

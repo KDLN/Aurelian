@@ -1,4 +1,4 @@
-import { PrismaClient, ItemRarity } from '@prisma/client';
+import { PrismaClient, ItemRarity, MissionRisk } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -325,6 +325,160 @@ async function main() {
         },
       });
       console.log(`Created/Updated blueprint: ${blueprint.key}`);
+    }
+  }
+
+  // Create mission definitions if they don't exist
+  const missions = [
+    // LOW risk missions (shorter duration, smaller rewards)
+    {
+      name: 'Herb Gathering Expedition',
+      description: 'Send a scout to collect medicinal herbs from the nearby forest.',
+      fromHub: 'Home',
+      toHub: 'Verdant Grove',
+      distance: 80,
+      baseDuration: 300, // 5 minutes
+      baseReward: 45,
+      riskLevel: MissionRisk.LOW,
+      itemRewards: [{ itemKey: 'herb', qty: 3 }, { itemKey: 'healing_tonic', qty: 1 }],
+    },
+    {
+      name: 'Iron Ore Survey',
+      description: 'Scout the mountain quarries for iron ore deposits.',
+      fromHub: 'Home',
+      toHub: 'Iron Ridge',
+      distance: 100,
+      baseDuration: 360, // 6 minutes
+      baseReward: 50,
+      riskLevel: MissionRisk.LOW,
+      itemRewards: [{ itemKey: 'iron_ore', qty: 4 }, { itemKey: 'traders_pick', qty: 1 }],
+    },
+    {
+      name: 'Hide Collection Run',
+      description: 'Gather hides from local wildlife traders.',
+      fromHub: 'Home',
+      toHub: 'Hunters Lodge',
+      distance: 75,
+      baseDuration: 240, // 4 minutes
+      baseReward: 40,
+      riskLevel: MissionRisk.LOW,
+      itemRewards: [{ itemKey: 'hide', qty: 3 }, { itemKey: 'leather_roll', qty: 1 }],
+    },
+
+    // MEDIUM risk missions (moderate duration and rewards)
+    {
+      name: 'Pearl Diving Expedition',
+      description: 'Lead a dangerous diving mission to harvest pearls from the deep waters.',
+      fromHub: 'Home',
+      toHub: 'Azure Bay',
+      distance: 150,
+      baseDuration: 600, // 10 minutes
+      baseReward: 85,
+      riskLevel: MissionRisk.MEDIUM,
+      itemRewards: [{ itemKey: 'pearl', qty: 2 }, { itemKey: 'pearl_dust', qty: 1 }],
+    },
+    {
+      name: 'Bandit Route Clearing',
+      description: 'Clear bandit camps from important trade routes.',
+      fromHub: 'Home',
+      toHub: 'Crossroads Fort',
+      distance: 180,
+      baseDuration: 720, // 12 minutes
+      baseReward: 95,
+      riskLevel: MissionRisk.MEDIUM,
+      itemRewards: [{ itemKey: 'iron_sword', qty: 1 }, { itemKey: 'leather_vest', qty: 1 }],
+    },
+    {
+      name: 'Caravan Escort Mission',
+      description: 'Escort a merchant caravan through contested territory.',
+      fromHub: 'Home',
+      toHub: 'Border Town',
+      distance: 200,
+      baseDuration: 840, // 14 minutes
+      baseReward: 110,
+      riskLevel: MissionRisk.MEDIUM,
+      itemRewards: [{ itemKey: 'caravan_hammer', qty: 1 }, { itemKey: 'stamina_brew', qty: 2 }],
+    },
+
+    // HIGH risk missions (long duration, high rewards)
+    {
+      name: 'Ancient Relic Recovery',
+      description: 'Venture into dangerous ruins to recover ancient relic fragments.',
+      fromHub: 'Home',
+      toHub: 'Forgotten Ruins',
+      distance: 300,
+      baseDuration: 1200, // 20 minutes
+      baseReward: 180,
+      riskLevel: MissionRisk.HIGH,
+      itemRewards: [{ itemKey: 'relic_fragment', qty: 2 }, { itemKey: 'concentrated_essence', qty: 1 }],
+    },
+    {
+      name: 'Dragon Territory Survey',
+      description: 'A perilous expedition to map dragon territories and collect rare materials.',
+      fromHub: 'Home',
+      toHub: 'Dragon Peaks',
+      distance: 350,
+      baseDuration: 1500, // 25 minutes
+      baseReward: 250,
+      riskLevel: MissionRisk.HIGH,
+      itemRewards: [{ itemKey: 'steel_bar', qty: 2 }, { itemKey: 'enchanted_leather', qty: 1 }, { itemKey: 'speed_elixir', qty: 1 }],
+    },
+    {
+      name: 'Deep Dungeon Delve',
+      description: 'Explore the deepest levels of ancient dungeons for legendary treasures.',
+      fromHub: 'Home',
+      toHub: 'Shadowdeep Caverns',
+      distance: 400,
+      baseDuration: 1800, // 30 minutes
+      baseReward: 320,
+      riskLevel: MissionRisk.HIGH,
+      itemRewards: [{ itemKey: 'relic_compass', qty: 1 }, { itemKey: 'merchants_luck', qty: 2 }],
+    },
+
+    // Epic missions (very long, very rewarding)
+    {
+      name: 'Beacon Crystal Expedition',
+      description: 'Lead an epic expedition to secure materials for crafting Beacon Crystals.',
+      fromHub: 'Home',
+      toHub: 'Crystal Sanctum',
+      distance: 500,
+      baseDuration: 2400, // 40 minutes
+      baseReward: 500,
+      riskLevel: MissionRisk.HIGH,
+      itemRewards: [{ itemKey: 'beacon_crystal', qty: 1 }, { itemKey: 'enchanted_satchel', qty: 1 }, { itemKey: 'relic_fragment', qty: 3 }],
+    }
+  ];
+
+  for (const mission of missions) {
+    // Convert item reward keys to format expected by database
+    const itemRewards = mission.itemRewards ? mission.itemRewards.map(reward => ({
+      itemKey: reward.itemKey,
+      qty: reward.qty
+    })) : null;
+
+    // Check if mission already exists
+    const existingMission = await prisma.missionDef.findFirst({
+      where: { name: mission.name }
+    });
+
+    if (!existingMission) {
+      await prisma.missionDef.create({
+        data: {
+          name: mission.name,
+          description: mission.description,
+          fromHub: mission.fromHub,
+          toHub: mission.toHub,
+          distance: mission.distance,
+          baseDuration: mission.baseDuration,
+          baseReward: mission.baseReward,
+          riskLevel: mission.riskLevel,
+          itemRewards: itemRewards,
+          isActive: true,
+        },
+      });
+      console.log(`Created mission: ${mission.name}`);
+    } else {
+      console.log(`Mission already exists: ${mission.name}`);
     }
   }
 

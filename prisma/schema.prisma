@@ -47,6 +47,20 @@ enum ContractStatus {
   breached
 }
 
+enum AgentType {
+  SCOUT       // Faster missions, exploration bonus
+  TRADER      // Better rewards, negotiation bonus  
+  GUARD       // Higher success rate, combat bonus
+  SPECIALIST  // Unique bonuses per equipment
+}
+
+enum EquipmentSlot {
+  WEAPON
+  ARMOR
+  TOOL  
+  ACCESSORY
+}
+
 // ---------- Users / Profiles ----------
 // Supabase Auth user lives in auth.users. We mirror minimal profile here.
 model User {
@@ -89,6 +103,9 @@ model User {
   chatMessages      ChatMessage[]
   chatReactions     ChatReaction[]
   chatMentions      ChatMention[]
+  
+  // Agent relations
+  agents            Agent[]
 }
 
 model Profile {
@@ -600,15 +617,79 @@ model MissionInstance {
   createdAt   DateTime @default(now())
   completedAt DateTime?
   
-  // Caravan slot assignment (1-4)
+  // Caravan slot assignment (1-4) - DEPRECATED: Will be replaced by agentId
   caravanSlot Int      @default(1) @map("caravan_slot")
+  
+  // Agent assignment (new system)
+  agentId     String?  @db.Uuid @map("agent_id")
 
   user    User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   mission MissionDef @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  agent   Agent?     @relation(fields: [agentId], references: [id], onDelete: SetNull)
 
   @@index([userId, status])
   @@index([endTime])
   @@index([userId, caravanSlot, status])
+  @@index([agentId])
+}
+
+// ---------- Agent System ----------
+model Agent {
+  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String      @db.Uuid
+  name        String      // Generated or custom names
+  level       Int         @default(1)
+  experience  Int         @default(0)
+  specialty   AgentType   @default(SCOUT)
+  isActive    Boolean     @default(true)
+  hiredAt     DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  // Equipment slots (itemKey references)
+  weapon      String?     // itemKey for equipped weapon
+  armor       String?     // itemKey for equipped armor  
+  tool        String?     // itemKey for equipped tool
+  accessory   String?     // itemKey for equipped accessory
+  
+  // Computed stats (affected by level and equipment)
+  successBonus  Int       @default(0)   // % bonus to mission success
+  speedBonus    Int       @default(0)   // % reduction in mission time
+  rewardBonus   Int       @default(0)   // % bonus to mission rewards
+  
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  missions     MissionInstance[]
+  
+  @@index([userId, isActive])
+  @@index([specialty])
+  @@index([level])
+}
+
+model EquipmentDef {
+  id          String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  itemKey     String         @unique
+  name        String
+  description String?
+  slot        EquipmentSlot
+  rarity      ItemRarity     @default(COMMON)
+  
+  // Stat bonuses
+  successBonus  Int          @default(0)   // % bonus to mission success
+  speedBonus    Int          @default(0)   // % reduction in mission time
+  rewardBonus   Int          @default(0)   // % bonus to mission rewards
+  
+  // Requirements
+  minLevel      Int          @default(1)
+  agentType     AgentType?   // null = any agent can use
+  
+  // Crafting requirements
+  craftingLevel Int?         @map("crafting_level")
+  materials     Json?        // array of {itemKey: string, qty: number}
+  
+  createdAt     DateTime     @default(now())
+  
+  @@index([slot])
+  @@index([rarity])
+  @@index([agentType])
 }
 
 // ---------- Chat System ----------

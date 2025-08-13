@@ -32,6 +32,10 @@ A persistent multiplayer 2D trading game where players rebuild civilization thro
 - [x] Mission history and statistics tracking
 - [x] Caravan capacity limits
 - [x] Multiple caravans per player
+- [ ] NPC/Agent hiring system
+- [ ] Agent equipment slots and gear effects
+- [ ] Agent skill progression and specialization
+- [ ] Equipment impact on mission success rates
 
 ### 1.2 Functional Crafting System ✅
 - [x] Database-backed crafting queue
@@ -92,6 +96,8 @@ A persistent multiplayer 2D trading game where players rebuild civilization thro
 - [ ] Bridge and tunnel construction
 - [ ] Waystation placement for rest stops
 - [ ] Road destruction during guild wars
+- [ ] Caravan travel time affected by road quality
+- [ ] Guild missions requiring bulk resource transport
 
 ---
 
@@ -120,6 +126,10 @@ A persistent multiplayer 2D trading game where players rebuild civilization thro
 - [ ] Resource node locations
 - [ ] Danger heat maps
 - [ ] Guild territory overlay
+- [ ] Multiple warehouse locations across world
+- [ ] Caravan loading and transport between cities
+- [ ] Price arbitrage between hub locations
+- [ ] Caravan route planning and optimization
 
 ### 3.3 Enhanced Contract System
 - [ ] Player-to-player binding contracts

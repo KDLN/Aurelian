@@ -36,44 +36,44 @@ const HATS_THAT_HIDE_HAIR = [
   // Add more hats here as they're added to the game
 ];
 
-// Animation definitions based on activity
+// Animation definitions based on activity - using same system as CharacterSprite
 const ACTIVITY_ANIMATIONS: Record<string, AnimationFrame[]> = {
   idle: [{ row: 0, col: 0, duration: 10000 }],
   walking: [
-    { row: 0, col: 1, duration: 135 },
-    { row: 0, col: 2, duration: 135 },
-    { row: 0, col: 3, duration: 135 },
-    { row: 0, col: 4, duration: 135 },
-    { row: 0, col: 5, duration: 135 },
-    { row: 0, col: 6, duration: 135 }
-  ],
-  running: [
-    { row: 0, col: 1, duration: 80 },
-    { row: 0, col: 2, duration: 55 },
-    { row: 0, col: 7, duration: 125 },
-    { row: 0, col: 4, duration: 80 },
-    { row: 0, col: 5, duration: 55 },
-    { row: 0, col: 8, duration: 125 }
-  ],
-  trading: [
-    { row: 0, col: 4, duration: 400 },
-    { row: 0, col: 5, duration: 400 }
-  ],
-  crafting: [
-    { row: 0, col: 2, duration: 300 },
-    { row: 0, col: 3, duration: 300 }
-  ],
-  combat: [
+    { row: 0, col: 0, duration: 200 },
     { row: 0, col: 1, duration: 200 },
     { row: 0, col: 2, duration: 200 },
     { row: 0, col: 3, duration: 200 },
-    { row: 0, col: 4, duration: 200 }
+    { row: 0, col: 4, duration: 200 },
+    { row: 0, col: 5, duration: 200 }
+  ],
+  running: [
+    { row: 0, col: 0, duration: 120 },
+    { row: 0, col: 1, duration: 80 },
+    { row: 0, col: 6, duration: 150 },
+    { row: 0, col: 3, duration: 120 },
+    { row: 0, col: 4, duration: 80 },
+    { row: 0, col: 7, duration: 150 }
+  ],
+  trading: [
+    { row: 0, col: 0, duration: 800 },
+    { row: 0, col: 1, duration: 400 }
+  ],
+  crafting: [
+    { row: 0, col: 2, duration: 600 },
+    { row: 0, col: 3, duration: 400 }
+  ],
+  combat: [
+    { row: 0, col: 0, duration: 200 },
+    { row: 0, col: 1, duration: 200 },
+    { row: 0, col: 2, duration: 200 },
+    { row: 0, col: 3, duration: 200 }
   ],
   mission: [
-    { row: 0, col: 1, duration: 160 },
-    { row: 0, col: 2, duration: 65 },
-    { row: 0, col: 3, duration: 65 },
-    { row: 0, col: 4, duration: 200 }
+    { row: 0, col: 0, duration: 200 },
+    { row: 0, col: 1, duration: 200 },
+    { row: 0, col: 2, duration: 200 },
+    { row: 0, col: 3, duration: 200 }
   ]
 };
 
@@ -247,12 +247,13 @@ export default function CharacterViewer({
           const frameSize = 64;
           const scale = size / 64;
           const currentFrame = frames[currentFrameRef.current];
-          const directionRow = direction === 'south' ? 0 : 
-                             direction === 'north' ? 1 : 
-                             direction === 'east' ? 2 : 3;
+          // Use same direction mapping as CharacterSprite
+          const directionRow = direction === 'south' ? 4 : 
+                             direction === 'north' ? 5 : 
+                             direction === 'east' ? 6 : 7;
           
           const sx = currentFrame.col * frameSize;
-          const sy = (currentFrame.row + directionRow) * frameSize;
+          const sy = directionRow * frameSize;
           const drawX = autoWalk ? characterXRef.current : (size - frameSize * scale) / 2;
           const drawY = (size - frameSize * scale) / 2;
           

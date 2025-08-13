@@ -201,14 +201,29 @@ export function useCompleteMission() {
       });
       
       if (data.success) {
-        // Mission was successfully completed - optimistic update was correct
-        // Only invalidate wallet data since mission is already removed from UI
+        // Mission was successfully completed - ensure it stays removed from cache
+        queryClient.setQueryData<MissionsData>(
+          missionKeys.missions(),
+          (oldData) => {
+            if (!oldData) return oldData;
+            
+            console.log('🧹 [CompleteMission] Ensuring mission stays removed from cache');
+            return {
+              ...oldData,
+              activeMissions: oldData.activeMissions.filter(
+                (mission) => mission.id !== missionInstanceId
+              ),
+            };
+          }
+        );
+        
+        // Invalidate wallet data for reward updates
         setTimeout(() => {
           queryClient.invalidateQueries({ 
             queryKey: ['user', 'wallet'],
             exact: false
           });
-        }, 1000); // Delay to prevent immediate refetch
+        }, 1000);
       }
     },
     onError: (error, missionInstanceId, context) => {
@@ -227,14 +242,16 @@ export function useCompleteMission() {
         success: data?.success 
       });
       
-      // Always refresh missions after a reasonable delay to ensure consistency
-      setTimeout(() => {
-        console.log('🔄 [CompleteMission] Final cache refresh');
-        queryClient.invalidateQueries({ 
-          queryKey: missionKeys.missions(),
-          exact: true 
-        });
-      }, 3000);
+      // Only refresh if there was an error - successful completions should stay optimistically updated
+      if (error || !data?.success) {
+        setTimeout(() => {
+          console.log('🔄 [CompleteMission] Error occurred - refreshing cache');
+          queryClient.invalidateQueries({ 
+            queryKey: missionKeys.missions(),
+            exact: true 
+          });
+        }, 1000);
+      }
     },
   });
 }

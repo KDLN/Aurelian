@@ -134,6 +134,7 @@ export default function GameLayout({
     { href: '/hub', label: 'Hub' },
     { href: '/auction', label: 'Auction' },
     { href: '/missions', label: 'Missions' },
+    { href: '/agents', label: 'Agents' },
     { href: '/crafting', label: 'Crafting' },
     { href: '/contracts', label: 'Contracts' },
     { href: '/warehouse', label: 'Warehouse' },
@@ -166,7 +167,7 @@ export default function GameLayout({
                   hat={characterAppearance.hat || ''}
                   size={100}
                   autoWalk={true}
-                  walkAreaWidth={336}
+                  walkAreaWidth={300}
                   showBorder={false}
                 />
               </div>

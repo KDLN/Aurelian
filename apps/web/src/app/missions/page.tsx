@@ -5,8 +5,11 @@ import GameLayout from '@/components/GameLayout';
 import { useMissions, useStartMission, useCompleteMission, useMissionHelpers } from '@/hooks/useMissionsQuery';
 import { MissionDef, MissionInstance, MissionsData } from '@/lib/api/missions';
 import { useUserDataQuery } from '@/hooks/useUserDataQuery';
+import { useAgents } from '@/hooks/useAgents';
 import MissionTimer from '@/components/MissionTimer';
 import { getCaravanStatus, formatTimeRemaining, getRiskColor as getCaravanRiskColor, getCaravanSlotName } from '@/lib/caravan-slots';
+import { calculateMissionSuccess, getMissionDifficultyText } from '@/lib/missions/calculator';
+import { agentTypeInfo } from '@/lib/agents/generator';
 
 export default function MissionsPage() {
   const { data, isLoading, error, refetch } = useMissions(); // Uses optimized 60s polling
@@ -16,6 +19,7 @@ export default function MissionsPage() {
   // Only load user data after component mounts to avoid blocking initial render
   const [mounted, setMounted] = useState(false);
   const { wallet } = useUserDataQuery();
+  const { agents, isLoading: agentsLoading } = useAgents();
   
   useEffect(() => {
     setMounted(true);
@@ -25,6 +29,7 @@ export default function MissionsPage() {
   const { formatDuration, getRiskColor, isReady } = missionHelpers;
   
   const [selectedMission, setSelectedMission] = useState<string>('');
+  const [selectedAgent, setSelectedAgent] = useState<string>('');
   const [completionMessage, setCompletionMessage] = useState<string>('');
   const [completingMissions, setCompletingMissions] = useState<Set<string>>(new Set());
 
@@ -66,6 +71,12 @@ export default function MissionsPage() {
       return;
     }
 
+    // Also check if the mission is pending completion in React Query
+    if (completeMissionMutation.isPending) {
+      console.log('⚠️ Another mission completion in progress, ignoring click');
+      return;
+    }
+
     try {
       // Mark mission as being completed
       setCompletingMissions(prev => new Set(prev).add(missionInstanceId));
@@ -102,6 +113,51 @@ export default function MissionsPage() {
     }
   }, [completeMissionMutation, completingMissions]);
 
+  // Debug function to set all active missions to 2 seconds left
+  const handleDebugSpeedUp = useCallback(async () => {
+    if (activeMissions.length === 0) {
+      alert('No active missions to speed up');
+      return;
+    }
+
+    try {
+      // Import the API helper to get authenticated requests
+      const { supabase } = await import('@/lib/supabaseClient');
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session?.access_token) {
+        throw new Error('Authentication failed');
+      }
+
+      const response = await fetch('/api/missions/debug-speedup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to speed up missions');
+      }
+
+      const result = await response.json();
+      if (result.success) {
+        setCompletionMessage(`🚀 Debug: Set ${result.updatedCount} missions to complete in 2 seconds!`);
+        setTimeout(() => setCompletionMessage(''), 5000);
+        // Delay refetch to avoid race condition with mission completion
+        setTimeout(() => {
+          console.log('🔄 [DebugSpeedUp] Delayed refetch to update timers');
+          refetch();
+        }, 500);
+      }
+    } catch (error) {
+      console.error('Failed to speed up missions:', error);
+      alert(`Failed to speed up missions: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }, [activeMissions.length, refetch]);
+
   // Memoize expensive calculations
   const activeMissionsWithStatus = useMemo(() => {
     return activeMissions.map(mission => ({
@@ -118,25 +174,56 @@ export default function MissionsPage() {
     return getCaravanStatus(activeMissions, 3); // Default 3 caravan slots
   }, [activeMissions]);
 
+  // Get available agents (not on missions)
+  const availableAgents = useMemo(() => {
+    return agents.filter(agent => agent._count.missions === 0);
+  }, [agents]);
+
   const sidebar = useMemo(() => (
     <div>
       <h3>Mission Guide</h3>
       <p className="game-muted game-small">
-        You have 3 caravan slots available. Select missions to send your caravans on expeditions. Higher risk missions offer better rewards.
+        Select an agent and mission to send them on expeditions. Agents with better equipment have higher success rates.
       </p>
       
+      <h3>Agent Status</h3>
+      <div className="game-flex-col">
+        <div className="game-space-between">
+          <span className="game-small">Total Agents:</span>
+          <span className="game-good game-small">{agents.length}</span>
+        </div>
+        <div className="game-space-between">
+          <span className="game-small">Available:</span>
+          <span className="game-good game-small">{availableAgents.length}</span>
+        </div>
+        <div className="game-space-between">
+          <span className="game-small">On Missions:</span>
+          <span className="game-warn game-small">{agents.length - availableAgents.length}</span>
+        </div>
+      </div>
+
+      {availableAgents.length === 0 && agents.length === 0 && (
+        <div className="game-card-sm" style={{ marginTop: '1rem' }}>
+          <p className="game-warn game-small">No agents hired!</p>
+          <a href="/agents" className="game-btn game-btn-primary" style={{ fontSize: '12px' }}>
+            Hire Agents
+          </a>
+        </div>
+      )}
+
+      <h3>Risk Levels</h3>
       <div className="game-flex-col">
         <div className="game-space-between">
           <span className="game-small">Low Risk:</span>
-          <span className="game-good game-small">95% success</span>
+          <span className="game-good game-small">85% base success</span>
         </div>
         <div className="game-space-between">
           <span className="game-small">Medium Risk:</span>
-          <span className="game-warn game-small">85% success</span>
+          <span className="game-warn game-small">65% base success</span>
         </div>
         <div className="game-space-between">
           <span className="game-small">High Risk:</span>
-          <span className="game-bad game-small">75% success</span>
+          <span className="game-bad game-small">40% base success</span>
         </div>
       </div>
 
@@ -153,12 +240,25 @@ export default function MissionsPage() {
         <a href="/missions/stats" className="game-btn game-btn-secondary" style={{ width: '100%', textAlign: 'center', display: 'block', marginBottom: '0.5rem' }}>
           📊 View Statistics
         </a>
-        <a href="/missions/leaderboard" className="game-btn game-btn-secondary" style={{ width: '100%', textAlign: 'center', display: 'block' }}>
+        <a href="/missions/leaderboard" className="game-btn game-btn-secondary" style={{ width: '100%', textAlign: 'center', display: 'block', marginBottom: '0.5rem' }}>
           🏆 Leaderboards
         </a>
+        
+        {/* Debug button for testing */}
+        <button 
+          onClick={handleDebugSpeedUp}
+          className="game-btn game-btn-warning" 
+          style={{ width: '100%', fontSize: '12px' }}
+          disabled={activeMissions.length === 0}
+        >
+          🚀 DEBUG: Speed Up Missions
+        </button>
+        <div className="game-muted game-small" style={{ textAlign: 'center', marginTop: '0.25rem' }}>
+          Sets active missions to 2s left
+        </div>
       </div>
     </div>
-  ), [mounted, wallet]);
+  ), [mounted, wallet, handleDebugSpeedUp, activeMissions.length]);
 
   if (isLoading) {
     return (
@@ -230,20 +330,60 @@ export default function MissionsPage() {
             </select>
           </div>
 
-          {selectedMission && (
+          <div style={{ marginBottom: '1rem' }}>
+            <label className="game-small">Select Agent:</label>
+            <select 
+              value={selectedAgent}
+              onChange={(e) => setSelectedAgent(e.target.value)}
+              style={{ width: '100%', marginTop: '0.25rem' }}
+              disabled={!selectedMission || availableAgents.length === 0}
+            >
+              <option value="">Choose an agent...</option>
+              {availableAgents.map(agent => {
+                const typeInfo = agentTypeInfo[agent.specialty];
+                return (
+                  <option key={agent.id} value={agent.id}>
+                    {agent.name} (Lv.{agent.level} {typeInfo.name}) - Success: +{agent.successBonus}%
+                  </option>
+                );
+              })}
+            </select>
+            {availableAgents.length === 0 && (
+              <p className="game-warn game-small">No available agents. <a href="/agents">Hire agents</a> or wait for current missions to complete.</p>
+            )}
+          </div>
+
+          {selectedMission && selectedAgent && (
             <div className="game-card" style={{ marginBottom: '1rem' }}>
               {(() => {
                 const mission = missionDefs.find(m => m.id === selectedMission);
-                if (!mission) return null;
+                const agent = agents.find(a => a.id === selectedAgent);
+                if (!mission || !agent) return null;
+
+                const calculations = calculateMissionSuccess(mission, agent);
+                const difficultyInfo = getMissionDifficultyText(mission.riskLevel);
+                const typeInfo = agentTypeInfo[agent.specialty];
+
                 return (
                   <div>
                     <div className="game-space-between">
                       <h4>{mission.name}</h4>
-                      <span className={`game-pill game-pill-${getRiskColor(mission.riskLevel)}`}>
-                        {mission.riskLevel} RISK
+                      <span className={`game-pill game-pill-${difficultyInfo.color.replace('game-', '')}`}>
+                        {difficultyInfo.text}
                       </span>
                     </div>
                     <p className="game-muted game-small">{mission.description}</p>
+                    
+                    <div className="game-card-nested" style={{ margin: '0.5rem 0' }}>
+                      <h5>Agent: {agent.name}</h5>
+                      <p className="game-small">{typeInfo.description}</p>
+                      <div className="game-grid-3 game-small">
+                        <div>Level: {agent.level}</div>
+                        <div>Type: {typeInfo.name}</div>
+                        <div>Experience: {agent.experience}</div>
+                      </div>
+                    </div>
+
                     <div className="game-grid-2" style={{ marginTop: '0.5rem' }}>
                       <div className="game-space-between">
                         <span>Route:</span>
@@ -254,14 +394,29 @@ export default function MissionsPage() {
                         <span>{mission.distance} km</span>
                       </div>
                       <div className="game-space-between">
-                        <span>Duration:</span>
-                        <span>{formatDuration(mission.baseDuration)}</span>
+                        <span>Base Duration:</span>
+                        <span className="game-muted">{formatDuration(mission.baseDuration)}</span>
                       </div>
                       <div className="game-space-between">
-                        <span>Gold Reward:</span>
-                        <span className="game-good">{mission.baseReward}g</span>
+                        <span>Agent Duration:</span>
+                        <span className="game-good">{formatDuration(calculations.duration)}</span>
+                      </div>
+                      <div className="game-space-between">
+                        <span>Base Reward:</span>
+                        <span className="game-muted">{mission.baseReward}g</span>
+                      </div>
+                      <div className="game-space-between">
+                        <span>Agent Reward:</span>
+                        <span className="game-good">{calculations.estimatedReward}g</span>
+                      </div>
+                      <div className="game-space-between">
+                        <span>Success Rate:</span>
+                        <span className={`game-${calculations.successRate >= 80 ? 'good' : calculations.successRate >= 60 ? 'warn' : 'bad'}`}>
+                          {calculations.successRate}%
+                        </span>
                       </div>
                     </div>
+
                     {mission.itemRewards && mission.itemRewards.length > 0 && (
                       <div style={{ marginTop: '0.5rem' }}>
                         <span className="game-small">Item Rewards:</span>
@@ -283,77 +438,70 @@ export default function MissionsPage() {
           <button 
             className="game-btn game-btn-primary"
             onClick={handleStartMission}
-            disabled={!selectedMission || 
+            disabled={!selectedMission || !selectedAgent || 
                      activeMissions.some(m => m.missionId === selectedMission) ||
-                     caravanStatus.availableSlots === 0 ||
+                     availableAgents.length === 0 ||
                      startMissionMutation.isPending}
           >
             {startMissionMutation.isPending ? 'Starting...' : 
-             caravanStatus.availableSlots === 0 ? 'All Caravans Busy' :
-             'Start Mission'}
+             !selectedMission ? 'Select Mission' :
+             !selectedAgent ? 'Select Agent' :
+             availableAgents.length === 0 ? 'No Available Agents' :
+             'Send Agent on Mission'}
           </button>
         </div>
 
         <div className="game-card">
-          <h3>Your Caravans ({caravanStatus.occupiedSlots}/{caravanStatus.totalSlots})</h3>
+          <h3>Active Missions ({activeMissions.length})</h3>
           <div className="game-flex-col">
-            {caravanStatus.slots.map(slot => (
-              <div key={slot.slotNumber} className="game-card" style={{ 
-                backgroundColor: slot.isOccupied ? '#2a4d32' : '#1a1a1a',
-                borderColor: slot.isOccupied ? '#68b06e' : '#333'
+            {activeMissions.length > 0 ? activeMissions.map(missionInstance => {
+              const missionDef = missionInstance.mission || missionDefs.find(def => def.id === missionInstance.missionId);
+              const agentOnMission = agents.find(a => a.id === missionInstance.agentId);
+              
+              return (
+              <div key={missionInstance.id} className="game-card" style={{ 
+                backgroundColor: '#2a4d32',
+                borderColor: '#68b06e'
               }}>
                 <div className="game-space-between">
                   <div>
-                    <strong>{getCaravanSlotName(slot.slotNumber)}</strong>
-                    {slot.isOccupied && slot.mission ? (
-                      <div>
-                        <div className="game-good" style={{ fontSize: '14px' }}>
-                          {slot.mission.name}
-                        </div>
-                        <div className="game-muted game-small">
-                          {(() => {
-                            const activeMission = activeMissionsWithStatus.find(m => m.id === slot.mission?.id);
-                            const missionDef = activeMission?.missionDef;
-                            return missionDef ? `${missionDef.fromHub} → ${missionDef.toHub}` : 'Route unknown';
-                          })()}
-                        </div>
+                    <strong>Agent: {agentOnMission?.name || 'Unknown Agent'}</strong>
+                    <div className="game-good" style={{ fontSize: '14px' }}>
+                      {missionDef?.name || 'Unknown Mission'}
+                    </div>
+                    <div className="game-muted game-small">
+                      {missionDef ? `${missionDef.fromHub} → ${missionDef.toHub}` : 'Route unknown'}
+                    </div>
+                    {agentOnMission && (
+                      <div className="game-small" style={{ marginTop: '0.25rem' }}>
+                        Lv.{agentOnMission.level} {agentTypeInfo[agentOnMission.specialty]?.name}
                       </div>
-                    ) : (
-                      <div className="game-muted game-small">Available</div>
                     )}
                   </div>
                   
                   <div style={{ textAlign: 'right' }}>
-                    {slot.isOccupied && slot.mission ? (
-                      <div>
-                        <span className={`game-pill game-pill-${getRiskColor(slot.mission.riskLevel)}`}>
-                          {slot.mission.riskLevel}
-                        </span>
-                        <div style={{ marginTop: '0.5rem' }}>
-                          {(() => {
-                            const activeMission = activeMissionsWithStatus.find(m => m.id === slot.mission?.id);
-                            return activeMission ? (
-                              <MissionTimer
-                                startTime={activeMission.startTime}
-                                endTime={activeMission.endTime}
-                                onComplete={handleCompleteMission}
-                                missionInstanceId={activeMission.id}
-                                riskColor={getRiskColor(slot.mission.riskLevel)}
-                                isCompleting={completingMissions.has(activeMission.id)}
-                              />
-                            ) : (
-                              <div className="game-small">Timer unavailable</div>
-                            );
-                          })()}
-                        </div>
-                      </div>
-                    ) : (
-                      <span className="game-pill">Empty</span>
-                    )}
+                    <span className={`game-pill game-pill-${missionDef ? getRiskColor(missionDef.riskLevel) : 'neutral'}`}>
+                      {missionDef?.riskLevel || 'UNKNOWN'}
+                    </span>
+                    <div style={{ marginTop: '0.5rem' }}>
+                      <MissionTimer
+                        startTime={missionInstance.startTime}
+                        endTime={missionInstance.endTime}
+                        onComplete={handleCompleteMission}
+                        missionInstanceId={missionInstance.id}
+                        riskColor={missionDef ? getRiskColor(missionDef.riskLevel) : 'neutral'}
+                        isCompleting={completingMissions.has(missionInstance.id)}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            }) : (
+              <div className="game-muted" style={{ textAlign: 'center', padding: '2rem' }}>
+                No active missions. Select a mission and agent above to get started!
+              </div>
+            )}
           </div>
         </div>
 

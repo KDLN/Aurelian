@@ -13,6 +13,7 @@ interface Blueprint {
   description?: string;
   isUnlocked: boolean;
   canCraft: boolean;
+  maxCraftable: number;
   output: {
     id: string;
     key: string;
@@ -22,6 +23,7 @@ interface Blueprint {
   inputs: Array<{
     itemId: string;
     qty: number;
+    available: number;
     item: {
       id: string;
       key: string;

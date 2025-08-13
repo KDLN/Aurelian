@@ -104,11 +104,11 @@ export class CharacterSprite {
       case 'idle':
         return [10000]; // Very long idle - basically static
       case 'walk':
-        return [300, 300, 300, 300, 300, 300]; // Much slower walk animation
+        return [200, 200, 200, 200, 200, 200]; // Faster, more responsive walk animation
       case 'run':
-        return [150, 100, 200, 150, 100, 200]; // Slower run animation
+        return [120, 80, 150, 120, 80, 150]; // Faster run animation
       default:
-        return [300];
+        return [200];
     }
   }
 
@@ -144,7 +144,8 @@ export class CharacterSprite {
   draw(ctx: CanvasRenderingContext2D, x: number, y: number, scale: number = 3) {
     const row = this.getDirectionRow();
     const frames = this.getAnimationFrames();
-    const col = frames[Math.floor(this.currentFrame)]; // Ensure integer frame index
+    const frameIndex = Math.floor(this.currentFrame) % frames.length; // Ensure valid frame index
+    const col = frames[frameIndex];
 
     const drawLayer = (layerName: string) => {
       const sheet = this.layers.get(layerName);
