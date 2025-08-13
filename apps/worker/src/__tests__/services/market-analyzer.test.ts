@@ -24,7 +24,14 @@ describe('MarketAnalyzer', () => {
       return false
     }
     
-    generateMarketReport(itemId: string, data: any): object {
+    generateMarketReport(itemId: string, data: any): {
+      itemId: string;
+      avgPrice: number;
+      volume24h: number;
+      priceChange24h: number;
+      trend: 'up' | 'down' | 'stable';
+      generatedAt: Date;
+    } {
       return {
         itemId,
         avgPrice: data.avgPrice || 0,
@@ -106,18 +113,18 @@ describe('MarketAnalyzer', () => {
         priceChange24h: 12.5,
         trend: 'up'
       })
-      expect(report.generatedAt).toBeInstanceOf(Date)
+      expect((report as any).generatedAt).toBeInstanceOf(Date)
     })
     
     it('determines correct trend direction', () => {
       const upReport = analyzer.generateMarketReport('test', { priceChange24h: 5 })
-      expect(upReport.trend).toBe('up')
+      expect((upReport as any).trend).toBe('up')
       
       const downReport = analyzer.generateMarketReport('test', { priceChange24h: -3 })
-      expect(downReport.trend).toBe('down')
+      expect((downReport as any).trend).toBe('down')
       
       const stableReport = analyzer.generateMarketReport('test', { priceChange24h: 0 })
-      expect(stableReport.trend).toBe('stable')
+      expect((stableReport as any).trend).toBe('stable')
     })
   })
 })
