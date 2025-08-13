@@ -73,7 +73,7 @@ export async function ensureUserSynced(authUser: any) {
       await prisma.wallet.create({
         data: {
           userId: userId,
-          gold: 1000
+          gold: 2000  // Extra gold due to DB reset
         }
       });
 
@@ -85,7 +85,7 @@ export async function ensureUserSynced(authUser: any) {
           data: {
             userId: userId,
             itemId: item.id,
-            qty: 50,
+            qty: 100,  // Extra items due to DB reset
             location: 'warehouse'
           }
         });

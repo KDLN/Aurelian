@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { getRTClient } from '../../lib/rtClient';
+import { useUserSync } from '@/hooks/useUserSync';
 import Link from 'next/link';
 
 export default function Lobby(){
   const [status, setStatus] = useState('connecting...');
+  const { user, authLoaded, isSynced, isLoading } = useUserSync();
 
   useEffect(()=>{
     const client = getRTClient();
@@ -21,6 +23,31 @@ export default function Lobby(){
     }
     run();
   },[]);
+
+  // Show loading state while auth and sync are happening
+  if (!authLoaded || (user && !isSynced && isLoading)) {
+    return (
+      <div className="ae" style={{padding:16}}>
+        <div className="panel">
+          <div style={{padding:16,textAlign:'center'}}>
+            <div>⏳ Setting up your account...</div>
+            <div className="muted" style={{marginTop:8}}>
+              {!authLoaded ? 'Checking authentication...' : 
+               isLoading ? 'Syncing with database...' : 'Loading...'}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect to login if not authenticated
+  if (authLoaded && !user) {
+    if (typeof window !== 'undefined') {
+      window.location.href = '/';
+    }
+    return null;
+  }
 
   return (
     <div className="ae" style={{padding:16}}>
