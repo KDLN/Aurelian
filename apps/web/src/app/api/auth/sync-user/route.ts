@@ -83,13 +83,15 @@ async function syncUserToDatabase(user: any) {
       }
     });
 
-    // Create/update wallet with starting gold
+    // Create/update wallet with starting gold (extra due to DB reset)
     await prisma.wallet.upsert({
       where: { userId: user.id },
-      update: {}, // Don't update existing gold
+      update: {
+        gold: { increment: 1000 } // Give existing users extra gold
+      },
       create: {
         userId: user.id,
-        gold: 1000
+        gold: 2000 // New users get more gold
       }
     });
 
@@ -109,7 +111,7 @@ async function syncUserToDatabase(user: any) {
         create: {
           userId: user.id,
           itemId: item.id,
-          qty: 50,
+          qty: 100, // Extra items due to DB reset
           location: 'warehouse'
         }
       });
