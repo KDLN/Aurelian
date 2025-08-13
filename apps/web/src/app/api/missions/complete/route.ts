@@ -316,6 +316,120 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Award experience to agent if assigned
+    let agentLevelUp = false;
+    let newAgentLevel = null;
+    if (missionInstance.agentId) {
+      const agent = await prisma.agent.findUnique({
+        where: { id: missionInstance.agentId }
+      });
+      
+      if (agent) {
+        // Calculate experience based on mission outcome and risk
+        const baseXP = {
+          LOW: 20,
+          MEDIUM: 35, 
+          HIGH: 60,
+        }[missionDef.riskLevel] || 20;
+        
+        let xpGained = baseXP;
+        
+        // XP multipliers based on outcome
+        if (outcomeType === 'LEGENDARY_SUCCESS') {
+          xpGained = Math.floor(xpGained * 2.0);
+        } else if (outcomeType === 'CRITICAL_SUCCESS') {
+          xpGained = Math.floor(xpGained * 1.5);
+        } else if (outcomeType === 'GOOD_SUCCESS') {
+          xpGained = Math.floor(xpGained * 1.2);
+        } else if (outcomeType === 'POOR_SUCCESS') {
+          xpGained = Math.floor(xpGained * 0.7);
+        } else if (outcomeType === 'FAILURE') {
+          xpGained = Math.floor(xpGained * 0.3);
+        } else if (outcomeType === 'CRITICAL_FAILURE') {
+          xpGained = Math.floor(xpGained * 0.1);
+        }
+        
+        const newExperience = agent.experience + xpGained;
+        
+        // Check if agent levels up
+        const currentLevelXP = agent.level * 100;
+        const oldLevel = agent.level;
+        
+        if (newExperience >= currentLevelXP) {
+          // Calculate new level
+          let newLevel = agent.level;
+          let totalXpUsed = 0;
+          
+          // Calculate cumulative XP needed for current level
+          for (let i = 1; i < agent.level; i++) {
+            totalXpUsed += i * 100;
+          }
+          
+          // Check if we can level up with new experience
+          while (newExperience >= totalXpUsed + (newLevel * 100)) {
+            totalXpUsed += newLevel * 100;
+            newLevel++;
+          }
+          
+          if (newLevel > oldLevel) {
+            agentLevelUp = true;
+            newAgentLevel = newLevel;
+            
+            // Recalculate agent stats for new level
+            const { calculateAgentStats } = require('@/lib/agents/generator');
+            const newBaseStats = calculateAgentStats(agent.specialty, newLevel);
+            
+            // Get equipment bonuses
+            const allEquipment = {
+              weapon: agent.weapon,
+              armor: agent.armor,
+              tool: agent.tool,
+              accessory: agent.accessory,
+            };
+            
+            let equipmentBonuses = { successBonus: 0, speedBonus: 0, rewardBonus: 0 };
+            
+            for (const [slotName, equippedItemKey] of Object.entries(allEquipment)) {
+              if (equippedItemKey) {
+                const equipment = await prisma.equipmentDef.findUnique({
+                  where: { itemKey: equippedItemKey }
+                });
+                if (equipment) {
+                  equipmentBonuses.successBonus += equipment.successBonus;
+                  equipmentBonuses.speedBonus += equipment.speedBonus;
+                  equipmentBonuses.rewardBonus += equipment.rewardBonus;
+                }
+              }
+            }
+            
+            // Update agent with new level and stats
+            await prisma.agent.update({
+              where: { id: agent.id },
+              data: {
+                level: newLevel,
+                experience: newExperience,
+                successBonus: newBaseStats.successBonus + equipmentBonuses.successBonus,
+                speedBonus: newBaseStats.speedBonus + equipmentBonuses.speedBonus,
+                rewardBonus: newBaseStats.rewardBonus + equipmentBonuses.rewardBonus,
+              }
+            });
+          } else {
+            // Just update experience
+            await prisma.agent.update({
+              where: { id: agent.id },
+              data: { experience: newExperience }
+            });
+          }
+        } else {
+          // Just update experience
+          await prisma.agent.update({
+            where: { id: agent.id },
+            data: { experience: newExperience }
+          });
+        }
+      }
+    }
+
     // Mark mission as completed
     const completedMission = await prisma.missionInstance.update({
       where: { id: missionInstanceId },
@@ -363,6 +477,10 @@ export async function POST(request: NextRequest) {
       rewards: {
         gold: actualReward,
         items: itemsReceived
+      },
+      agent: {
+        leveledUp: agentLevelUp,
+        newLevel: newAgentLevel,
       },
       breakdown: {
         expectedRewards: {
