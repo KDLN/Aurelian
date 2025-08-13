@@ -80,9 +80,14 @@ export async function POST(
     const inventoryItem = await prisma.inventory.findFirst({
       where: {
         userId: user.id,
-        itemKey,
+        item: {
+          key: itemKey
+        },
         location: 'warehouse',
-        quantity: { gte: 1 }
+        qty: { gte: 1 }
+      },
+      include: {
+        item: true
       }
     });
 
@@ -96,7 +101,7 @@ export async function POST(
       await tx.inventory.update({
         where: { id: inventoryItem.id },
         data: {
-          quantity: {
+          qty: {
             decrement: 1
           }
         }
@@ -107,26 +112,30 @@ export async function POST(
       
       if (currentEquipment) {
         // Return current equipment to inventory
-        await tx.inventory.upsert({
-          where: {
-            userId_itemKey_location: {
-              userId: user.id,
-              itemKey: currentEquipment,
-              location: 'warehouse'
-            }
-          },
-          update: {
-            quantity: { increment: 1 }
-          },
-          create: {
-            userId: user.id,
-            itemId: (await tx.itemDef.findFirst({ where: { itemKey: currentEquipment } }))!.id,
-            itemKey: currentEquipment,
-            location: 'warehouse',
-            quantity: 1,
-            rarity: 'COMMON'
-          }
+        const currentEquipmentDef = await tx.itemDef.findFirst({ 
+          where: { key: currentEquipment } 
         });
+        
+        if (currentEquipmentDef) {
+          await tx.inventory.upsert({
+            where: {
+              userId_itemId_location: {
+                userId: user.id,
+                itemId: currentEquipmentDef.id,
+                location: 'warehouse'
+              }
+            },
+            update: {
+              qty: { increment: 1 }
+            },
+            create: {
+              userId: user.id,
+              itemId: currentEquipmentDef.id,
+              location: 'warehouse',
+              qty: 1
+            }
+          });
+        }
       }
 
       // Equip new item
@@ -179,6 +188,16 @@ export async function POST(
 
   } catch (error) {
     console.error('Error equipping item:', error);
-    return NextResponse.json({ error: 'Failed to equip item' }, { status: 500 });
+    console.error('Error details:', {
+      agentId,
+      itemKey,
+      slot,
+      userId: user?.id,
+      error: error instanceof Error ? error.message : error
+    });
+    return NextResponse.json({ 
+      error: 'Failed to equip item', 
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }
