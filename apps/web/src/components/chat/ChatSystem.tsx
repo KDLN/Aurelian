@@ -81,10 +81,17 @@ export function ChatSystem({
   }, []);
 
   useEffect(() => {
-    if (connected) {
-      switchChannel(activeChannel, activeGuildChannel);
+    if (connected && roomRef.current) {
+      // Only switch if we're not already in the right channel
+      const currentRoomName = roomRef.current.name;
+      const expectedRoomName = activeChannel === 'general' ? 'chat_general' : 
+                              activeChannel === 'trade' ? 'chat_trade' : 'chat_guild';
+      
+      if (currentRoomName !== expectedRoomName) {
+        switchChannel(activeChannel, activeGuildChannel);
+      }
     }
-  }, [activeChannel, activeGuildChannel, connected]);
+  }, [activeChannel, activeGuildChannel]);
 
   const initializeChat = async () => {
     try {
