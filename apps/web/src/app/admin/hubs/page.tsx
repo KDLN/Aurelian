@@ -119,7 +119,6 @@ export default function AdminHubsPage() {
           >
             Create New Hub
           </button>
-          </div>
         </div>
       </div>
 
