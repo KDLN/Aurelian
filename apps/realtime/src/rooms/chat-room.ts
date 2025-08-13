@@ -1,6 +1,7 @@
 import { Room, Client } from 'colyseus';
 import { jwtVerify } from 'jose';
 import { prisma } from '../utils/prisma';
+import { createClient } from '@supabase/supabase-js';
 
 export interface ChatUser {
   id: string;
@@ -60,17 +61,21 @@ export abstract class ChatRoom extends Room {
         throw new Error('No authentication token provided');
       }
 
-      // Verify JWT token
-      const secret = new TextEncoder().encode(process.env.SUPABASE_JWT_SECRET);
-      const { payload } = await jwtVerify(token, secret);
+      // Verify JWT token using Supabase
+      const supabase = createClient(
+        process.env.SUPABASE_URL || 'https://apoboundupzmulkqxkxw.supabase.co',
+        process.env.SUPABASE_ANON_KEY || 'sb_publishable_s1qsPPmJtjZgvnilMaPD2g_BPr3pDcF'
+      );
       
-      if (!payload.sub) {
-        throw new Error('Invalid token payload');
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      
+      if (authError || !user) {
+        throw new Error('Authentication failed: ' + (authError?.message || 'Invalid token'));
       }
 
       // Get user from database with profile and guild membership
-      const user = await prisma.user.findUnique({
-        where: { id: payload.sub },
+      const dbUser = await prisma.user.findUnique({
+        where: { id: user.id },
         include: {
           profile: true,
           guildMembership: {
@@ -81,15 +86,15 @@ export abstract class ChatRoom extends Room {
         }
       });
 
-      if (!user || !user.profile) {
+      if (!dbUser || !dbUser.profile) {
         throw new Error('User not found or profile not created');
       }
 
       return {
-        userId: user.id,
-        displayName: user.profile.display,
-        guildId: user.guildMembership?.guildId,
-        guildRole: user.guildMembership?.role
+        userId: dbUser.id,
+        displayName: dbUser.profile.display,
+        guildId: dbUser.guildMembership?.guildId,
+        guildRole: dbUser.guildMembership?.role
       };
     } catch (error) {
       console.error('Authentication failed:', error);

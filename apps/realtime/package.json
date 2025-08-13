@@ -19,7 +19,8 @@
     "express": "^4.19.2",
     "ws": "^8.17.0",
     "jose": "^5.9.3",
-    "@prisma/client": "^6.13.0"
+    "@prisma/client": "^6.13.0",
+    "@supabase/supabase-js": "^2.39.0"
   },
   "devDependencies": {
     "tsx": "^4.16.2",
