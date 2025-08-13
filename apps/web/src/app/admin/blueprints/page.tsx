@@ -311,7 +311,7 @@ function BlueprintForm({
             <select
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              className="w-full bg-[#3d2f22] border border-[#8b6f31] rounded px-3 py-2 text-[#f1e5c8]"
+              className="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md px-3 py-2 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
             >
               <option value="general">General</option>
               <option value="materials">Materials</option>
@@ -328,7 +328,7 @@ function BlueprintForm({
             <select
               value={formData.outputId}
               onChange={(e) => setFormData({ ...formData, outputId: e.target.value })}
-              className="w-full bg-[#3d2f22] border border-[#8b6f31] rounded px-3 py-2 text-[#f1e5c8]"
+              className="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md px-3 py-2 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
               required
             >
               <option value="">Select Output Item</option>
@@ -344,7 +344,7 @@ function BlueprintForm({
               type="number"
               value={formData.outputQty}
               onChange={(e) => setFormData({ ...formData, outputQty: parseInt(e.target.value) || 1 })}
-              className="w-full bg-[#3d2f22] border border-[#8b6f31] rounded px-3 py-2 text-[#f1e5c8]"
+              className="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md px-3 py-2 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
               min="1"
               required
             />
@@ -356,7 +356,7 @@ function BlueprintForm({
               type="number"
               value={formData.timeMin}
               onChange={(e) => setFormData({ ...formData, timeMin: parseInt(e.target.value) || 10 })}
-              className="w-full bg-[#3d2f22] border border-[#8b6f31] rounded px-3 py-2 text-[#f1e5c8]"
+              className="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md px-3 py-2 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
               min="1"
               required
             />
@@ -368,7 +368,7 @@ function BlueprintForm({
               type="number"
               value={formData.requiredLevel}
               onChange={(e) => setFormData({ ...formData, requiredLevel: parseInt(e.target.value) || 1 })}
-              className="w-full bg-[#3d2f22] border border-[#8b6f31] rounded px-3 py-2 text-[#f1e5c8]"
+              className="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md px-3 py-2 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
               min="1"
               required
             />
@@ -380,7 +380,7 @@ function BlueprintForm({
               type="number"
               value={formData.xpReward}
               onChange={(e) => setFormData({ ...formData, xpReward: parseInt(e.target.value) || 10 })}
-              className="w-full bg-[#3d2f22] border border-[#8b6f31] rounded px-3 py-2 text-[#f1e5c8]"
+              className="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md px-3 py-2 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
               min="1"
               required
             />
@@ -391,7 +391,7 @@ function BlueprintForm({
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full bg-[#3d2f22] border border-[#8b6f31] rounded px-3 py-2 text-[#f1e5c8]"
+              className="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md px-3 py-2 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
               rows={2}
             />
           </div>
@@ -425,7 +425,7 @@ function BlueprintForm({
             <button
               type="button"
               onClick={addInput}
-              className="bg-[#5a4a3a] hover:bg-[#6b5a4a] text-[#f1e5c8] px-3 py-1 rounded text-sm transition-colors"
+              className="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 px-3 py-1 rounded-md text-sm transition-colors"
             >
               Add Input
             </button>
@@ -436,7 +436,7 @@ function BlueprintForm({
               <select
                 value={input.itemId}
                 onChange={(e) => updateInput(index, 'itemId', e.target.value)}
-                className="bg-[#3d2f22] border border-[#8b6f31] rounded px-3 py-2 text-[#f1e5c8]"
+                className="bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md px-3 py-2 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
                 required
               >
                 <option value="">Select Item</option>
@@ -449,7 +449,7 @@ function BlueprintForm({
                 value={input.qty}
                 onChange={(e) => updateInput(index, 'qty', parseInt(e.target.value) || 1)}
                 placeholder="Quantity"
-                className="bg-[#3d2f22] border border-[#8b6f31] rounded px-3 py-2 text-[#f1e5c8]"
+                className="bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md px-3 py-2 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
                 min="1"
                 required
               />
@@ -467,14 +467,14 @@ function BlueprintForm({
         <div className="flex space-x-4">
           <button
             type="submit"
-            className="bg-[#8b6f31] hover:bg-[#c5a572] text-[#231913] px-4 py-2 rounded font-semibold transition-colors"
+            className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2.5 rounded-md font-medium transition-colors"
           >
             {blueprint ? 'Update' : 'Create'} Blueprint
           </button>
           <button
             type="button"
             onClick={onCancel}
-            className="bg-[#5a4a3a] hover:bg-[#6b5a4a] text-[#f1e5c8] px-4 py-2 rounded font-semibold transition-colors"
+            className="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 px-6 py-2.5 rounded-md font-medium transition-colors"
           >
             Cancel
           </button>
