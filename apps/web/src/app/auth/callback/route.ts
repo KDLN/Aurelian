@@ -63,17 +63,61 @@ async function syncUserToDatabase(user: any) {
       }
     });
 
-    // Create profile
-    await prisma.profile.upsert({
-      where: { userId: user.id },
-      update: {
-        display: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Anonymous'
-      },
-      create: {
-        userId: user.id,
-        display: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Anonymous'
+    // Create profile - check for username in metadata first
+    const displayName = user.user_metadata?.username || 
+                       user.user_metadata?.display_name || 
+                       user.email?.split('@')[0] || 
+                       'Anonymous';
+                       
+    console.log(`🔤 Setting display name to: ${displayName} (from metadata: ${JSON.stringify(user.user_metadata)})`);
+    
+    // Check if the display name is already taken by another user
+    if (displayName !== 'Anonymous' && displayName !== user.email?.split('@')[0]) {
+      const existingProfile = await prisma.profile.findFirst({
+        where: {
+          display: displayName,
+          userId: { not: user.id }
+        }
+      });
+      
+      if (existingProfile) {
+        console.log(`⚠️ Username '${displayName}' already taken, falling back to email-based name`);
+        const fallbackName = user.email?.split('@')[0] || 'Anonymous';
+        
+        await prisma.profile.upsert({
+          where: { userId: user.id },
+          update: {
+            display: fallbackName
+          },
+          create: {
+            userId: user.id,
+            display: fallbackName
+          }
+        });
+      } else {
+        await prisma.profile.upsert({
+          where: { userId: user.id },
+          update: {
+            display: displayName
+          },
+          create: {
+            userId: user.id,
+            display: displayName
+          }
+        });
       }
-    });
+    } else {
+      await prisma.profile.upsert({
+        where: { userId: user.id },
+        update: {
+          display: displayName
+        },
+        create: {
+          userId: user.id,
+          display: displayName
+        }
+      });
+    }
 
     // Create/update wallet with starting gold
     await prisma.wallet.upsert({
