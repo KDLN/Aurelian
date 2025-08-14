@@ -20,8 +20,18 @@ type Listing = {
   seller: string;
   sellerId: string;
   age: number;
+  duration: number;
+  feePercent: number;
   createdAt: Date;
 };
+
+const DURATION_OPTIONS = [
+  { minutes: 6, label: '6 min', feePercent: 2 },
+  { minutes: 12, label: '12 min', feePercent: 3 },
+  { minutes: 24, label: '24 min', feePercent: 5 },
+  { minutes: 36, label: '36 min', feePercent: 8 },
+  { minutes: 60, label: '60 min', feePercent: 12 }
+];
 
 export default function AuctionPage() {
   const { world } = useGameWorld();
@@ -29,6 +39,7 @@ export default function AuctionPage() {
   const [selectedItem, setSelectedItem] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [price, setPrice] = useState(10);
+  const [duration, setDuration] = useState(24); // Default 24 minutes
   const [listings, setListings] = useState<Listing[]>([]);
   const [marketPrices, setMarketPrices] = useState<Record<string, number>>({});
   const [room, setRoom] = useState<Room | null>(null);
@@ -122,6 +133,7 @@ export default function AuctionPage() {
           // Reset form on successful creation
           setQuantity(1);
           setPrice(10);
+          setDuration(24);
           setSelectedItem('');
           // Refresh listings to show the new one
           fetchListings();
@@ -184,6 +196,7 @@ export default function AuctionPage() {
       itemKey,
       quantity,
       pricePerUnit: price,
+      duration,
       userId: user.id
     });
   };
@@ -288,7 +301,7 @@ export default function AuctionPage() {
         <MarketOverview showDetailedStats={false} />
         <div className="game-card">
           <h3>List New Item</h3>
-          <div className="game-grid-3">
+          <div className="game-grid-2" style={{ marginBottom: '12px' }}>
             <div>
               <label className="game-small">Item</label>
               <select 
@@ -332,13 +345,43 @@ export default function AuctionPage() {
             </div>
           </div>
           
+          <div className="game-grid-2">
+            <div>
+              <label className="game-small">Duration</label>
+              <select 
+                value={duration}
+                onChange={(e) => setDuration(Number(e.target.value))}
+                style={{ width: '100%' }}
+                disabled={!isConnected}
+              >
+                {DURATION_OPTIONS.map(option => (
+                  <option key={option.minutes} value={option.minutes}>
+                    {option.label} ({option.feePercent}% fee)
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="game-small">You'll Receive</label>
+              <div className="game-pill game-pill-good" style={{ padding: '6px', textAlign: 'center', fontSize: '13px' }}>
+                {(() => {
+                  const totalValue = quantity * price;
+                  const feePercent = DURATION_OPTIONS.find(d => d.minutes === duration)?.feePercent || 5;
+                  const fee = Math.floor(totalValue * feePercent / 100);
+                  const netAmount = totalValue - fee;
+                  return `${netAmount.toLocaleString()}g (${fee}g fee)`;
+                })()}
+              </div>
+            </div>
+          </div>
+          
           <div className="game-flex" style={{ marginTop: '12px' }}>
             <button 
               className="game-btn game-btn-primary"
               onClick={handleList}
               disabled={!isConnected || !selectedItem || quantity <= 0 || price <= 0}
             >
-              List for {(quantity * price).toLocaleString()}g total
+              List for {duration} minutes
             </button>
             
             {selectedItem && (
@@ -366,6 +409,7 @@ export default function AuctionPage() {
                   <th>Total</th>
                   <th>Seller</th>
                   <th>Age</th>
+                  <th>Duration</th>
                   <th>Action</th>
                 </tr>
               </thead>
@@ -384,6 +428,7 @@ export default function AuctionPage() {
                       <td>{(listing.qty * listing.price).toLocaleString()}g</td>
                       <td className={isOwn ? 'game-good' : ''}>{listing.seller}</td>
                       <td className={`game-${ageStatus}`}>{listing.age}min</td>
+                      <td className="game-small">{listing.duration}min</td>
                       <td>
                         {isOwn ? (
                           <button 

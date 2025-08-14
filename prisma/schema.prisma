@@ -262,6 +262,7 @@ model Listing {
   itemId    String        @db.Uuid
   qty       Int
   price     Int // per unit in gold
+  duration  Int           @default(24) // listing duration in minutes
   status    ListingStatus @default(active)
   createdAt DateTime      @default(now())
   closedAt  DateTime?

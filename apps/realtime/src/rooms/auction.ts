@@ -31,6 +31,8 @@ type Listing = {
   seller: string;
   sellerId: string;
   age: number;
+  duration: number;
+  feePercent: number;
   createdAt: Date;
 };
 
@@ -38,6 +40,19 @@ type MarketPrice = {
   item: string;
   price: number;
 };
+
+const DURATION_OPTIONS = [
+  { minutes: 6, feePercent: 2 },
+  { minutes: 12, feePercent: 3 },
+  { minutes: 24, feePercent: 5 },
+  { minutes: 36, feePercent: 8 },
+  { minutes: 60, feePercent: 12 }
+];
+
+function getDurationFee(duration: number): number {
+  const option = DURATION_OPTIONS.find(d => d.minutes === duration);
+  return option ? option.feePercent : 5; // Default to 5% if duration not found
+}
 
 export class AuctionRoom extends Room {
   maxClients = 500;
@@ -73,7 +88,7 @@ export class AuctionRoom extends Room {
       }
       
       try {
-        const { itemKey, quantity, pricePerUnit, userId } = message;
+        const { itemKey, quantity, pricePerUnit, duration = 24, userId } = message;
         
         // Validate user has the item
         const itemDef = await prisma.itemDef.findUnique({
@@ -113,6 +128,7 @@ export class AuctionRoom extends Room {
               itemId: itemDef.id,
               qty: quantity,
               price: pricePerUnit,
+              duration: duration,
               status: 'active'
             },
             include: {
@@ -136,6 +152,8 @@ export class AuctionRoom extends Room {
           seller: listing.seller.profile?.display || 'Unknown',
           sellerId: listing.sellerId,
           age: 0,
+          duration: listing.duration || 24,
+          feePercent: getDurationFee(listing.duration || 24),
           createdAt: listing.createdAt
         };
         
@@ -190,6 +208,9 @@ export class AuctionRoom extends Room {
           });
           
           const totalCost = dbListing.qty * dbListing.price;
+          const feePercent = getDurationFee(dbListing.duration || 24);
+          const fee = Math.floor(totalCost * feePercent / 100);
+          const sellerReceives = totalCost - fee;
           
           if (!buyerWallet || buyerWallet.gold < totalCost) {
             throw new Error('Insufficient gold');
@@ -217,13 +238,13 @@ export class AuctionRoom extends Room {
           if (sellerWallet) {
             await tx.wallet.update({
               where: { id: sellerWallet.id },
-              data: { gold: sellerWallet.gold + totalCost }
+              data: { gold: sellerWallet.gold + sellerReceives }
             });
           } else {
             await tx.wallet.create({
               data: {
                 userId: dbListing.sellerId,
-                gold: totalCost
+                gold: sellerReceives
               }
             });
           }
@@ -264,9 +285,15 @@ export class AuctionRoom extends Room {
               },
               {
                 userId: dbListing.sellerId,
-                amount: totalCost,
+                amount: sellerReceives,
                 reason: 'auction_sale',
-                meta: { listingId, itemName: dbListing.item.name }
+                meta: { listingId, itemName: dbListing.item.name, fee: fee, feePercent: feePercent }
+              },
+              {
+                userId: 'AUCTION_HOUSE',
+                amount: fee,
+                reason: 'auction_fee',
+                meta: { listingId, itemName: dbListing.item.name, feePercent: feePercent }
               }
             ]
           });
@@ -422,14 +449,16 @@ export class AuctionRoom extends Room {
           seller: listing.seller.profile?.display || 'Unknown',
           sellerId: listing.sellerId,
           age: Math.floor((Date.now() - listing.createdAt.getTime()) / 60000),
+          duration: listing.duration || 24,
+          feePercent: getDurationFee(listing.duration || 24),
           createdAt: listing.createdAt
         });
       }
       
-      // Auto-expire old listings (> 36 minutes)
+      // Auto-expire old listings based on their duration
       const expiredListings: string[] = [];
       for (const [id, listing] of this.listings) {
-        if (listing.age > 36) {
+        if (listing.age > listing.duration) {
           expiredListings.push(id);
         }
       }
