@@ -500,4 +500,33 @@
   .game-table-container {
     font-size: 11px;
   }
+
+  /* Auction house table mobile fixes */
+  .game table {
+    font-size: 0.7rem;
+    table-layout: fixed;
+  }
+  
+  .game th,
+  .game td {
+    padding: 3px 1px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  /* Optimized column distribution for mobile */
+  .game th:nth-child(1), .game td:nth-child(1) { width: 22%; } /* Item */
+  .game th:nth-child(2), .game td:nth-child(2) { width: 8%; }  /* Qty */
+  .game th:nth-child(3), .game td:nth-child(3) { width: 13%; } /* Price */
+  .game th:nth-child(4), .game td:nth-child(4) { width: 13%; } /* Total */
+  .game th:nth-child(5), .game td:nth-child(5) { width: 16%; } /* Seller */
+  .game th:nth-child(6), .game td:nth-child(6) { width: 10%; } /* Age */
+  .game th:nth-child(7), .game td:nth-child(7) { width: 18%; } /* Action */
+  
+  .game-btn-small {
+    padding: 2px 4px;
+    font-size: 0.65rem;
+    min-width: auto;
+  }
 }
