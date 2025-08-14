@@ -13,10 +13,42 @@ const mockHubs = [
 ];
 
 const mockRoads = [
-  { from: 'verdant', to: 'capital', owner: 'Crown Guild', toll: 15, safety: 90, traffic: 'High' },
-  { from: 'verdant', to: 'trading-post', owner: 'Merchant Alliance', toll: 10, safety: 85, traffic: 'Medium' },
-  { from: 'capital', to: 'frontier', owner: null, toll: 0, safety: 45, traffic: 'Low' },
-  { from: 'trading-post', to: 'mining-camp', owner: 'Iron Brotherhood', toll: 8, safety: 75, traffic: 'Medium' },
+  { 
+    from: 'verdant', 
+    to: 'capital', 
+    owner: 'Crown Guild', 
+    toll: 15, 
+    safety: 90, 
+    traffic: 'High',
+    path: 'M200,150 Q280,120 320,160 Q360,180 400,200' // Curved path around hills
+  },
+  { 
+    from: 'verdant', 
+    to: 'trading-post', 
+    owner: 'Merchant Alliance', 
+    toll: 10, 
+    safety: 85, 
+    traffic: 'Medium',
+    path: 'M200,150 Q220,110 260,105 Q285,100 300,100' // Following river valley
+  },
+  { 
+    from: 'capital', 
+    to: 'frontier', 
+    owner: null, 
+    toll: 0, 
+    safety: 45, 
+    traffic: 'Low',
+    path: 'M400,200 Q430,220 460,250 Q480,280 500,300' // Winding through dangerous terrain
+  },
+  { 
+    from: 'trading-post', 
+    to: 'mining-camp', 
+    owner: 'Iron Brotherhood', 
+    toll: 8, 
+    safety: 75, 
+    traffic: 'Medium',
+    path: 'M300,100 Q250,130 220,180 Q190,220 150,250' // Mountain pass route
+  },
 ];
 
 const mockCaravans = [
@@ -82,39 +114,98 @@ export default function HubTravelPage() {
             {/* Map SVG */}
             <div style={{ 
               position: 'relative', 
-              background: '#f5f5f5', 
+              background: 'linear-gradient(135deg, #d4b895 0%, #c9aa80 25%, #b89968 50%, #a68550 75%, #8b6f31 100%)', 
               borderRadius: '8px', 
               height: '400px',
               border: '2px solid #533b2c'
             }}>
               <svg width="100%" height="100%" viewBox="0 0 600 400" style={{ position: 'absolute', top: 0, left: 0 }}>
+                {/* Terrain features */}
+                <defs>
+                  <pattern id="forest" patternUnits="userSpaceOnUse" width="20" height="20">
+                    <circle cx="10" cy="10" r="3" fill="#2d5016" opacity="0.3"/>
+                    <circle cx="5" cy="15" r="2" fill="#2d5016" opacity="0.3"/>
+                    <circle cx="15" cy="5" r="2" fill="#2d5016" opacity="0.3"/>
+                  </pattern>
+                  <pattern id="mountains" patternUnits="userSpaceOnUse" width="30" height="15">
+                    <polygon points="0,15 15,0 30,15" fill="#5a4a3a" opacity="0.4"/>
+                  </pattern>
+                </defs>
+                
+                {/* Forest areas */}
+                <ellipse cx="120" cy="180" rx="40" ry="30" fill="url(#forest)" opacity="0.6"/>
+                <ellipse cx="480" cy="120" rx="35" ry="25" fill="url(#forest)" opacity="0.6"/>
+                <ellipse cx="350" cy="320" rx="45" ry="35" fill="url(#forest)" opacity="0.6"/>
+                
+                {/* Mountain ranges */}
+                <ellipse cx="180" cy="80" rx="60" ry="20" fill="url(#mountains)" opacity="0.7"/>
+                <ellipse cx="450" cy="350" rx="50" ry="25" fill="url(#mountains)" opacity="0.7"/>
+                
+                {/* River */}
+                <path 
+                  d="M50,150 Q150,140 250,120 Q350,100 450,90 Q550,85 600,80" 
+                  stroke="#4a6b8a" 
+                  strokeWidth="4" 
+                  fill="none" 
+                  opacity="0.6"
+                  strokeLinecap="round"
+                />
                 {/* Roads */}
                 {mockRoads.map((road, idx) => {
                   const fromHub = mockHubs.find(h => h.id === road.from);
                   const toHub = mockHubs.find(h => h.id === road.to);
                   if (!fromHub || !toHub) return null;
                   
+                  // Calculate midpoint for traffic indicator (approximate center of curve)
+                  const midX = (fromHub.x + toHub.x) / 2;
+                  const midY = (fromHub.y + toHub.y) / 2;
+                  
                   return (
                     <g key={idx}>
-                      <line
-                        x1={fromHub.x}
-                        y1={fromHub.y}
-                        x2={toHub.x}
-                        y2={toHub.y}
+                      {/* Main road path */}
+                      <path
+                        d={road.path}
                         stroke={getRoadColor(road)}
-                        strokeWidth={road.owner ? "4" : "2"}
-                        strokeDasharray={road.owner ? "0" : "5,5"}
+                        strokeWidth={road.owner ? "6" : "3"}
+                        strokeDasharray={road.owner ? "0" : "8,4"}
+                        fill="none"
                         style={{ cursor: 'pointer' }}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
                       />
+                      
+                      {/* Road border for depth effect */}
+                      <path
+                        d={road.path}
+                        stroke="#2d1810"
+                        strokeWidth={road.owner ? "8" : "5"}
+                        fill="none"
+                        style={{ pointerEvents: 'none' }}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        opacity="0.3"
+                      />
+                      
                       {/* Traffic indicator */}
                       <circle
-                        cx={(fromHub.x + toHub.x) / 2}
-                        cy={(fromHub.y + toHub.y) / 2}
-                        r={road.traffic === 'High' ? 4 : road.traffic === 'Medium' ? 3 : 2}
-                        fill="rgba(255,255,255,0.8)"
-                        stroke="#333"
+                        cx={midX}
+                        cy={midY}
+                        r={road.traffic === 'High' ? 5 : road.traffic === 'Medium' ? 4 : 3}
+                        fill="rgba(139, 111, 49, 0.8)"
+                        stroke="#f1e5c8"
                         strokeWidth="1"
+                        style={{ pointerEvents: 'none' }}
                       />
+                      <text
+                        x={midX}
+                        y={midY + 1}
+                        textAnchor="middle"
+                        fontSize="8"
+                        fill="#f1e5c8"
+                        style={{ pointerEvents: 'none', fontWeight: 'bold' }}
+                      >
+                        {road.traffic === 'High' ? '●●●' : road.traffic === 'Medium' ? '●●' : '●'}
+                      </text>
                     </g>
                   );
                 })}
@@ -122,25 +213,60 @@ export default function HubTravelPage() {
                 {/* Hubs */}
                 {mockHubs.map(hub => (
                   <g key={hub.id}>
+                    {/* Hub base (settlement) */}
                     <circle
                       cx={hub.x}
                       cy={hub.y}
-                      r="15"
+                      r="18"
                       fill={getHubColor(hub)}
-                      stroke="#333"
-                      strokeWidth="2"
+                      stroke="#2d1810"
+                      strokeWidth="3"
                       style={{ cursor: 'pointer' }}
                       onMouseEnter={() => setHoveredHub(hub.id)}
                       onMouseLeave={() => setHoveredHub(null)}
                       onClick={() => setSelectedHub(hub.id)}
                     />
+                    
+                    {/* Inner settlement details */}
+                    <circle
+                      cx={hub.x}
+                      cy={hub.y}
+                      r="12"
+                      fill="none"
+                      stroke="#1a1511"
+                      strokeWidth="1"
+                      opacity="0.5"
+                      style={{ pointerEvents: 'none' }}
+                    />
+                    
+                    {/* Settlement buildings/towers */}
+                    <rect
+                      x={hub.x - 3}
+                      y={hub.y - 8}
+                      width="6"
+                      height="8"
+                      fill="#5a4a3a"
+                      stroke="#2d1810"
+                      strokeWidth="1"
+                      style={{ pointerEvents: 'none' }}
+                    />
+                    <rect
+                      x={hub.x - 1}
+                      y={hub.y - 12}
+                      width="2"
+                      height="4"
+                      fill="#6b5a4a"
+                      style={{ pointerEvents: 'none' }}
+                    />
+                    
+                    {/* Hub name */}
                     <text
                       x={hub.x}
-                      y={hub.y + 25}
+                      y={hub.y + 30}
                       textAnchor="middle"
-                      fontSize="12"
-                      fill="#333"
-                      style={{ fontWeight: 'bold' }}
+                      fontSize="11"
+                      fill="#1a1511"
+                      style={{ fontWeight: 'bold', textShadow: '1px 1px 0px #f1e5c8' }}
                     >
                       {hub.name}
                     </text>
@@ -149,16 +275,41 @@ export default function HubTravelPage() {
                     {mockCaravans
                       .filter(caravan => caravan.location === hub.id)
                       .map((caravan, idx) => (
-                        <rect
-                          key={caravan.id}
-                          x={hub.x - 8 + (idx * 4)}
-                          y={hub.y - 25}
-                          width="3"
-                          height="8"
-                          fill={selectedCaravan === caravan.id ? "#e53e3e" : "#8b6f31"}
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => setSelectedCaravan(caravan.id)}
-                        />
+                        <g key={caravan.id}>
+                          {/* Wagon body */}
+                          <rect
+                            x={hub.x - 10 + (idx * 8)}
+                            y={hub.y - 30}
+                            width="6"
+                            height="4"
+                            fill={selectedCaravan === caravan.id ? "#e53e3e" : "#8b6f31"}
+                            stroke="#2d1810"
+                            strokeWidth="1"
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => setSelectedCaravan(caravan.id)}
+                          />
+                          {/* Wagon wheels */}
+                          <circle
+                            cx={hub.x - 8 + (idx * 8)}
+                            cy={hub.y - 25}
+                            r="1.5"
+                            fill="#5a4a3a"
+                            stroke="#2d1810"
+                            strokeWidth="0.5"
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => setSelectedCaravan(caravan.id)}
+                          />
+                          <circle
+                            cx={hub.x - 5 + (idx * 8)}
+                            cy={hub.y - 25}
+                            r="1.5"
+                            fill="#5a4a3a"
+                            stroke="#2d1810"
+                            strokeWidth="0.5"
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => setSelectedCaravan(caravan.id)}
+                          />
+                        </g>
                       ))}
                   </g>
                 ))}
