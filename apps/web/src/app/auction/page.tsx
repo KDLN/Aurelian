@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import GameLayout from '@/components/GameLayout';
 import MarketOverview from '@/components/MarketOverview';
 import { useGameWorld } from '@/lib/game/world';
-import { useUserData } from '@/hooks/useUserData';
+import { useUserDataQuery } from '@/hooks/useUserDataQuery';
 import { getRTClient } from '@/lib/rtClient';
 import { supabase } from '@/lib/supabaseClient';
 import type { Room } from 'colyseus.js';
@@ -25,7 +25,7 @@ type Listing = {
 
 export default function AuctionPage() {
   const { world } = useGameWorld();
-  const { wallet } = useUserData();
+  const { wallet, inventory } = useUserDataQuery();
   const [selectedItem, setSelectedItem] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [price, setPrice] = useState(10);
@@ -36,14 +36,33 @@ export default function AuctionPage() {
   const [isConnected, setIsConnected] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
-  // Available items from local warehouse
-  const availableItems = Object.entries(world.warehouse)
-    .filter(([, qty]) => qty > 0)
-    .map(([item]) => item);
+  // Fetch listings from database API
+  const fetchListings = async () => {
+    try {
+      const response = await fetch('/api/auction/listings');
+      if (response.ok) {
+        const data = await response.json();
+        setListings(data.listings || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch listings:', error);
+    }
+  };
+
+  // Available items from user's warehouse inventory
+  const availableItems = inventory?.inventory
+    ?.filter(item => item.location === 'warehouse' && item.quantity > 0)
+    ?.map(item => ({
+      key: item.itemKey,
+      name: item.itemName || item.itemKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      quantity: item.quantity
+    })) || [];
 
   // Set client-only flag to prevent hydration issues
   useEffect(() => {
     setIsClient(true);
+    // Fetch initial listings from database
+    fetchListings();
   }, []);
 
   // Connect to WebSocket room
@@ -84,9 +103,7 @@ export default function AuctionPage() {
 
         auctionRoom.onMessage('listing_sold', (data: any) => {
           setListings(prev => prev.filter(l => l.id !== data.listingId));
-          if (data.buyerId === authUser?.id) {
-            world.add(data.item, data.qty);
-          }
+          // Note: Item addition to inventory is handled on the server side
         });
 
         auctionRoom.onMessage('listing_cancelled', (data: any) => {
@@ -106,10 +123,14 @@ export default function AuctionPage() {
           setQuantity(1);
           setPrice(10);
           setSelectedItem('');
+          // Refresh listings to show the new one
+          fetchListings();
         });
 
         auctionRoom.onMessage('purchase_success', (data: any) => {
           alert(data.message);
+          // Refresh listings after purchase
+          fetchListings();
         });
 
       } catch (error) {
@@ -148,14 +169,15 @@ export default function AuctionPage() {
       return;
     }
 
-    // Check local warehouse first
-    if (!world.take(selectedItem, quantity)) {
+    // Check inventory for available quantity
+    const selectedInventoryItem = availableItems.find(item => item.name === selectedItem);
+    if (!selectedInventoryItem || selectedInventoryItem.quantity < quantity) {
       alert('Not enough stock in warehouse');
       return;
     }
 
-    // Convert display name to item key
-    const itemKey = selectedItem.toLowerCase().replace(/ /g, '_');
+    // Get the actual item key from inventory
+    const itemKey = selectedInventoryItem.key;
 
     // Send to WebSocket room
     room.send('create_listing', {
@@ -178,7 +200,7 @@ export default function AuctionPage() {
     }
 
     const totalCost = listing.qty * listing.price;
-    const currentGold = wallet?.gold || world.gold;
+    const currentGold = wallet?.gold || 0;
     if (currentGold < totalCost) {
       alert(`Not enough gold! Need ${totalCost}g, have ${currentGold}g`);
       return;
@@ -239,7 +261,7 @@ export default function AuctionPage() {
 
       <h3>Your Gold</h3>
       <div className="game-pill game-pill-good" style={{ fontSize: '18px', textAlign: 'center' }}>
-        {wallet ? wallet.gold.toLocaleString() : world.gold.toLocaleString()}g
+        {(wallet?.gold || 0).toLocaleString()}g
       </div>
 
     </div>
@@ -277,8 +299,8 @@ export default function AuctionPage() {
               >
                 <option value="">Select item...</option>
                 {availableItems.map(item => (
-                  <option key={item} value={item}>
-                    {item} ({world.warehouse[item]} available)
+                  <option key={item.key} value={item.name}>
+                    {item.name} ({item.quantity} available)
                   </option>
                 ))}
               </select>
@@ -291,7 +313,7 @@ export default function AuctionPage() {
                 value={quantity}
                 onChange={(e) => setQuantity(Number(e.target.value))}
                 min="1"
-                max={selectedItem ? world.warehouse[selectedItem] || 0 : 0}
+                max={selectedItem ? availableItems.find(item => item.name === selectedItem)?.quantity || 0 : 0}
                 style={{ width: '100%' }}
                 disabled={!isConnected}
               />
@@ -374,7 +396,7 @@ export default function AuctionPage() {
                           <button 
                             className="game-btn game-btn-small game-btn-primary"
                             onClick={() => handleBuy(listing)}
-                            disabled={(wallet?.gold || world.gold) < listing.qty * listing.price}
+                            disabled={(wallet?.gold || 0) < listing.qty * listing.price}
                           >
                             Buy
                           </button>
