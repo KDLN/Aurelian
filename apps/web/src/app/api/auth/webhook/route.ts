@@ -85,19 +85,37 @@ async function handleUserCreated(authUser: any) {
 
     // Create profile (use upsert to handle existing profiles)
     console.log('Step 2: Upserting profile...');
+    
+    // Extract username from metadata (from sign-up form)
+    const desiredUsername = authUser.user_metadata?.username || 
+                           authUser.user_metadata?.display_name;
+    
+    // If we have a username from sign-up, use it. Otherwise let database generate default
+    const profileData = {
+      userId: authUser.id
+    } as any;
+    
+    if (desiredUsername) {
+      // Check if username is already taken by another user
+      const existingProfile = await prisma.profile.findFirst({
+        where: {
+          display: desiredUsername,
+          userId: { not: authUser.id }
+        }
+      });
+      
+      if (!existingProfile) {
+        profileData.display = desiredUsername;
+        console.log(`Using desired username: ${desiredUsername}`);
+      } else {
+        console.log(`Username ${desiredUsername} already taken, will use database default`);
+      }
+    }
+    
     const profile = await prisma.profile.upsert({
       where: { userId: authUser.id },
-      update: {
-        display: authUser.user_metadata?.display_name || 
-                authUser.email?.split('@')[0] || 
-                'Player'
-      },
-      create: {
-        userId: authUser.id,
-        display: authUser.user_metadata?.display_name || 
-                authUser.email?.split('@')[0] || 
-                'Player'
-      }
+      update: profileData,
+      create: profileData
     });
     console.log('✅ Profile upserted:', profile.userId);
 
@@ -190,18 +208,34 @@ async function handleUserUpdated(authUser: any, oldRecord: any) {
       }
     });
 
-    // Update profile if display name changed
-    if (authUser.user_metadata?.display_name) {
-      await prisma.profile.upsert({
-        where: { userId: authUser.id },
-        update: {
-          display: authUser.user_metadata.display_name
-        },
-        create: {
-          userId: authUser.id,
-          display: authUser.user_metadata.display_name
+    // Update profile if username/display name changed
+    const desiredUsername = authUser.user_metadata?.username || 
+                           authUser.user_metadata?.display_name;
+    
+    if (desiredUsername) {
+      // Check if username is already taken by another user
+      const existingProfile = await prisma.profile.findFirst({
+        where: {
+          display: desiredUsername,
+          userId: { not: authUser.id }
         }
       });
+      
+      if (!existingProfile) {
+        await prisma.profile.upsert({
+          where: { userId: authUser.id },
+          update: {
+            display: desiredUsername
+          },
+          create: {
+            userId: authUser.id,
+            display: desiredUsername
+          }
+        });
+        console.log(`Updated username to: ${desiredUsername}`);
+      } else {
+        console.log(`Username ${desiredUsername} already taken, keeping current username`);
+      }
     }
     
   } catch (error) {

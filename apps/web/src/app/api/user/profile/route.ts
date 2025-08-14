@@ -10,6 +10,59 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+// GET - Fetch user profile
+export async function GET(request: NextRequest) {
+  try {
+    console.log('🔄 [UserProfile] GET API called at:', new Date().toISOString());
+    
+    // Get JWT token from headers
+    const token = request.headers.get('authorization')?.replace('Bearer ', '');
+    
+    if (!token) {
+      return NextResponse.json({ error: 'No token provided' }, { status: 401 });
+    }
+
+    // Verify token with Supabase
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    }
+
+    console.log('✅ [UserProfile] Fetching profile for user:', user.id);
+
+    try {
+      // Fetch the profile
+      const profile = await prisma.profile.findUnique({
+        where: { userId: user.id },
+        select: { display: true }
+      });
+
+      console.log('✅ [UserProfile] Profile fetched:', profile);
+
+      return NextResponse.json({
+        success: true,
+        profile: profile
+      });
+
+    } catch (dbError) {
+      console.error('[UserProfile] Database error:', dbError);
+      
+      return NextResponse.json({
+        error: 'Failed to fetch profile',
+        details: dbError instanceof Error ? dbError.message : 'Unknown database error'
+      }, { status: 500 });
+    }
+
+  } catch (error) {
+    console.error('Error fetching profile:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch profile' },
+      { status: 500 }
+    );
+  }
+}
+
 // POST - Update user profile
 export async function POST(request: NextRequest) {
   try {

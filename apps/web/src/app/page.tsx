@@ -5,6 +5,7 @@ import './page.css';
 
 export default function Home() {
   const [user, setUser] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [authMode, setAuthMode] = useState<'none' | 'signup' | 'login'>('none');
   const [email, setEmail] = useState('');
@@ -16,8 +17,42 @@ export default function Home() {
   const [newUsername, setNewUsername] = useState('');
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(async ({ data }) => {
       setUser(data.user);
+      
+      // If user exists, fetch their profile
+      if (data.user) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.access_token) {
+            const response = await fetch('/api/user/profile', {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+              },
+            });
+
+            const result = await response.json();
+            console.log('Initial profile fetch:', result);
+            
+            const prof = result.profile;
+            setUserProfile(prof);
+            
+            // Check if we need username prompt on initial load
+            if (!prof || !prof.display) {
+              console.log('Initial load: Setting needsUsername to true because:', !prof ? 'no profile' : 'no display name');
+              setNeedsUsername(true);
+            } else {
+              console.log('Initial load: User has valid display name:', prof.display);
+              setNeedsUsername(false);
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching profile:', error);
+          setNeedsUsername(true);
+        }
+      }
+      
       setIsLoading(false);
     });
   }, []);
@@ -109,15 +144,37 @@ export default function Home() {
     }
     const loggedInUser = authResponse.data.user;
     if (loggedInUser) {
-      // Check if user needs to set a custom username
-      const { data: prof } = await supabase
-        .from('Profile')
-        .select('display')
-        .eq('userId', loggedInUser.id)
-        .single();
-      if (!prof || !prof.display || prof.display.startsWith('Trader')) {
+      try {
+        // Get fresh session after login
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          const response = await fetch('/api/user/profile', {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`,
+            },
+          });
+
+          const result = await response.json();
+          console.log('Login profile check:', result);
+          
+          const prof = result.profile;
+          setUserProfile(prof);
+          
+          // Only ask for username if profile doesn't exist or display is null/empty
+          if (!prof || !prof.display) {
+            console.log('Setting needsUsername to true because:', !prof ? 'no profile' : 'no display name');
+            setNeedsUsername(true);
+          } else {
+            console.log('User has valid display name:', prof.display);
+            setNeedsUsername(false);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching profile on login:', error);
         setNeedsUsername(true);
       }
+      
       setUser(loggedInUser);
       setAuthMode('none');
       setIdentifier('');
@@ -168,7 +225,9 @@ export default function Home() {
 
       setNeedsUsername(false);
       setNewUsername('');
-      setUser({ ...user });
+      
+      // Update the profile state with the new username
+      setUserProfile({ display: newUsername });
     } catch (error) {
       console.error('Username save error:', error);
       setErrorMsg('An error occurred. Please try again.');
@@ -178,6 +237,7 @@ export default function Home() {
   async function signOut() {
     await supabase.auth.signOut();
     setUser(null);
+    setUserProfile(null);
     setAuthMode('none');
   }
 
@@ -272,7 +332,7 @@ export default function Home() {
           ) : (
             <div className="logged-in-section">
               <div className="auth-status">
-                Trading as <strong>{user.email}</strong>
+                Trading as <strong>{userProfile?.display || user.email}</strong>
                 <button onClick={signOut} className="btn-secondary">Sign Out</button>
               </div>
               <h2>Continue Your Journey</h2>
