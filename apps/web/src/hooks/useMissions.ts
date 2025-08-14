@@ -33,7 +33,7 @@ interface UseMissionsReturn {
   activeMissions: MissionInstance[];
   loading: boolean;
   error: string | null;
-  startMission: (missionId: string) => Promise<boolean>;
+  startMission: (missionId: string, agentId: string) => Promise<boolean>;
   completeMission: (missionInstanceId: string) => Promise<{ success: boolean; rewards?: any }>;
   refreshMissions: () => Promise<void>;
 }
@@ -80,7 +80,7 @@ export function useMissions(): UseMissionsReturn {
     }
   };
 
-  const startMission = async (missionId: string): Promise<boolean> => {
+  const startMission = async (missionId: string, agentId: string): Promise<boolean> => {
     try {
       setError(null);
       
@@ -97,7 +97,7 @@ export function useMissions(): UseMissionsReturn {
           'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ missionId }),
+        body: JSON.stringify({ missionId, agentId }),
       });
 
       if (!response.ok) {

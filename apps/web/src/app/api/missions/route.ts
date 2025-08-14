@@ -253,15 +253,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    const { missionId } = await request.json();
+    const { missionId, agentId } = await request.json();
 
     if (!missionId) {
       return NextResponse.json({ error: 'Mission ID required' }, { status: 400 });
     }
 
+    if (!agentId) {
+      return NextResponse.json({ error: 'Agent ID required' }, { status: 400 });
+    }
+
     try {
       // Optimize by doing checks in parallel
-      const [missionDef, activeMissions, userCaravanSlots] = await Promise.all([
+      const [missionDef, activeMissions, userCaravanSlots, agent] = await Promise.all([
         prisma.missionDef.findUnique({
           where: { id: missionId },
           select: {
@@ -276,16 +280,44 @@ export async function POST(request: NextRequest) {
             userId: user.id,
             status: 'active'
           },
-          select: { id: true, missionId: true, caravanSlot: true }
+          select: { id: true, missionId: true, caravanSlot: true, agentId: true }
         }),
         prisma.user.findUnique({
           where: { id: user.id },
           select: { caravanSlotsUnlocked: true, caravanSlotsPremium: true }
+        }),
+        prisma.agent.findFirst({
+          where: {
+            id: agentId,
+            userId: user.id,
+            isActive: true
+          },
+          select: {
+            id: true,
+            name: true,
+            level: true,
+            specialty: true,
+            successBonus: true,
+            speedBonus: true,
+            rewardBonus: true
+          }
         })
       ]);
 
       if (!missionDef || !missionDef.isActive) {
         return NextResponse.json({ error: 'Mission not found or inactive' }, { status: 404 });
+      }
+
+      if (!agent) {
+        return NextResponse.json({ error: 'Agent not found or not owned by user' }, { status: 404 });
+      }
+
+      // Check if agent is already on a mission
+      const agentOnMission = activeMissions.find(mission => mission.agentId === agentId);
+      if (agentOnMission) {
+        return NextResponse.json({ 
+          error: `Agent ${agent.name} is already on a mission` 
+        }, { status: 400 });
       }
 
       // Check if user already has this specific mission active
@@ -314,8 +346,10 @@ export async function POST(request: NextRequest) {
         }, { status: 400 });
       }
 
-      // Calculate end time based on base duration
-      const endTime = new Date(Date.now() + missionDef.baseDuration * 1000);
+      // Calculate end time based on base duration with agent speed bonus
+      const speedMultiplier = 1 - (agent.speedBonus / 100); // Speed bonus reduces time
+      const adjustedDuration = Math.max(missionDef.baseDuration * speedMultiplier, missionDef.baseDuration * 0.5); // Minimum 50% of base time
+      const endTime = new Date(Date.now() + adjustedDuration * 1000);
 
       console.log('✅ [MissionStart] Creating mission instance in database');
       console.log('🎯 [MissionStart] Mission details:', {
@@ -323,20 +357,40 @@ export async function POST(request: NextRequest) {
         missionId,
         missionName: missionDef.name,
         duration: missionDef.baseDuration,
+        adjustedDuration,
         endTime: endTime.toISOString(),
-        caravanSlot: availableSlot
+        caravanSlot: availableSlot,
+        agentId: agent.id,
+        agentName: agent.name,
+        agentBonuses: {
+          speed: agent.speedBonus,
+          success: agent.successBonus,
+          reward: agent.rewardBonus
+        }
       });
       // Create new mission instance
       const missionInstance = await prisma.missionInstance.create({
         data: {
           userId: user.id,
           missionId,
+          agentId: agent.id,
           status: 'active',
           endTime,
           caravanSlot: availableSlot
         },
         include: {
-          mission: true
+          mission: true,
+          agent: {
+            select: {
+              id: true,
+              name: true,
+              specialty: true,
+              level: true,
+              successBonus: true,
+              speedBonus: true,
+              rewardBonus: true
+            }
+          }
         }
       });
 

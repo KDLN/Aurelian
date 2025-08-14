@@ -67,8 +67,21 @@ export async function POST(request: NextRequest) {
     // Enhanced dynamic outcome system
     const missionDef = missionInstance.mission;
     
+    // Get agent if assigned for success bonus calculation
+    let agent = null;
+    if (missionInstance.agentId) {
+      agent = await prisma.agent.findUnique({
+        where: { id: missionInstance.agentId }
+      });
+    }
+    
     // Roll 0-100 for outcome
     let outcomeRoll = Math.floor(Math.random() * 101);
+    
+    // Apply agent success bonus if present
+    if (agent) {
+      outcomeRoll += Math.floor(agent.successBonus / 2); // Half success bonus to outcome roll
+    }
     
     // Apply risk-based modifiers
     switch (missionDef.riskLevel) {
@@ -170,6 +183,12 @@ export async function POST(request: NextRequest) {
     // Add random variation (±10%)
     const variation = Math.floor(actualReward * 0.1 * (Math.random() * 2 - 1));
     actualReward = Math.max(0, actualReward + variation);
+    
+    // Apply agent reward bonus if present
+    if (agent && agent.rewardBonus > 0) {
+      const rewardBonus = Math.floor(actualReward * (agent.rewardBonus / 100));
+      actualReward += rewardBonus;
+    }
     
     // Calculate item rewards and track what was lost
     const originalItems = missionDef.itemRewards ? [...(missionDef.itemRewards as any[])] : [];
@@ -319,12 +338,7 @@ export async function POST(request: NextRequest) {
     // Award experience to agent if assigned
     let agentLevelUp = false;
     let newAgentLevel = null;
-    if (missionInstance.agentId) {
-      const agent = await prisma.agent.findUnique({
-        where: { id: missionInstance.agentId }
-      });
-      
-      if (agent) {
+    if (agent) {
         // Calculate experience based on mission outcome and risk
         const baseXP = {
           LOW: 20,
@@ -427,7 +441,6 @@ export async function POST(request: NextRequest) {
             data: { experience: newExperience }
           });
         }
-      }
     }
 
     // Mark mission as completed

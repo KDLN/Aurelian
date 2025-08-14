@@ -172,10 +172,10 @@ export const missionsApi = {
   },
 
   // Start a new mission
-  async startMission(missionId: string): Promise<StartMissionResponse> {
+  async startMission(missionId: string, agentId: string): Promise<StartMissionResponse> {
     return makeApiRequest<StartMissionResponse>('/api/missions', {
       method: 'POST',
-      body: JSON.stringify({ missionId }),
+      body: JSON.stringify({ missionId, agentId }),
     });
   },
 

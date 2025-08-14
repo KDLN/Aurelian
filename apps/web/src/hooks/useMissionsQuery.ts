@@ -99,9 +99,10 @@ export function useStartMission() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (missionId: string) => missionsApi.startMission(missionId),
-    onMutate: async (missionId) => {
-      console.log('🚀 [StartMission] Starting mutation for mission:', missionId);
+    mutationFn: ({ missionId, agentId }: { missionId: string; agentId: string }) => 
+      missionsApi.startMission(missionId, agentId),
+    onMutate: async ({ missionId, agentId }) => {
+      console.log('🚀 [StartMission] Starting mutation for mission:', missionId, 'with agent:', agentId);
       
       // Cancel any outgoing refetches so they don't overwrite our optimistic update
       await queryClient.cancelQueries({ queryKey: missionKeys.missions() });
@@ -109,12 +110,13 @@ export function useStartMission() {
       // Snapshot the previous value
       const previousMissions = queryClient.getQueryData<MissionsData>(missionKeys.missions());
       
-      return { previousMissions, missionId };
+      return { previousMissions, missionId, agentId };
     },
-    onSuccess: (data, missionId, context) => {
+    onSuccess: (data, { missionId, agentId }, context) => {
       console.log('✅ [StartMission] Mutation successful:', { 
         success: data.success, 
         missionId, 
+        agentId,
         instanceId: data.missionInstance?.id 
       });
       
@@ -144,7 +146,7 @@ export function useStartMission() {
         }, 2000); // 2 second delay
       }
     },
-    onError: (error, missionId, context) => {
+    onError: (error, { missionId, agentId }, context) => {
       console.error('❌ [StartMission] Mutation failed:', error);
       
       // On error, roll back to the previous state
@@ -152,8 +154,8 @@ export function useStartMission() {
         queryClient.setQueryData(missionKeys.missions(), context.previousMissions);
       }
     },
-    onSettled: (data, error, missionId) => {
-      console.log('🏁 [StartMission] Mutation settled:', { missionId, hasError: !!error });
+    onSettled: (data, error, { missionId, agentId }) => {
+      console.log('🏁 [StartMission] Mutation settled:', { missionId, agentId, hasError: !!error });
     },
   });
 }

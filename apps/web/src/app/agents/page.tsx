@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import GameLayout from '@/components/GameLayout';
-import { useAgents, useHireAgent, useEquipAgent } from '@/hooks/useAgents';
+import { useAgents, useHireAgent, useEquipAgent, useStarterGear } from '@/hooks/useAgents';
 import { useUserDataQuery } from '@/hooks/useUserDataQuery';
 import { useEquipment } from '@/hooks/useEquipment';
 import { AgentType, EquipmentSlot } from '@prisma/client';
@@ -13,6 +13,7 @@ export default function AgentsPage() {
   const { agents, isLoading, error, refetch } = useAgents();
   const { hireAgent, isHiring } = useHireAgent();
   const { equipItem, isEquipping } = useEquipAgent();
+  const { giveStarterGear, isGivingGear } = useStarterGear();
   const { wallet, inventory } = useUserDataQuery();
   const { equipment } = useEquipment();
   
@@ -23,6 +24,13 @@ export default function AgentsPage() {
   const handleHireAgent = async () => {
     const success = await hireAgent(selectedAgentType);
     if (success) {
+      // Check if this is the user's first agent and give starter gear
+      if (agents.length === 0) {
+        const gearSuccess = await giveStarterGear();
+        if (gearSuccess) {
+          console.log('Starter gear given for first agent hire');
+        }
+      }
       refetch();
     }
   };
@@ -81,6 +89,24 @@ export default function AgentsPage() {
           <span className="game-good game-small">{wallet?.gold?.toLocaleString() || 0}g</span>
         </div>
       </div>
+
+      <h3>Starter Equipment</h3>
+      <p className="game-muted game-small">
+        Get basic equipment to outfit your agents for their first missions.
+      </p>
+      <button 
+        className="game-btn game-btn-secondary" 
+        style={{ width: '100%', fontSize: '12px' }}
+        onClick={async () => {
+          const success = await giveStarterGear();
+          if (success) {
+            alert('Starter gear added to your warehouse!');
+          }
+        }}
+        disabled={isGivingGear}
+      >
+        {isGivingGear ? 'Adding Gear...' : 'Get Starter Gear'}
+      </button>
     </div>
   );
 
@@ -133,11 +159,12 @@ export default function AgentsPage() {
                   onClick={handleHireAgent}
                   disabled={
                     isHiring || 
+                    isGivingGear ||
                     agents.length >= 4 || 
                     (wallet?.gold || 0) < getHiringCost(selectedAgentType)
                   }
                 >
-                  {isHiring ? 'Hiring...' : 'Hire Agent'}
+                  {isHiring ? 'Hiring...' : isGivingGear ? 'Adding Gear...' : 'Hire Agent'}
                 </button>
               </div>
             </div>

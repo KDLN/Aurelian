@@ -159,3 +159,50 @@ export function useEquipAgent() {
     error
   };
 }
+
+export function useStarterGear() {
+  const [isGivingGear, setIsGivingGear] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const giveStarterGear = async (): Promise<boolean> => {
+    setIsGivingGear(true);
+    setError(null);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setError('Not authenticated');
+        return false;
+      }
+
+      const response = await fetch('/api/agents/starter-gear', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to give starter gear');
+      }
+
+      const data = await response.json();
+      console.log('Starter gear given:', data.message);
+      return true;
+    } catch (err) {
+      console.error('Error giving starter gear:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      return false;
+    } finally {
+      setIsGivingGear(false);
+    }
+  };
+
+  return {
+    giveStarterGear,
+    isGivingGear,
+    error
+  };
+}

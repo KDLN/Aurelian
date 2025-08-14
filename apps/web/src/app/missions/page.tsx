@@ -52,17 +52,23 @@ export default function MissionsPage() {
       return;
     }
 
+    if (!selectedAgent) {
+      alert('Please select an agent first');
+      return;
+    }
+
     try {
-      const result = await startMissionMutation.mutateAsync(selectedMission);
+      const result = await startMissionMutation.mutateAsync({ missionId: selectedMission, agentId: selectedAgent });
       if (result.success) {
         setSelectedMission('');
+        setSelectedAgent('');
         alert('Mission started successfully!');
       }
     } catch (error) {
       console.error('Failed to start mission:', error);
       alert('Failed to start mission. Please try again.');
     }
-  }, [selectedMission, startMissionMutation]);
+  }, [selectedMission, selectedAgent, startMissionMutation]);
 
   const handleCompleteMission = useCallback(async (missionInstanceId: string) => {
     // Prevent double-clicks by checking if mission is already being completed
