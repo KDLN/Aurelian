@@ -38,7 +38,7 @@ A complete interactive medieval trading route system with:
 
 ## 🚀 Phase 1: Core Trading Loop (CURRENT PRIORITY)
 
-### 1.1 Working Missions System ⭐
+### 1.1 Working Missions System ⭐ **COMPLETED**
 - [x] Connect missions to PostgreSQL database
 - [x] Implement real-time caravan timers
 - [x] Risk calculation system (LOW/MEDIUM/HIGH routes)
@@ -47,10 +47,10 @@ A complete interactive medieval trading route system with:
 - [x] Mission history and statistics tracking
 - [x] Caravan capacity limits
 - [x] Multiple caravans per player
-- [ ] NPC/Agent hiring system
-- [ ] Agent equipment slots and gear effects
-- [ ] Agent skill progression and specialization
-- [ ] Equipment impact on mission success rates
+- [x] NPC/Agent hiring system (4 agent types: Scout, Trader, Guard, Specialist)
+- [x] Agent equipment slots and gear effects (Weapon, Armor, Tool, Accessory)
+- [x] Agent skill progression and specialization (Level-based stat bonuses per type)
+- [x] Equipment impact on mission success rates (Calculated bonuses system)
 
 ### 1.2 Functional Crafting System ✅
 - [x] Database-backed crafting queue

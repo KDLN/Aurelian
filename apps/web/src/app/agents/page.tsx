@@ -22,14 +22,19 @@ export default function AgentsPage() {
   const [equipmentMode, setEquipmentMode] = useState<{ agentId: string; slot: EquipmentSlot } | null>(null);
 
   const handleHireAgent = async () => {
+    const isFirstAgent = agents.length === 0;
     const success = await hireAgent(selectedAgentType);
     if (success) {
-      // Check if this is the user's first agent and give starter gear
-      if (agents.length === 0) {
+      // Automatically give starter gear for first agent
+      if (isFirstAgent) {
         const gearSuccess = await giveStarterGear();
         if (gearSuccess) {
-          console.log('Starter gear given for first agent hire');
+          alert('🎉 Agent hired successfully!\n\n✨ Bonus: Starter equipment added to your warehouse!\n\n💡 Tip: Visit the equipment section below to gear up your agent before their first mission!');
+        } else {
+          alert('🎉 Agent hired successfully!\n\n💡 Tip: Get starter equipment below to improve their mission success rate!');
         }
+      } else {
+        alert('🎉 New agent hired successfully!');
       }
       refetch();
     }
@@ -40,6 +45,9 @@ export default function AgentsPage() {
     
     const success = await equipItem(equipmentMode.agentId, itemKey, equipmentMode.slot);
     if (success) {
+      // Show success feedback
+      const equipmentName = equipment?.find(e => e.itemKey === itemKey)?.displayName || itemKey;
+      alert(`✅ Successfully equipped ${equipmentName}!\n\n💡 Agent stats have been updated with equipment bonuses.`);
       setEquipmentMode(null);
       refetch();
     }
@@ -127,9 +135,28 @@ export default function AgentsPage() {
         </div>
       ) : (
         <div className="game-flex-col">
+          {/* First-time user welcome */}
+          {agents.length === 0 && (
+            <div className="game-card game-good-bg">
+              <h3>🎯 Welcome to Agent Management!</h3>
+              <p className="game-small">
+                You need agents to run missions and earn rewards. Each agent has unique specializations:
+              </p>
+              <ul className="game-small" style={{ marginLeft: '1rem', marginTop: '0.5rem' }}>
+                <li><strong>Scout:</strong> Fast missions, great for exploration</li>
+                <li><strong>Trader:</strong> Maximum rewards and profits</li>
+                <li><strong>Guard:</strong> High success rate, reliable</li>
+                <li><strong>Specialist:</strong> Balanced stats, equipment bonus</li>
+              </ul>
+              <div className="game-pill game-pill-good" style={{ marginTop: '0.5rem', textAlign: 'center' }}>
+                💡 Start by hiring your first agent below!
+              </div>
+            </div>
+          )}
+
           {/* Hire New Agent */}
           <div className="game-card">
-            <h3>Hire New Agent</h3>
+            <h3>{agents.length === 0 ? '🚀 Hire Your First Agent' : 'Hire New Agent'}</h3>
             <div className="game-grid-3">
               <div>
                 <label className="game-small">Agent Type</label>
@@ -144,6 +171,9 @@ export default function AgentsPage() {
                     </option>
                   ))}
                 </select>
+                <div className="game-tiny game-muted" style={{ marginTop: '0.25rem' }}>
+                  {agentTypeInfo[selectedAgentType].description}
+                </div>
               </div>
 
               <div>
@@ -227,9 +257,14 @@ export default function AgentsPage() {
                       <h5 className="game-small">Equipment</h5>
                       <div className="game-grid-2 game-tiny">
                         <div>
-                          <strong>Weapon:</strong><br />
+                          <div className="game-space-between">
+                            <strong>⚔️ Weapon:</strong>
+                            <span className={agent.weapon ? 'game-good' : 'game-muted'}>
+                              {agent.weapon ? '✓' : '○'}
+                            </span>
+                          </div>
                           <button 
-                            className="game-btn-link game-tiny"
+                            className={`game-btn-link game-tiny ${agent.weapon ? 'game-good' : 'game-warn'}`}
                             onClick={() => setEquipmentMode({ agentId: agent.id, slot: EquipmentSlot.WEAPON })}
                             style={{ textAlign: 'left', padding: 0 }}
                           >
@@ -237,9 +272,14 @@ export default function AgentsPage() {
                           </button>
                         </div>
                         <div>
-                          <strong>Armor:</strong><br />
+                          <div className="game-space-between">
+                            <strong>🛡️ Armor:</strong>
+                            <span className={agent.armor ? 'game-good' : 'game-muted'}>
+                              {agent.armor ? '✓' : '○'}
+                            </span>
+                          </div>
                           <button 
-                            className="game-btn-link game-tiny"
+                            className={`game-btn-link game-tiny ${agent.armor ? 'game-good' : 'game-warn'}`}
                             onClick={() => setEquipmentMode({ agentId: agent.id, slot: EquipmentSlot.ARMOR })}
                             style={{ textAlign: 'left', padding: 0 }}
                           >
@@ -247,9 +287,14 @@ export default function AgentsPage() {
                           </button>
                         </div>
                         <div>
-                          <strong>Tool:</strong><br />
+                          <div className="game-space-between">
+                            <strong>🔧 Tool:</strong>
+                            <span className={agent.tool ? 'game-good' : 'game-muted'}>
+                              {agent.tool ? '✓' : '○'}
+                            </span>
+                          </div>
                           <button 
-                            className="game-btn-link game-tiny"
+                            className={`game-btn-link game-tiny ${agent.tool ? 'game-good' : 'game-warn'}`}
                             onClick={() => setEquipmentMode({ agentId: agent.id, slot: EquipmentSlot.TOOL })}
                             style={{ textAlign: 'left', padding: 0 }}
                           >
@@ -257,9 +302,14 @@ export default function AgentsPage() {
                           </button>
                         </div>
                         <div>
-                          <strong>Accessory:</strong><br />
+                          <div className="game-space-between">
+                            <strong>💎 Accessory:</strong>
+                            <span className={agent.accessory ? 'game-good' : 'game-muted'}>
+                              {agent.accessory ? '✓' : '○'}
+                            </span>
+                          </div>
                           <button 
-                            className="game-btn-link game-tiny"
+                            className={`game-btn-link game-tiny ${agent.accessory ? 'game-good' : 'game-warn'}`}
                             onClick={() => setEquipmentMode({ agentId: agent.id, slot: EquipmentSlot.ACCESSORY })}
                             style={{ textAlign: 'left', padding: 0 }}
                           >
@@ -287,11 +337,24 @@ export default function AgentsPage() {
                             <div><strong>Missions:</strong> {agent._count.missions}</div>
                           </div>
                           
-                          <h5>Current Equipment Bonuses</h5>
+                          <h5>Stats Breakdown</h5>
                           <div className="game-grid-3 game-tiny">
-                            <div>Success: +{agent.successBonus}%</div>
-                            <div>Speed: +{agent.speedBonus}%</div>
-                            <div>Reward: +{agent.rewardBonus}%</div>
+                            <div>
+                              <div>Total Success: +{agent.successBonus}%</div>
+                              <div className="game-muted">Base + Equipment</div>
+                            </div>
+                            <div>
+                              <div>Total Speed: +{agent.speedBonus}%</div>
+                              <div className="game-muted">Base + Equipment</div>
+                            </div>
+                            <div>
+                              <div>Total Reward: +{agent.rewardBonus}%</div>
+                              <div className="game-muted">Base + Equipment</div>
+                            </div>
+                          </div>
+                          
+                          <div className="game-pill game-pill-good game-tiny" style={{ textAlign: 'center', marginTop: '0.5rem' }}>
+                            Equipment Rating: {[agent.weapon, agent.armor, agent.tool, agent.accessory].filter(Boolean).length}/4
                           </div>
                           
                           <p className="game-small">Click on equipment slots above to change equipment.</p>

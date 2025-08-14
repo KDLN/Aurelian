@@ -7,12 +7,13 @@ export default function Home() {
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [authMode, setAuthMode] = useState<'none' | 'signup' | 'login'>('none');
+  const [authMode, setAuthMode] = useState<'none' | 'signup' | 'login' | 'reset'>('none');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [identifier, setIdentifier] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
   const [needsUsername, setNeedsUsername] = useState(false);
   const [newUsername, setNewUsername] = useState('');
 
@@ -234,6 +235,33 @@ export default function Home() {
     }
   }
 
+  async function handleForgotPassword(e: FormEvent) {
+    e.preventDefault();
+    setErrorMsg('');
+    setSuccessMsg('');
+    
+    if (!email) {
+      setErrorMsg('Please enter your email address.');
+      return;
+    }
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/reset-password`,
+    });
+
+    if (error) {
+      setErrorMsg('Failed to send reset email: ' + error.message);
+    } else {
+      setSuccessMsg('Password reset email sent! Check your inbox and spam folder.');
+      // Clear form and go back to login after a delay
+      setTimeout(() => {
+        setEmail('');
+        setAuthMode('login');
+        setSuccessMsg('');
+      }, 4000);
+    }
+  }
+
   async function signOut() {
     await supabase.auth.signOut();
     setUser(null);
@@ -314,20 +342,34 @@ export default function Home() {
           <div className="auth-status">Loading...</div>
         ) : user ? (
           needsUsername ? (
-            <div className="sign-up-section">
-              <h2>Choose a Username</h2>
-              <form onSubmit={saveUsername} className="auth-form">
-                <input
-                  value={newUsername}
-                  onChange={(e) => setNewUsername(e.target.value)}
-                  placeholder="Username"
-                  required
-                />
-                <button type="submit" className="btn-primary btn-large">
-                  Save
-                </button>
-              </form>
-              {errorMsg && <p className="auth-error">{errorMsg}</p>}
+            <div className="auth-container">
+              <div className="auth-card">
+                <div className="auth-header">
+                  <h2>🏺 Choose Your Trading Name</h2>
+                  <p className="auth-subtitle">Your reputation in the frontier begins here</p>
+                </div>
+                <form onSubmit={saveUsername} className="auth-form">
+                  <div className="input-group">
+                    <label className="input-label">Trading Name</label>
+                    <input
+                      value={newUsername}
+                      onChange={(e) => setNewUsername(e.target.value)}
+                      placeholder="Enter your trader name..."
+                      className="auth-input"
+                      required
+                    />
+                    <div className="input-help">3-20 characters, letters, numbers, and underscores only</div>
+                  </div>
+                  <button type="submit" className="auth-button auth-button-primary">
+                    <span>Establish Identity</span>
+                  </button>
+                </form>
+                {errorMsg && (
+                  <div className="auth-error">
+                    <span>⚠️ {errorMsg}</span>
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             <div className="logged-in-section">
@@ -352,91 +394,208 @@ export default function Home() {
             </div>
           )
         ) : (
-          <div className="sign-up-section">
-            <h2>Begin Your Trading Legacy</h2>
-            <p>Join the frontier. Build trade routes. Shape the new world.</p>
+          <div className="auth-container">
+            <div className="auth-intro">
+              <h2>Begin Your Trading Legacy</h2>
+              <p>Join the frontier. Build trade routes. Shape the new world.</p>
+            </div>
+            
             {authMode === 'signup' ? (
-              <form onSubmit={handleSignUp} className="auth-form">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Email"
-                  required
-                />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Password"
-                  required
-                />
-                <input
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Username"
-                  required
-                />
-                <button type="submit" className="btn-primary btn-large">
-                  Create Account
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthMode('none');
-                    setErrorMsg('');
-                  }}
-                  className="btn-secondary btn-large"
-                >
-                  Cancel
-                </button>
-              </form>
+              <div className="auth-card">
+                <div className="auth-header">
+                  <h3>⚔️ Create Your Account</h3>
+                  <p className="auth-subtitle">Forge your path as a Beacon Trader</p>
+                </div>
+                <form onSubmit={handleSignUp} className="auth-form">
+                  <div className="input-group">
+                    <label className="input-label">Email Address</label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="your@email.com"
+                      className="auth-input"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="input-group">
+                    <label className="input-label">Password</label>
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Create a strong password"
+                      className="auth-input"
+                      required
+                    />
+                    <div className="input-help">Minimum 8 characters</div>
+                  </div>
+                  
+                  <div className="input-group">
+                    <label className="input-label">Trading Name</label>
+                    <input
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder="Your unique trader name"
+                      className="auth-input"
+                      required
+                    />
+                    <div className="input-help">3-20 characters, letters, numbers, and underscores only</div>
+                  </div>
+                  
+                  <div className="auth-buttons">
+                    <button type="submit" className="auth-button auth-button-primary">
+                      <span>🚀 Create Account</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthMode('none');
+                        setErrorMsg('');
+                        setSuccessMsg('');
+                      }}
+                      className="auth-button auth-button-secondary"
+                    >
+                      <span>Cancel</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
             ) : authMode === 'login' ? (
-              <form onSubmit={handleSignIn} className="auth-form">
-                <input
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder="Email or Username"
-                  required
-                />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Password"
-                  required
-                />
-                <button type="submit" className="btn-primary btn-large">
-                  Log In
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthMode('none');
-                    setErrorMsg('');
-                  }}
-                  className="btn-secondary btn-large"
-                >
-                  Cancel
-                </button>
-              </form>
+              <div className="auth-card">
+                <div className="auth-header">
+                  <h3>🏛️ Welcome Back</h3>
+                  <p className="auth-subtitle">Continue your trading empire</p>
+                </div>
+                <form onSubmit={handleSignIn} className="auth-form">
+                  <div className="input-group">
+                    <label className="input-label">Email or Trading Name</label>
+                    <input
+                      value={identifier}
+                      onChange={(e) => setIdentifier(e.target.value)}
+                      placeholder="your@email.com or username"
+                      className="auth-input"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="input-group">
+                    <label className="input-label">Password</label>
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Enter your password"
+                      className="auth-input"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="auth-buttons">
+                    <button type="submit" className="auth-button auth-button-primary">
+                      <span>🔓 Sign In</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthMode('none');
+                        setErrorMsg('');
+                        setSuccessMsg('');
+                      }}
+                      className="auth-button auth-button-secondary"
+                    >
+                      <span>Cancel</span>
+                    </button>
+                  </div>
+                  
+                  <div className="auth-links">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthMode('reset');
+                        setErrorMsg('');
+                        setSuccessMsg('');
+                      }}
+                      className="auth-link"
+                    >
+                      🔑 Forgot your password?
+                    </button>
+                  </div>
+                </form>
+              </div>
+            ) : authMode === 'reset' ? (
+              <div className="auth-card">
+                <div className="auth-header">
+                  <h3>🔑 Reset Password</h3>
+                  <p className="auth-subtitle">We'll send you a recovery link</p>
+                </div>
+                <form onSubmit={handleForgotPassword} className="auth-form">
+                  <div className="input-group">
+                    <label className="input-label">Email Address</label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Enter your email address"
+                      className="auth-input"
+                      required
+                    />
+                    <div className="input-help">We'll send a password reset link to this email</div>
+                  </div>
+                  
+                  <div className="auth-buttons">
+                    <button type="submit" className="auth-button auth-button-primary">
+                      <span>📧 Send Reset Link</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthMode('login');
+                        setErrorMsg('');
+                        setSuccessMsg('');
+                      }}
+                      className="auth-button auth-button-secondary"
+                    >
+                      <span>← Back to Sign In</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
             ) : (
-              <div className="auth-buttons">
-                <button
-                  onClick={() => setAuthMode('signup')}
-                  className="btn-primary btn-large"
-                >
-                  Sign Up
-                </button>
-                <button
-                  onClick={() => setAuthMode('login')}
-                  className="btn-secondary btn-large"
-                >
-                  Log In
-                </button>
+              <div className="auth-card">
+                <div className="auth-header">
+                  <h3>🗺️ Join the Frontier</h3>
+                  <p className="auth-subtitle">Choose your path to begin</p>
+                </div>
+                <div className="auth-buttons auth-buttons-main">
+                  <button
+                    onClick={() => setAuthMode('signup')}
+                    className="auth-button auth-button-primary"
+                  >
+                    <span>⚔️ Create New Account</span>
+                  </button>
+                  <button
+                    onClick={() => setAuthMode('login')}
+                    className="auth-button auth-button-secondary"
+                  >
+                    <span>🏛️ Sign In</span>
+                  </button>
+                </div>
               </div>
             )}
-            {errorMsg && <p className="auth-error">{errorMsg}</p>}
+            
+            {errorMsg && (
+              <div className="auth-error">
+                <span>⚠️ {errorMsg}</span>
+              </div>
+            )}
+            
+            {successMsg && (
+              <div className="auth-success">
+                <span>✅ {successMsg}</span>
+              </div>
+            )}
           </div>
         )}
       </section>

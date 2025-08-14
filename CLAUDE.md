@@ -24,7 +24,10 @@ npm run dev:worker       # Start worker service (http://localhost:8080)
 npm run prisma:migrate   # Run database migrations
 npm run prisma:generate  # Generate Prisma client
 npx prisma migrate dev --name <name>  # Create new migration
+npx prisma migrate status  # Check migration status (prevent drift)
 ```
+
+⚠️ **IMPORTANT**: Always check `npx prisma migrate status` before making schema changes to prevent drift. See `prisma/MIGRATION_GUIDE.md` for detailed migration procedures.
 
 ### Build & Production
 ```bash

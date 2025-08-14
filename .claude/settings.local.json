@@ -29,8 +29,10 @@
       "Bash(gh run list:*)",
       "Bash(mv:*)",
       "Bash(gcloud run services describe:*)",
-      "Bash(gcloud run services update:*)"
+      "Bash(gcloud run services update:*)",
+      "mcp__playwright__browser_click"
     ],
-    "deny": []
+    "deny": [],
+    "defaultMode": "acceptEdits"
   }
 }

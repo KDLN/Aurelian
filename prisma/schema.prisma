@@ -1,15 +1,620 @@
-// ---------- Generators & Datasource ----------
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider  = "postgresql"
-  url       = env("DATABASE_URL") // pooled (pgbouncer) for app runtime
-  directUrl = env("DIRECT_URL") // direct for migrations
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
-// ---------- Enums ----------
+model User {
+  id                   String            @id @db.Uuid
+  email                String?           @unique
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  caravanSlotsUnlocked Int               @default(3) @map("caravan_slots_unlocked")
+  caravanSlotsPremium  Int               @default(0) @map("caravan_slots_premium")
+  craftingLevel        Int               @default(1) @map("crafting_level")
+  craftingXP           Int               @default(0) @map("crafting_xp")
+  craftingXPNext       Int               @default(100) @map("crafting_xp_next")
+  agents               Agent[]
+  unlockedBlueprints   BlueprintUnlock[]
+  characters           Character[]
+  chatMentions         ChatMention[]
+  chatMessages         ChatMessage[]
+  chatReactions        ChatReaction[]
+  contracts            Contract[]        @relation("ContractOwner")
+  craftJobs            CraftJob[]
+  guildInvitesSent     GuildInvite[]     @relation("GuildInviteSent")
+  guildInvitesReceived GuildInvite[]     @relation("GuildInviteReceived")
+  guildLogs            GuildLog[]
+  guildMembership      GuildMember?
+  inventories          Inventory[]
+  ledger               LedgerTx[]
+  listings             Listing[]
+  missions             Mission[]
+  missionInstances     MissionInstance[]
+  profile              Profile?
+  routeBookings        RouteBooking[]
+  trailNodes           TrailNode[]
+  trailSegs            TrailSeg[]
+  wallets              Wallet?
+}
+
+model Profile {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @unique @db.Uuid
+  display   String   @unique @default(dbgenerated("('Trader'::text || (gen_random_uuid())::text)"))
+  avatar    Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Character {
+  id        String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String      @db.Uuid
+  name      String
+  meta      Json?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inventory Inventory[]
+}
+
+model Wallet {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @unique @db.Uuid
+  gold      Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ItemDef {
+  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key             String           @unique
+  name            String
+  rarity          ItemRarity       @default(COMMON)
+  stack           Int              @default(9999)
+  meta            Json?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  blueprintsOut   Blueprint[]      @relation("BlueprintOutput")
+  contracts       Contract[]
+  guildWarehouses GuildWarehouse[]
+  inventories     Inventory[]
+  listings        Listing[]
+  marketEvents    MarketEvent[]
+  missions        Mission[]
+  priceTicks      PriceTick[]
+}
+
+model Inventory {
+  id          String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  characterId String?    @db.Uuid
+  userId      String?    @db.Uuid
+  itemId      String     @db.Uuid
+  qty         Int        @default(0)
+  location    String     @default("warehouse")
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  character   Character? @relation(fields: [characterId], references: [id])
+  item        ItemDef    @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user        User?      @relation(fields: [userId], references: [id])
+
+  @@unique([userId, itemId, location])
+  @@index([userId])
+  @@index([characterId])
+  @@index([itemId])
+}
+
+model Blueprint {
+  id            String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key           String            @unique
+  outputId      String            @db.Uuid
+  inputs        Json
+  outputQty     Int               @default(1) @map("output_qty")
+  timeMin       Int               @default(10)
+  category      String            @default("general")
+  requiredLevel Int               @default(1) @map("required_level")
+  xpReward      Int               @default(10) @map("xp_reward")
+  discoverable  Boolean           @default(false)
+  starterRecipe Boolean           @default(true) @map("starter_recipe")
+  description   String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  output        ItemDef           @relation("BlueprintOutput", fields: [outputId], references: [id], onDelete: Cascade)
+  unlockedBy    BlueprintUnlock[]
+  craftJobs     CraftJob[]
+}
+
+model CraftJob {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String    @db.Uuid
+  blueprintId String    @db.Uuid
+  qty         Int
+  status      JobStatus @default(queued)
+  quality     String    @default("common")
+  startedAt   DateTime? @map("started_at")
+  eta         DateTime
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  blueprint   Blueprint @relation(fields: [blueprintId], references: [id])
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([eta])
+}
+
+model BlueprintUnlock {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String    @db.Uuid
+  blueprintId String    @db.Uuid
+  unlockedAt  DateTime  @default(now()) @map("unlocked_at")
+  unlockedBy  String?   @map("unlocked_by")
+  blueprint   Blueprint @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, blueprintId])
+  @@index([userId])
+}
+
+model Mission {
+  id        String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String      @db.Uuid
+  itemId    String      @db.Uuid
+  qty       Int
+  risk      MissionRisk @default(MEDIUM)
+  eta       DateTime
+  status    JobStatus   @default(running)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  item      ItemDef     @relation(fields: [itemId], references: [id])
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([eta])
+}
+
+model Listing {
+  id        String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sellerId  String        @db.Uuid
+  itemId    String        @db.Uuid
+  qty       Int
+  price     Int
+  status    ListingStatus @default(active)
+  createdAt DateTime      @default(now())
+  closedAt  DateTime?
+  duration  Int           @default(24)
+  item      ItemDef       @relation(fields: [itemId], references: [id])
+  seller    User          @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+
+  @@index([sellerId])
+  @@index([itemId])
+  @@index([status])
+}
+
+model LedgerTx {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String?  @db.Uuid
+  amount    Int
+  reason    String
+  meta      Json?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+}
+
+model PriceTick {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  itemId            String   @db.Uuid
+  hubId             String?  @db.Uuid
+  price             Int
+  volume            Int      @default(0)
+  high              Int?
+  low               Int?
+  supplyDemandRatio Float?
+  priceMultiplier   Float?
+  trend             String?
+  volatility        Float?
+  at                DateTime @default(now())
+  hub               Hub?     @relation(fields: [hubId], references: [id], onDelete: Cascade)
+  item              ItemDef  @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([itemId, at])
+  @@index([hubId, at])
+  @@index([itemId, hubId, at])
+}
+
+model MarketEvent {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  type            String
+  itemId          String?   @db.Uuid
+  hubId           String?   @db.Uuid
+  severity        String    @default("medium")
+  description     String?
+  priceMultiplier Float     @default(1.0)
+  startedAt       DateTime  @default(now())
+  endsAt          DateTime?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  hub             Hub?      @relation(fields: [hubId], references: [id], onDelete: Cascade)
+  item            ItemDef?  @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([isActive, startedAt])
+  @@index([itemId, isActive])
+  @@index([hubId, isActive])
+}
+
+model Contract {
+  id        String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ownerId   String         @db.Uuid
+  itemId    String         @db.Uuid
+  qty       Int
+  price     Int
+  status    ContractStatus @default(active)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  item      ItemDef        @relation(fields: [itemId], references: [id])
+  owner     User           @relation("ContractOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+  @@index([itemId])
+  @@index([status])
+}
+
+model Hub {
+  id           String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key          String         @unique
+  name         String
+  x            Int
+  y            Int
+  safe         Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  linksA       Link[]         @relation("Link_a")
+  linksB       Link[]         @relation("Link_b")
+  marketEvents MarketEvent[]
+  priceTicks   PriceTick[]
+  routeFrom    RouteBooking[] @relation("Route_from")
+  routeTo      RouteBooking[] @relation("Route_to")
+}
+
+model Link {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  aId       String   @db.Uuid
+  bId       String   @db.Uuid
+  baseDist  Int
+  baseRisk  Float
+  toll      Int      @default(0)
+  capacity  Int      @default(5)
+  createdAt DateTime @default(now())
+  a         Hub      @relation("Link_a", fields: [aId], references: [id], onDelete: Cascade)
+  b         Hub      @relation("Link_b", fields: [bId], references: [id], onDelete: Cascade)
+
+  @@index([aId])
+  @@index([bId])
+}
+
+model TrailNode {
+  id        String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String     @db.Uuid
+  x         Int
+  y         Int
+  createdAt DateTime   @default(now())
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  segsA     TrailSeg[] @relation("Seg_a")
+  segsB     TrailSeg[] @relation("Seg_b")
+
+  @@index([userId])
+}
+
+model TrailSeg {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String    @db.Uuid
+  aId       String    @db.Uuid
+  bId       String    @db.Uuid
+  risk      Float     @default(0.3)
+  createdAt DateTime  @default(now())
+  a         TrailNode @relation("Seg_a", fields: [aId], references: [id], onDelete: Cascade)
+  b         TrailNode @relation("Seg_b", fields: [bId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model RouteBooking {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @db.Uuid
+  fromHubId String?  @db.Uuid
+  toHubId   String?  @db.Uuid
+  summary   Json
+  tollPaid  Int      @default(0)
+  createdAt DateTime @default(now())
+  fromHub   Hub?     @relation("Route_from", fields: [fromHubId], references: [id])
+  toHub     Hub?     @relation("Route_to", fields: [toHubId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model Guild {
+  id            String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name          String             @unique
+  tag           String             @unique
+  emblem        Json?
+  description   String?
+  level         Int                @default(1)
+  xp            Int                @default(0)
+  xpNext        Int                @default(1000) @map("xp_next")
+  treasury      Int                @default(0)
+  maxMembers    Int                @default(50) @map("max_members")
+  isActive      Boolean            @default(true) @map("is_active")
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  achievements  GuildAchievement[]
+  alliancesFrom GuildAlliance[]    @relation("AllianceFrom")
+  alliancesTo   GuildAlliance[]    @relation("AllianceTo")
+  channels      GuildChannel[]
+  invites       GuildInvite[]
+  logs          GuildLog[]
+  members       GuildMember[]
+  warehouse     GuildWarehouse[]
+
+  @@index([name])
+  @@index([tag])
+  @@index([level])
+}
+
+model GuildMember {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  guildId            String    @db.Uuid
+  userId             String    @unique @db.Uuid
+  role               GuildRole @default(MEMBER)
+  joinedAt           DateTime  @default(now()) @map("joined_at")
+  contributionPoints Int       @default(0) @map("contribution_points")
+  permissions        Json?
+  lastActive         DateTime  @default(now()) @map("last_active")
+  guild              Guild     @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([guildId, role])
+  @@index([guildId, userId])
+}
+
+model GuildWarehouse {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  guildId   String   @db.Uuid
+  itemId    String   @db.Uuid
+  quantity  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  guild     Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  item      ItemDef  @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([guildId, itemId])
+  @@index([guildId])
+  @@index([itemId])
+}
+
+model GuildLog {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  guildId   String   @db.Uuid
+  userId    String?  @db.Uuid
+  action    String
+  details   Json?
+  createdAt DateTime @default(now())
+  guild     Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([guildId, createdAt])
+  @@index([userId])
+}
+
+model GuildInvite {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  guildId   String   @db.Uuid
+  userId    String   @db.Uuid
+  invitedBy String   @map("invited_by") @db.Uuid
+  message   String?
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now())
+  guild     Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  inviter   User     @relation("GuildInviteSent", fields: [invitedBy], references: [id], onDelete: Cascade)
+  user      User     @relation("GuildInviteReceived", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([guildId, userId])
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model GuildAchievement {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  guildId     String   @db.Uuid
+  key         String
+  name        String
+  description String
+  unlockedAt  DateTime @default(now()) @map("unlocked_at")
+  reward      Json?
+  guild       Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@unique([guildId, key])
+  @@index([guildId])
+}
+
+model GuildChannel {
+  id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  guildId      String        @db.Uuid
+  name         String
+  description  String?
+  roleRequired GuildRole?    @map("role_required")
+  isActive     Boolean       @default(true) @map("is_active")
+  createdAt    DateTime      @default(now())
+  chatMessages ChatMessage[]
+  guild        Guild         @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@unique([guildId, name])
+  @@index([guildId])
+}
+
+model GuildAlliance {
+  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  fromGuildId String       @map("from_guild_id") @db.Uuid
+  toGuildId   String       @map("to_guild_id") @db.Uuid
+  type        AllianceType @default(NEUTRAL)
+  status      String       @default("pending")
+  proposedAt  DateTime     @default(now()) @map("proposed_at")
+  acceptedAt  DateTime?    @map("accepted_at")
+  expiresAt   DateTime?    @map("expires_at")
+  fromGuild   Guild        @relation("AllianceFrom", fields: [fromGuildId], references: [id], onDelete: Cascade)
+  toGuild     Guild        @relation("AllianceTo", fields: [toGuildId], references: [id], onDelete: Cascade)
+
+  @@unique([fromGuildId, toGuildId])
+  @@index([status])
+}
+
+model MissionDef {
+  id           String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name         String
+  description  String
+  fromHub      String            @default("Home")
+  toHub        String
+  distance     Int               @default(100)
+  baseDuration Int               @default(300)
+  baseReward   Int               @default(50)
+  riskLevel    MissionRisk       @default(LOW)
+  itemRewards  Json?
+  isActive     Boolean           @default(true)
+  createdAt    DateTime          @default(now())
+  instances    MissionInstance[]
+}
+
+model MissionInstance {
+  id            String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String     @db.Uuid
+  missionId     String     @db.Uuid
+  status        String     @default("active")
+  startTime     DateTime   @default(now())
+  endTime       DateTime
+  actualReward  Int?
+  itemsReceived Json?
+  createdAt     DateTime   @default(now())
+  completedAt   DateTime?
+  caravanSlot   Int        @default(1) @map("caravan_slot")
+  agentId       String?    @map("agent_id") @db.Uuid
+  agent         Agent?     @relation(fields: [agentId], references: [id])
+  mission       MissionDef @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([endTime])
+  @@index([userId, caravanSlot, status])
+  @@index([agentId])
+}
+
+model Agent {
+  id           String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String            @db.Uuid
+  name         String
+  level        Int               @default(1)
+  experience   Int               @default(0)
+  specialty    AgentType         @default(SCOUT)
+  isActive     Boolean           @default(true)
+  hiredAt      DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  weapon       String?
+  armor        String?
+  tool         String?
+  accessory    String?
+  successBonus Int               @default(0)
+  speedBonus   Int               @default(0)
+  rewardBonus  Int               @default(0)
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  missions     MissionInstance[]
+
+  @@index([userId, isActive])
+  @@index([specialty])
+  @@index([level])
+}
+
+model EquipmentDef {
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  itemKey       String        @unique
+  name          String
+  description   String?
+  slot          EquipmentSlot
+  rarity        ItemRarity    @default(COMMON)
+  successBonus  Int           @default(0)
+  speedBonus    Int           @default(0)
+  rewardBonus   Int           @default(0)
+  minLevel      Int           @default(1)
+  agentType     AgentType?
+  craftingLevel Int?          @map("crafting_level")
+  materials     Json?
+  createdAt     DateTime      @default(now())
+
+  @@index([slot])
+  @@index([rarity])
+  @@index([agentType])
+}
+
+model ChatMessage {
+  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  content         String
+  userId          String         @db.Uuid
+  channelType     ChannelType
+  guildChannelId  String?        @db.Uuid
+  parentMessageId String?        @map("parent_message_id") @db.Uuid
+  editedAt        DateTime?      @map("edited_at")
+  deletedAt       DateTime?      @map("deleted_at")
+  metadata        Json?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  mentions        ChatMention[]
+  guildChannel    GuildChannel?  @relation(fields: [guildChannelId], references: [id], onDelete: Cascade)
+  parentMessage   ChatMessage?   @relation("MessageReplies", fields: [parentMessageId], references: [id])
+  replies         ChatMessage[]  @relation("MessageReplies")
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reactions       ChatReaction[]
+
+  @@index([channelType, createdAt])
+  @@index([guildChannelId, createdAt])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model ChatReaction {
+  id        String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  messageId String      @map("message_id") @db.Uuid
+  userId    String      @db.Uuid
+  emoji     String
+  createdAt DateTime    @default(now())
+  message   ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+  @@index([userId])
+}
+
+model ChatMention {
+  id        String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  messageId String      @map("message_id") @db.Uuid
+  userId    String      @db.Uuid
+  type      String      @default("user")
+  createdAt DateTime    @default(now())
+  message   ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, type])
+  @@index([messageId])
+  @@index([userId])
+}
+
 enum ItemRarity {
   COMMON
   UNCOMMON
@@ -48,389 +653,19 @@ enum ContractStatus {
 }
 
 enum AgentType {
-  SCOUT       // Faster missions, exploration bonus
-  TRADER      // Better rewards, negotiation bonus  
-  GUARD       // Higher success rate, combat bonus
-  SPECIALIST  // Unique bonuses per equipment
+  SCOUT
+  TRADER
+  GUARD
+  SPECIALIST
 }
 
 enum EquipmentSlot {
   WEAPON
   ARMOR
-  TOOL  
+  TOOL
   ACCESSORY
 }
 
-// ---------- Users / Profiles ----------
-// Supabase Auth user lives in auth.users. We mirror minimal profile here.
-model User {
-  id        String   @id @db.Uuid // same as auth.users.id
-  email     String?  @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Caravan system fields
-  caravanSlotsUnlocked Int @default(3) @map("caravan_slots_unlocked")
-  caravanSlotsPremium  Int @default(0) @map("caravan_slots_premium")
-  
-  // Crafting system fields
-  craftingLevel       Int @default(1) @map("crafting_level")
-  craftingXP          Int @default(0) @map("crafting_xp")
-  craftingXPNext      Int @default(100) @map("crafting_xp_next")
-
-  profile       Profile?
-  characters    Character[]
-  wallets       Wallet[]
-  listings      Listing[]
-  contracts     Contract[]     @relation("ContractOwner")
-  missions      Mission[]
-  craftJobs     CraftJob[]
-  routeBookings RouteBooking[]
-  inventories      Inventory[] // opposite of Inventory.user
-  ledger           LedgerTx[] // opposite of LedgerTx.user
-  trailNodes       TrailNode[] // opposite of TrailNode.user
-  trailSegs        TrailSeg[] // opposite of TrailSeg.user
-  missionInstances MissionInstance[] // opposite of MissionInstance.user
-  unlockedBlueprints BlueprintUnlock[] // opposite of BlueprintUnlock.user
-  
-  // Guild relations
-  guildMembership   GuildMember? // User can only be in one guild
-  guildLogs         GuildLog[]
-  guildInvitesReceived GuildInvite[] @relation("GuildInviteReceived")
-  guildInvitesSent     GuildInvite[] @relation("GuildInviteSent")
-  
-  // Chat relations
-  chatMessages      ChatMessage[]
-  chatReactions     ChatReaction[]
-  chatMentions      ChatMention[]
-  
-  // Agent relations
-  agents            Agent[]
-}
-
-model Profile {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId    String   @unique @db.Uuid
-  display   String   @unique @default(dbgenerated("'Trader' || gen_random_uuid()::text"))
-  avatar    Json? // store creator selections (colors, parts)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model Character {
-  id        String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId    String      @db.Uuid
-  name      String
-  meta      Json? // cosmetic sliders, 2D sprite parts
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  inventory Inventory[]
-}
-
-model Wallet {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId    String   @unique @db.Uuid
-  gold      Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-// ---------- Items / Inventory / Crafting ----------
-model ItemDef {
-  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  key           String      @unique // e.g., "iron_ore"
-  name          String
-  rarity        ItemRarity  @default(COMMON)
-  stack         Int         @default(9999)
-  meta          Json?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  // opposites
-  inventories   Inventory[]
-  listings      Listing[]
-  missions      Mission[]
-  priceTicks    PriceTick[]
-  contracts     Contract[]
-  blueprintsOut Blueprint[] @relation("BlueprintOutput")
-  marketEvents  MarketEvent[]
-  guildWarehouses GuildWarehouse[]
-}
-
-model Inventory {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  characterId String?  @db.Uuid
-  userId      String?  @db.Uuid
-  itemId      String   @db.Uuid
-  qty         Int      @default(0)
-  location    String   @default("warehouse") // warehouse, caravan, escrow
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  character Character? @relation(fields: [characterId], references: [id], onDelete: SetNull)
-  user      User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
-  item      ItemDef    @relation(fields: [itemId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, itemId, location])
-  @@index([userId])
-  @@index([characterId])
-  @@index([itemId])
-}
-
-model Blueprint {
-  id        String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  key       String     @unique
-  outputId  String     @db.Uuid
-  inputs    Json // [{itemId, qty}, ...]
-  outputQty Int        @default(1) @map("output_qty") // how many items produced
-  timeMin   Int        @default(10) // minutes per batch
-  category  String     @default("general") // general, weapons, armor, consumables, etc
-  requiredLevel Int    @default(1) @map("required_level")
-  xpReward  Int        @default(10) @map("xp_reward")
-  discoverable Boolean @default(false) // can be discovered through gameplay
-  starterRecipe Boolean @default(true) @map("starter_recipe") // available from start
-  description String?  @db.Text
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  output    ItemDef    @relation("BlueprintOutput", fields: [outputId], references: [id], onDelete: Cascade)
-  // opposites
-  craftJobs CraftJob[]
-  unlockedBy BlueprintUnlock[] // opposite of BlueprintUnlock.blueprint
-}
-
-model CraftJob {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId      String    @db.Uuid
-  blueprintId String    @db.Uuid
-  qty         Int
-  status      JobStatus @default(queued)
-  quality     String    @default("common") // common, uncommon, rare, epic, legendary
-  startedAt   DateTime? @map("started_at")
-  eta         DateTime
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  blueprint Blueprint @relation(fields: [blueprintId], references: [id], onDelete: Restrict)
-
-  @@index([userId])
-  @@index([status])
-  @@index([eta])
-}
-
-// Junction table for tracking which blueprints users have unlocked
-model BlueprintUnlock {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId      String    @db.Uuid
-  blueprintId String    @db.Uuid
-  unlockedAt  DateTime  @default(now()) @map("unlocked_at")
-  unlockedBy  String?   @map("unlocked_by") // "level", "discovery", "quest", "purchase"
-  
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  blueprint Blueprint @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
-  
-  @@unique([userId, blueprintId])
-  @@index([userId])
-}
-
-// ---------- Quests / Missions (Scouts) ----------
-model Mission {
-  id        String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId    String      @db.Uuid
-  itemId    String      @db.Uuid
-  qty       Int
-  risk      MissionRisk @default(MEDIUM)
-  eta       DateTime
-  status    JobStatus   @default(running)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-
-  user User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  item ItemDef @relation(fields: [itemId], references: [id], onDelete: Restrict)
-
-  @@index([userId])
-  @@index([status])
-  @@index([eta])
-}
-
-// ---------- Auction House / Economy ----------
-model Listing {
-  id        String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  sellerId  String        @db.Uuid
-  itemId    String        @db.Uuid
-  qty       Int
-  price     Int // per unit in gold
-  duration  Int           @default(24) // listing duration in minutes
-  status    ListingStatus @default(active)
-  createdAt DateTime      @default(now())
-  closedAt  DateTime?
-
-  seller User    @relation(fields: [sellerId], references: [id], onDelete: Cascade)
-  item   ItemDef @relation(fields: [itemId], references: [id], onDelete: Restrict)
-
-  @@index([sellerId])
-  @@index([itemId])
-  @@index([status])
-}
-
-model LedgerTx {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId    String?  @db.Uuid
-  amount    Int // positive=credit, negative=debit
-  reason    String // e.g., "auction_sale", "toll", "craft_cost"
-  meta      Json?
-  createdAt DateTime @default(now())
-
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@index([userId, createdAt])
-}
-
-model PriceTick {
-  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  itemId            String   @db.Uuid
-  hubId             String?  @db.Uuid // Regional price differences
-  price             Int      // Current price
-  volume            Int      @default(0) // Trade volume at this price
-  high              Int?     // Highest price in this period
-  low               Int?     // Lowest price in this period
-  supplyDemandRatio Float?   // S/D ratio used for calculation
-  priceMultiplier   Float?   // Multiplier applied
-  trend             String?  // 'up', 'down', 'stable'
-  volatility        Float?   // Market volatility
-  at                DateTime @default(now())
-  
-  item              ItemDef  @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  hub               Hub?     @relation(fields: [hubId], references: [id], onDelete: Cascade)
-
-  @@index([itemId, at])
-  @@index([hubId, at])
-  @@index([itemId, hubId, at])
-}
-
-model MarketEvent {
-  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  type            String    // 'shortage', 'surplus', 'discovery', 'disruption'
-  itemId          String?   @db.Uuid // Specific item affected (null for global events)
-  hubId           String?   @db.Uuid // Specific hub affected (null for global events)
-  severity        String    @default("medium") // 'low', 'medium', 'high'
-  description     String?
-  priceMultiplier Float     @default(1.0) // Effect on prices
-  startedAt       DateTime  @default(now())
-  endsAt          DateTime? // When event expires
-  isActive        Boolean   @default(true)
-  createdAt       DateTime  @default(now())
-  
-  item            ItemDef?  @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  hub             Hub?      @relation(fields: [hubId], references: [id], onDelete: Cascade)
-
-  @@index([isActive, startedAt])
-  @@index([itemId, isActive])
-  @@index([hubId, isActive])
-}
-
-// ---------- Contracts (bulk supply) ----------
-model Contract {
-  id        String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  ownerId   String         @db.Uuid
-  itemId    String         @db.Uuid
-  qty       Int
-  price     Int
-  status    ContractStatus @default(active)
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
-
-  owner User    @relation("ContractOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  item  ItemDef @relation(fields: [itemId], references: [id], onDelete: Restrict)
-
-  @@index([ownerId])
-  @@index([itemId])
-  @@index([status])
-}
-
-// ---------- Paths / Trade Hubs ----------
-model Hub {
-  id        String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  key       String         @unique
-  name      String
-  x         Int
-  y         Int
-  safe      Boolean        @default(true)
-  createdAt DateTime       @default(now())
-  // opposites
-  linksA    Link[]         @relation("Link_a")
-  linksB    Link[]         @relation("Link_b")
-  routeFrom RouteBooking[] @relation("Route_from")
-  routeTo   RouteBooking[] @relation("Route_to")
-  priceTicks PriceTick[]   // Regional price tracking
-  marketEvents MarketEvent[]
-}
-
-model Link {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  aId       String   @db.Uuid
-  bId       String   @db.Uuid
-  baseDist  Int
-  baseRisk  Float
-  toll      Int      @default(0)
-  capacity  Int      @default(5)
-  createdAt DateTime @default(now())
-
-  a Hub @relation("Link_a", fields: [aId], references: [id], onDelete: Cascade)
-  b Hub @relation("Link_b", fields: [bId], references: [id], onDelete: Cascade)
-
-  @@index([aId])
-  @@index([bId])
-}
-
-model TrailNode {
-  id        String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId    String     @db.Uuid
-  x         Int
-  y         Int
-  createdAt DateTime   @default(now())
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  // opposites
-  segsA     TrailSeg[] @relation("Seg_a")
-  segsB     TrailSeg[] @relation("Seg_b")
-
-  @@index([userId])
-}
-
-model TrailSeg {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId    String   @db.Uuid
-  aId       String   @db.Uuid // TrailNode
-  bId       String   @db.Uuid // TrailNode
-  risk      Float    @default(0.3)
-  createdAt DateTime @default(now())
-
-  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  a    TrailNode @relation("Seg_a", fields: [aId], references: [id], onDelete: Cascade)
-  b    TrailNode @relation("Seg_b", fields: [bId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-}
-
-model RouteBooking {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId    String   @db.Uuid
-  fromHubId String?  @db.Uuid
-  toHubId   String?  @db.Uuid
-  summary   Json // legs, totals, eta, tolls
-  tollPaid  Int      @default(0)
-  createdAt DateTime @default(now())
-
-  user    User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  fromHub Hub? @relation("Route_from", fields: [fromHubId], references: [id])
-  toHub   Hub? @relation("Route_to", fields: [toHubId], references: [id])
-
-  @@index([userId, createdAt])
-}
-
-// ---------- Guild System ----------
 enum GuildRole {
   LEADER
   OFFICER
@@ -444,314 +679,8 @@ enum AllianceType {
   NEUTRAL
 }
 
-model Guild {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name        String   @unique
-  tag         String   @unique // 3-5 character tag
-  emblem      Json?    // {color: string, symbol: string}
-  description String?  @db.Text
-  level       Int      @default(1)
-  xp          Int      @default(0)
-  xpNext      Int      @default(1000) @map("xp_next")
-  treasury    Int      @default(0) // gold balance
-  maxMembers  Int      @default(50) @map("max_members")
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Relations
-  members       GuildMember[]
-  warehouse     GuildWarehouse[]
-  logs          GuildLog[]
-  invites       GuildInvite[]
-  achievements  GuildAchievement[]
-  channels      GuildChannel[]
-  alliancesFrom GuildAlliance[] @relation("AllianceFrom")
-  alliancesTo   GuildAlliance[] @relation("AllianceTo")
-  
-  @@index([name])
-  @@index([tag])
-  @@index([level])
-}
-
-model GuildMember {
-  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  guildId           String    @db.Uuid
-  userId            String    @unique @db.Uuid // Unique to ensure one guild per user
-  role              GuildRole @default(MEMBER)
-  joinedAt          DateTime  @default(now()) @map("joined_at")
-  contributionPoints Int      @default(0) @map("contribution_points")
-  permissions       Json?     // Custom permissions override
-  lastActive        DateTime  @default(now()) @map("last_active")
-  
-  guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@index([guildId, role])
-  @@index([guildId, userId])
-}
-
-model GuildWarehouse {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  guildId   String   @db.Uuid
-  itemId    String   @db.Uuid
-  quantity  Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  guild Guild   @relation(fields: [guildId], references: [id], onDelete: Cascade)
-  item  ItemDef @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  
-  @@unique([guildId, itemId])
-  @@index([guildId])
-  @@index([itemId])
-}
-
-model GuildLog {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  guildId   String   @db.Uuid
-  userId    String?  @db.Uuid // null for system events
-  action    String   // "deposit", "withdraw", "join", "leave", "promote", etc.
-  details   Json?    // Additional context {amount: 100, itemId: "...", etc}
-  createdAt DateTime @default(now())
-  
-  guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
-  user  User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-  
-  @@index([guildId, createdAt])
-  @@index([userId])
-}
-
-model GuildInvite {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  guildId   String   @db.Uuid
-  userId    String   @db.Uuid // invited user
-  invitedBy String   @db.Uuid @map("invited_by") // who sent the invite
-  message   String?  @db.Text
-  expiresAt DateTime @map("expires_at")
-  createdAt DateTime @default(now())
-  
-  guild    Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
-  user     User  @relation("GuildInviteReceived", fields: [userId], references: [id], onDelete: Cascade)
-  inviter  User  @relation("GuildInviteSent", fields: [invitedBy], references: [id], onDelete: Cascade)
-  
-  @@unique([guildId, userId])
-  @@index([userId])
-  @@index([expiresAt])
-}
-
-model GuildAchievement {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  guildId    String   @db.Uuid
-  key        String   // "first_trade", "treasury_10k", "members_20", etc.
-  name       String
-  description String  @db.Text
-  unlockedAt DateTime @default(now()) @map("unlocked_at")
-  reward     Json?    // {xp: 100, gold: 500, item: "emblem_special"}
-  
-  guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
-  
-  @@unique([guildId, key])
-  @@index([guildId])
-}
-
-model GuildChannel {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  guildId     String   @db.Uuid
-  name        String   // "general", "officers", "trade"
-  description String?
-  roleRequired GuildRole? @map("role_required") // minimum role to view/post
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now())
-  
-  guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
-  chatMessages ChatMessage[]
-  
-  @@unique([guildId, name])
-  @@index([guildId])
-}
-
-model GuildAlliance {
-  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  fromGuildId  String       @db.Uuid @map("from_guild_id")
-  toGuildId    String       @db.Uuid @map("to_guild_id")
-  type         AllianceType @default(NEUTRAL)
-  status       String       @default("pending") // pending, active, expired
-  proposedAt   DateTime     @default(now()) @map("proposed_at")
-  acceptedAt   DateTime?    @map("accepted_at")
-  expiresAt    DateTime?    @map("expires_at")
-  
-  fromGuild Guild @relation("AllianceFrom", fields: [fromGuildId], references: [id], onDelete: Cascade)
-  toGuild   Guild @relation("AllianceTo", fields: [toGuildId], references: [id], onDelete: Cascade)
-  
-  @@unique([fromGuildId, toGuildId])
-  @@index([status])
-}
-
-// ---------- Missions System ----------
-model MissionDef {
-  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name         String
-  description  String
-  fromHub      String   @default("Home")
-  toHub        String   
-  distance     Int      @default(100)
-  baseDuration Int      @default(300) // seconds
-  baseReward   Int      @default(50)  // gold
-  riskLevel    MissionRisk @default(LOW)
-  itemRewards  Json?    // array of {itemKey: string, qty: number}
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-
-  instances MissionInstance[]
-}
-
-model MissionInstance {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId      String   @db.Uuid
-  missionId   String   @db.Uuid
-  status      String   @default("active") // active, completed, failed
-  startTime   DateTime @default(now())
-  endTime     DateTime
-  actualReward Int?
-  itemsReceived Json?   // actual items received
-  createdAt   DateTime @default(now())
-  completedAt DateTime?
-  
-  // Caravan slot assignment (1-4) - DEPRECATED: Will be replaced by agentId
-  caravanSlot Int      @default(1) @map("caravan_slot")
-  
-  // Agent assignment (new system)
-  agentId     String?  @db.Uuid @map("agent_id")
-
-  user    User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  mission MissionDef @relation(fields: [missionId], references: [id], onDelete: Cascade)
-  agent   Agent?     @relation(fields: [agentId], references: [id], onDelete: SetNull)
-
-  @@index([userId, status])
-  @@index([endTime])
-  @@index([userId, caravanSlot, status])
-  @@index([agentId])
-}
-
-// ---------- Agent System ----------
-model Agent {
-  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId      String      @db.Uuid
-  name        String      // Generated or custom names
-  level       Int         @default(1)
-  experience  Int         @default(0)
-  specialty   AgentType   @default(SCOUT)
-  isActive    Boolean     @default(true)
-  hiredAt     DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  
-  // Equipment slots (itemKey references)
-  weapon      String?     // itemKey for equipped weapon
-  armor       String?     // itemKey for equipped armor  
-  tool        String?     // itemKey for equipped tool
-  accessory   String?     // itemKey for equipped accessory
-  
-  // Computed stats (affected by level and equipment)
-  successBonus  Int       @default(0)   // % bonus to mission success
-  speedBonus    Int       @default(0)   // % reduction in mission time
-  rewardBonus   Int       @default(0)   // % bonus to mission rewards
-  
-  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  missions     MissionInstance[]
-  
-  @@index([userId, isActive])
-  @@index([specialty])
-  @@index([level])
-}
-
-model EquipmentDef {
-  id          String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  itemKey     String         @unique
-  name        String
-  description String?
-  slot        EquipmentSlot
-  rarity      ItemRarity     @default(COMMON)
-  
-  // Stat bonuses
-  successBonus  Int          @default(0)   // % bonus to mission success
-  speedBonus    Int          @default(0)   // % reduction in mission time
-  rewardBonus   Int          @default(0)   // % bonus to mission rewards
-  
-  // Requirements
-  minLevel      Int          @default(1)
-  agentType     AgentType?   // null = any agent can use
-  
-  // Crafting requirements
-  craftingLevel Int?         @map("crafting_level")
-  materials     Json?        // array of {itemKey: string, qty: number}
-  
-  createdAt     DateTime     @default(now())
-  
-  @@index([slot])
-  @@index([rarity])
-  @@index([agentType])
-}
-
-// ---------- Chat System ----------
 enum ChannelType {
   GENERAL
   TRADE
   GUILD
-}
-
-model ChatMessage {
-  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  content         String       @db.Text
-  userId          String       @db.Uuid
-  channelType     ChannelType
-  guildChannelId  String?      @db.Uuid // For guild-specific channels
-  parentMessageId String?      @db.Uuid @map("parent_message_id") // For replies
-  editedAt        DateTime?    @map("edited_at")
-  deletedAt       DateTime?    @map("deleted_at")
-  metadata        Json?        // attachments, embeds, etc
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-  
-  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  guildChannel    GuildChannel? @relation(fields: [guildChannelId], references: [id], onDelete: Cascade)
-  parentMessage   ChatMessage? @relation("MessageReplies", fields: [parentMessageId], references: [id], onDelete: SetNull)
-  replies         ChatMessage[] @relation("MessageReplies")
-  reactions       ChatReaction[]
-  mentions        ChatMention[]
-  
-  @@index([channelType, createdAt])
-  @@index([guildChannelId, createdAt])
-  @@index([userId])
-  @@index([createdAt])
-}
-
-model ChatReaction {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  messageId String   @db.Uuid @map("message_id")
-  userId    String   @db.Uuid
-  emoji     String   // Unicode emoji or custom emoji code
-  createdAt DateTime @default(now())
-  
-  message   ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@unique([messageId, userId, emoji])
-  @@index([messageId])
-  @@index([userId])
-}
-
-model ChatMention {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  messageId String   @db.Uuid @map("message_id")
-  userId    String   @db.Uuid // User being mentioned
-  type      String   @default("user") // "user", "role", "everyone"
-  createdAt DateTime @default(now())
-  
-  message   ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@unique([messageId, userId, type])
-  @@index([messageId])
-  @@index([userId])
 }
