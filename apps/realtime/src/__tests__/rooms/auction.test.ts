@@ -50,7 +50,9 @@ describe('AuctionRoom', () => {
         seller: 'Test User',
         sellerId: 'user-1',
         age: 0,
-        createdAt: new Date()
+        createdAt: new Date(),
+        duration: 24,
+        feePercent: 5.0
       }
       
       room.listings.set(testListing.id, testListing)
@@ -68,7 +70,9 @@ describe('AuctionRoom', () => {
         seller: 'Test User',
         sellerId: 'user-1',
         age: 40, // > 36 minutes = expired
-        createdAt: new Date(Date.now() - 40 * 60 * 1000)
+        createdAt: new Date(Date.now() - 40 * 60 * 1000),
+        duration: 24,
+        feePercent: 5.0
       }
       
       room.listings.set(expiredListing.id, expiredListing)
@@ -94,7 +98,9 @@ describe('AuctionRoom', () => {
         seller: 'Test User',
         sellerId: 'user-1',
         age: 5,
-        createdAt: new Date()
+        createdAt: new Date(),
+        duration: 24,
+        feePercent: 5.0
       })
       
       room.marketPrices.set('Iron Ore', 45)
