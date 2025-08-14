@@ -62,15 +62,15 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
+    <div className="p-6 lg:p-8 space-y-8">
       {/* Welcome Section */}
-      <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6 lg:p-8 shadow-sm">
+      <div className="card p-6 lg:p-8">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
           <div className="space-y-2">
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+            <h1 className="text-3xl font-bold">
               Welcome to the Admin Panel
             </h1>
-            <p className="text-slate-600 dark:text-slate-400 text-lg">
+            <p className="text-muted-foreground text-lg">
               Manage all aspects of your game content from one central location
             </p>
           </div>
@@ -82,24 +82,24 @@ export default function AdminPage() {
 
       {/* Quick Stats */}
       <div>
-        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">
+        <h2 className="text-xl font-semibold mb-4">
           Overview
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {loading ? (
             Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6 animate-pulse">
-                <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded mb-2"></div>
-                <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-2/3"></div>
+              <div key={i} className="card p-6">
+                <div className="h-8 bg-gray-200 rounded mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-2/3"></div>
               </div>
             ))
           ) : (
             stats && Object.entries(stats).map(([key, value]) => (
-              <div key={key} className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6 shadow-sm hover:shadow-md transition-shadow">
-                <div className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-1">
+              <div key={key} className="card p-6 hover:shadow-md transition-shadow">
+                <div className="text-2xl font-bold mb-1">
                   {value as number}
                 </div>
-                <div className="text-sm text-slate-600 dark:text-slate-400 capitalize font-medium">
+                <div className="text-sm text-muted-foreground capitalize font-medium">
                   {key}
                 </div>
               </div>
@@ -110,7 +110,7 @@ export default function AdminPage() {
 
       {/* Management Sections */}
       <div>
-        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">
+        <h2 className="text-xl font-semibold mb-4">
           Content Management
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -118,19 +118,21 @@ export default function AdminPage() {
             <Link
               key={section.id}
               href={section.href}
-              className="group bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6 shadow-sm hover:shadow-md transition-all duration-200 hover:border-orange-200 dark:hover:border-orange-800"
+              className="group block"
             >
-              <div className="flex items-start space-x-4">
-                <div className="bg-orange-100 dark:bg-orange-900 w-12 h-12 rounded-lg flex items-center justify-center text-orange-600 dark:text-orange-400 text-2xl group-hover:bg-orange-200 dark:group-hover:bg-orange-800 transition-colors">
-                  {section.icon}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
-                    {section.title}
-                  </h3>
-                  <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
-                    {section.description}
-                  </p>
+              <div className="card p-6 hover:shadow-md transition-all">
+                <div className="flex items-start space-x-4">
+                  <div className="bg-orange-100 w-12 h-12 rounded-lg flex items-center justify-center text-orange-600 text-2xl group-hover:bg-orange-200 transition-colors">
+                    {section.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-lg font-semibold mb-2 group-hover:text-orange-600 transition-colors">
+                      {section.title}
+                    </h3>
+                    <p className="text-muted-foreground text-sm">
+                      {section.description}
+                    </p>
+                  </div>
                 </div>
               </div>
             </Link>
@@ -140,57 +142,57 @@ export default function AdminPage() {
 
       {/* System Status and Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">
+        <div className="card p-6">
+          <h3 className="text-lg font-semibold mb-4">
             System Status
           </h3>
           <div className="space-y-3">
             <div className="flex items-center justify-between py-2">
-              <span className="text-slate-600 dark:text-slate-400">Database Connection</span>
+              <span className="text-muted-foreground">Database Connection</span>
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="text-green-600 dark:text-green-400 text-sm font-medium">Online</span>
+                <span className="text-green-600 text-sm font-medium">Online</span>
               </div>
             </div>
             <div className="flex items-center justify-between py-2">
-              <span className="text-slate-600 dark:text-slate-400">Admin Panel</span>
+              <span className="text-muted-foreground">Admin Panel</span>
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="text-green-600 dark:text-green-400 text-sm font-medium">Active</span>
+                <span className="text-green-600 text-sm font-medium">Active</span>
               </div>
             </div>
             <div className="flex items-center justify-between py-2">
-              <span className="text-slate-600 dark:text-slate-400">Game Services</span>
+              <span className="text-muted-foreground">Game Services</span>
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="text-green-600 dark:text-green-400 text-sm font-medium">Running</span>
+                <span className="text-green-600 text-sm font-medium">Running</span>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">
+        <div className="card p-6">
+          <h3 className="text-lg font-semibold mb-4">
             Quick Actions
           </h3>
           <div className="space-y-3">
             <button
               onClick={loadStats}
-              className="w-full flex items-center justify-between px-4 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-md transition-colors font-medium text-sm"
+              className="btn btn-primary w-full flex items-center justify-between"
             >
               <span>Refresh Statistics</span>
               <span>🔄</span>
             </button>
             <Link
               href="/admin/items"
-              className="w-full flex items-center justify-between px-4 py-3 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-900 dark:text-slate-100 rounded-md transition-colors text-sm"
+              className="btn btn-secondary w-full flex items-center justify-between"
             >
               <span>Add New Item</span>
               <span>➕</span>
             </Link>
             <Link
               href="/admin/missions"
-              className="w-full flex items-center justify-between px-4 py-3 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-900 dark:text-slate-100 rounded-md transition-colors text-sm"
+              className="btn btn-secondary w-full flex items-center justify-between"
             >
               <span>Create Mission</span>
               <span>🗺️</span>

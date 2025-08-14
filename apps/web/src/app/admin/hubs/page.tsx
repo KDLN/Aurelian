@@ -102,20 +102,20 @@ export default function AdminHubsPage() {
 
   if (loading) {
     return (
-      <div className="p-6 lg:p-8 max-w-7xl mx-auto">
+      <div className="p-6 lg:p-8">
         <div className="flex items-center justify-center h-64">
-          <div className="text-slate-600 dark:text-slate-400">Loading hubs and routes...</div>
+          <div className="text-muted-foreground">Loading hubs and routes...</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
+    <div className="p-6 lg:p-8 space-y-8">
       <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">Hub & Route Management</h1>
-          <p className="text-slate-600 dark:text-slate-400">Manage trading hubs and route connections</p>
+          <h1 className="text-3xl font-bold mb-2">Hub & Route Management</h1>
+          <p className="text-muted-foreground">Manage trading hubs and route connections</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="bg-white dark:bg-slate-800 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">

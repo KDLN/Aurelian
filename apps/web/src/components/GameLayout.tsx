@@ -132,6 +132,7 @@ export default function GameLayout({
 
   const navigation = [
     { href: '/hub', label: 'Hub' },
+    { href: '/hub-travel', label: 'Hub Travel' },
     { href: '/auction', label: 'Auction' },
     { href: '/missions', label: 'Missions' },
     { href: '/agents', label: 'Agents' },

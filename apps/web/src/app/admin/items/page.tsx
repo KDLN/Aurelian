@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { ItemRarity } from '@prisma/client';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 interface ItemDef {
   id: string;
@@ -55,7 +58,7 @@ export default function AdminItemsPage() {
 
   if (loading) {
     return (
-      <div className="p-6 lg:p-8 max-w-7xl mx-auto">
+      <div className="p-6 lg:p-8">
         <div className="flex items-center justify-center h-64">
           <div className="text-slate-600 dark:text-slate-400">Loading items...</div>
         </div>
@@ -64,7 +67,7 @@ export default function AdminItemsPage() {
   }
 
   return (
-    <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
+    <div className="p-6 lg:p-8 space-y-8">
       <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">Item Management</h1>
