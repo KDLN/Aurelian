@@ -285,54 +285,54 @@ export default function Home() {
       </div>
 
       <section className="intro-section">
-        <h2>The World Has Changed</h2>
+        <h2>Empires Fall. Trade Endures.</h2>
         <p className="lore-text">
-          The great empires have fallen. Their trade routes lie broken, their markets silent. 
-          But where others see ruin, you see opportunity.
+          The great kingdoms have crumbled. Their armies scattered, their treasuries empty. 
+          But in the chaos, a new breed of merchant rises from the ashes.
         </p>
         <p className="lore-text">
-          As a <strong>Beacon Trader</strong>, you'll venture into the frontier, establishing new trade 
-          routes where none existed before. Buy low in forgotten settlements. Sell high in desperate cities. 
-          Navigate the dangers between.
+          As a <strong>Frontier Trader</strong>, you'll navigate lawless roads and forge deals 
+          in desperate cities. Where others fear to tread, you'll find fortune. 
+          Every transaction reshapes a broken world.
         </p>
         <p className="lore-text">
-          Every journey is a calculated risk. Every trade shapes the emerging economy. 
-          Every decision echoes across a world struggling to rebuild.
+          This is your chance to build something lasting. Not through conquest, 
+          but through commerce. Not with armies, but with caravans.
         </p>
       </section>
 
       <section className="features-section">
-        <h2>Forge Your Trading Empire</h2>
+        <h2>Command Your Trading Empire</h2>
         <div className="features-grid">
           <div className="feature-card live-feature">
             <div className="feature-status">✅ LIVE</div>
-            <h3>⚖️ Dynamic Markets</h3>
-            <p>Real-time prices fluctuate based on supply and demand. Advanced market analytics and trading intelligence available now.</p>
+            <h3>📊 Master the Markets</h3>
+            <p>Read supply and demand. Time your moves perfectly. Turn market chaos into consistent profit.</p>
+          </div>
+          <div className="feature-card live-feature">
+            <div className="feature-status">✅ LIVE</div>
+            <h3>🗺️ Risk Everything</h3>
+            <p>Send caravans through bandit territory. The greater the danger, the sweeter the reward.</p>
+          </div>
+          <div className="feature-card live-feature">
+            <div className="feature-status">✅ LIVE</div>
+            <h3>👥 Build Your Organization</h3>
+            <p>Hire Scouts, Guards, and Specialists. Equip them well. Your success depends on theirs.</p>
+          </div>
+          <div className="feature-card live-feature">
+            <div className="feature-status">✅ LIVE</div>
+            <h3>⚒️ Control Production</h3>
+            <p>Turn raw ore into finished weapons. Transform herbs into potions. Create value from nothing.</p>
+          </div>
+          <div className="feature-card live-feature">
+            <div className="feature-status">✅ LIVE</div>
+            <h3>🏰 Unite or Dominate</h3>
+            <p>Form powerful trade guilds. Share resources or hoard them. Shape the new world order.</p>
           </div>
           <div className="feature-card coming-soon">
             <div className="feature-status">🚧 COMING SOON</div>
-            <h3>🗺️ Dangerous Routes</h3>
-            <p>Chart paths through lawless territories. Higher risks bring higher rewards—if you survive.</p>
-          </div>
-          <div className="feature-card live-feature">
-            <div className="feature-status">✅ LIVE</div>
-            <h3>⚔️ Strategic Missions</h3>
-            <p>Send caravans on expeditions. Balance speed against safety. Time your arrivals perfectly.</p>
-          </div>
-          <div className="feature-card live-feature">
-            <div className="feature-status">✅ LIVE</div>
-            <h3>🔨 Master Crafting</h3>
-            <p>Transform raw materials into valuable goods. Complete crafting system with blueprints and quality bonuses.</p>
-          </div>
-          <div className="feature-card coming-soon">
-            <div className="feature-status">🚧 COMING SOON</div>
-            <h3>📜 Binding Contracts</h3>
-            <p>Negotiate deals with other traders. Honor your word or face the consequences.</p>
-          </div>
-          <div className="feature-card live-feature">
-            <div className="feature-status">✅ LIVE</div>
-            <h3>🏛️ Living Economy</h3>
-            <p>Every transaction matters. Real-time auction house with market events and price intelligence.</p>
+            <h3>🗺️ Rule the Roads</h3>
+            <p>Claim trading hubs. Build safer routes. Tax passage or grant free transit. Your roads, your rules.</p>
           </div>
         </div>
       </section>
@@ -396,15 +396,15 @@ export default function Home() {
         ) : (
           <div className="auth-container">
             <div className="auth-intro">
-              <h2>Begin Your Trading Legacy</h2>
-              <p>Join the frontier. Build trade routes. Shape the new world.</p>
+              <h2>The Frontier Awaits Your Ambition</h2>
+              <p>Fortunes are made by those bold enough to seize them. Will you rebuild this world through trade?</p>
             </div>
             
             {authMode === 'signup' ? (
               <div className="auth-card">
                 <div className="auth-header">
                   <h3>⚔️ Create Your Account</h3>
-                  <p className="auth-subtitle">Forge your path as a Beacon Trader</p>
+                  <p className="auth-subtitle">Forge your path as a Frontier Trader</p>
                 </div>
                 <form onSubmit={handleSignUp} className="auth-form">
                   <div className="input-group">
@@ -601,34 +601,33 @@ export default function Home() {
       </section>
 
       <section className="game-links">
-        <h3>Explore Aurelian</h3>
+        <h3>Tools of the Trade</h3>
         <div className="link-grid">
           <div>
-            <h4>Trading Posts</h4>
+            <h4>💰 Commerce & Profit</h4>
             <ul>
-              <li><a href="/warehouse">📦 Warehouse Management</a> <span className="status-live">LIVE</span></li>
-              <li><a href="/auction">💰 Live Auction House</a> <span className="status-live">LIVE</span></li>
-              <li><a href="/market">📊 Market Dashboard</a> <span className="status-new">NEW</span></li>
-              <li><a href="/crafting">🔨 Crafting Workshop</a> <span className="status-live">LIVE</span></li>
-              <li><a href="/contracts">📜 Trade Contracts</a> <span className="status-soon">SOON</span></li>
+              <li><a href="/auction">💰 Auction House</a> <span className="status-live">LIVE</span></li>
+              <li><a href="/market">📊 Market Intelligence</a> <span className="status-new">NEW</span></li>
+              <li><a href="/warehouse">📦 Warehouse Empire</a> <span className="status-live">LIVE</span></li>
+              <li><a href="/crafting">🔨 Production Lines</a> <span className="status-live">LIVE</span></li>
             </ul>
           </div>
           <div>
-            <h4>The Frontier</h4>
+            <h4>⚔️ Risk & Expansion</h4>
             <ul>
-              <li><a href="/missions">🗺️ Caravan Missions</a> <span className="status-live">LIVE</span></li>
-              <li><a href="/hub">🏛️ Trading Hub</a> <span className="status-live">LIVE</span></li>
-              <li><a href="/play">⚔️ Multiplayer World</a> <span className="status-live">LIVE</span></li>
-              <li><a href="/minimap">🗺️ World Map</a> <span className="status-soon">SOON</span></li>
+              <li><a href="/missions">🗺️ Dangerous Routes</a> <span className="status-live">LIVE</span></li>
+              <li><a href="/agents">👥 Hire Specialists</a> <span className="status-live">LIVE</span></li>
+              <li><a href="/guild">🏰 Guild Politics</a> <span className="status-live">LIVE</span></li>
+              <li><a href="/play">⚔️ Living World</a> <span className="status-live">LIVE</span></li>
             </ul>
           </div>
           <div>
-            <h4>Your Character</h4>
+            <h4>🎮 Game Systems</h4>
             <ul>
-              <li><a href="/creator">Character Creator</a></li>
-              <li><a href="/profile">Trader Profile</a></li>
-              <li><a href="/lobby">Game Lobby</a></li>
-              <li><a href="/test-db">System Status</a></li>
+              <li><a href="/creator">Character Design</a></li>
+              <li><a href="/profile">Trading Reputation</a></li>
+              <li><a href="/hub">Central Exchange</a></li>
+              <li><a href="/lobby">Game Access</a></li>
             </ul>
           </div>
         </div>
@@ -636,7 +635,7 @@ export default function Home() {
 
       <footer className="landing-footer">
         <p className="footer-quote">
-          "In the ruins of empire, the bold write history with ledgers and caravans."
+          "While kingdoms rise and fall, the merchant's ledger is the only true history."
         </p>
         <p className="footer-credit">
           Aurelian: The Exchange &copy; 2024 | A Trading Game of Risk and Reward
