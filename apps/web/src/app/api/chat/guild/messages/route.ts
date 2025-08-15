@@ -56,9 +56,9 @@ export async function GET(request: NextRequest) {
 
     // Check role permissions
     if (guildChannel.roleRequired) {
-      const roleHierarchy = { LEADER: 4, OFFICER: 3, TRADER: 2, MEMBER: 1 };
-      const userLevel = roleHierarchy[membership.role];
-      const requiredLevel = roleHierarchy[guildChannel.roleRequired];
+      const roleHierarchy: Record<string, number> = { LEADER: 4, OFFICER: 3, TRADER: 2, MEMBER: 1 };
+      const userLevel = roleHierarchy[membership.role] || 0;
+      const requiredLevel = roleHierarchy[guildChannel.roleRequired] || 0;
       
       if (userLevel < requiredLevel) {
         return createErrorResponse('INSUFFICIENT_PERMISSIONS', 

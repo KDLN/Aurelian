@@ -42,12 +42,12 @@ export async function GET(request: NextRequest) {
     });
 
     // Filter channels based on user's role
-    const roleHierarchy = { LEADER: 4, OFFICER: 3, TRADER: 2, MEMBER: 1 };
-    const userLevel = roleHierarchy[membership.role];
+    const roleHierarchy: Record<string, number> = { LEADER: 4, OFFICER: 3, TRADER: 2, MEMBER: 1 };
+    const userLevel = roleHierarchy[membership.role] || 0;
 
     const accessibleChannels = channels.filter(channel => {
       if (!channel.roleRequired) return true;
-      const requiredLevel = roleHierarchy[channel.roleRequired];
+      const requiredLevel = roleHierarchy[channel.roleRequired] || 0;
       return userLevel >= requiredLevel;
     });
 

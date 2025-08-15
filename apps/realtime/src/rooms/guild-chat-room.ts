@@ -55,16 +55,9 @@ export class GuildChatRoom extends ChatRoom {
     this.channelName = channel.name || 'general';
     this.requiredRole = channel.roleRequired as GuildRole | undefined;
 
-    // Load slow mode settings from channel metadata
-    if (channel.metadata && typeof channel.metadata === 'object' && 'slowMode' in channel.metadata) {
-      const slowMode = (channel.metadata as any).slowMode;
-      if (slowMode && typeof slowMode === 'object') {
-        this.slowModeSettings = {
-          enabled: slowMode.enabled === true,
-          duration: slowMode.duration || 0
-        };
-      }
-    }
+    // Note: Slow mode settings would require adding metadata field to GuildChannel schema
+    // For now, slow mode is disabled by default
+    this.slowModeSettings = { enabled: false, duration: 0 };
 
     console.info(`GuildChatRoom created for guild ${this.guildId}, channel: ${this.channelName}`);
 
@@ -391,9 +384,8 @@ export class GuildChatRoom extends ChatRoom {
       }
 
       // Check if target is already at or above the role
-      const roleHierarchy = { MEMBER: 1, TRADER: 2, OFFICER: 3, LEADER: 4 };
-      const currentLevel = roleHierarchy[targetMember.role];
-      const newLevel = roleHierarchy[role.toUpperCase()];
+      const currentLevel = this.roleHierarchy[targetMember.role as GuildRole];
+      const newLevel = this.roleHierarchy[role.toUpperCase() as GuildRole];
 
       if (currentLevel >= newLevel) {
         this.send(client, 'error', { message: `${username} is already ${targetMember.role} or higher` });
@@ -488,8 +480,7 @@ export class GuildChatRoom extends ChatRoom {
       }
 
       // Determine new role
-      const roleHierarchy = { MEMBER: 1, TRADER: 2, OFFICER: 3, LEADER: 4 };
-      const currentLevel = roleHierarchy[targetMember.role];
+      const currentLevel = this.roleHierarchy[targetMember.role as GuildRole];
       let newRole = role ? role.toUpperCase() : 'MEMBER';
 
       // Validate new role
@@ -500,7 +491,7 @@ export class GuildChatRoom extends ChatRoom {
           return;
         }
         
-        const newLevel = roleHierarchy[newRole];
+        const newLevel = this.roleHierarchy[newRole as GuildRole];
         if (newLevel >= currentLevel) {
           this.send(client, 'error', { message: `Cannot demote ${username} to same or higher role` });
           return;
@@ -513,7 +504,7 @@ export class GuildChatRoom extends ChatRoom {
         }
         
         // Demote by one level
-        const roleLevels = ['MEMBER', 'TRADER', 'OFFICER', 'LEADER'];
+        const roleLevels: GuildRole[] = ['MEMBER', 'TRADER', 'OFFICER', 'LEADER'];
         newRole = roleLevels[currentLevel - 2]; // currentLevel is 1-indexed, array is 0-indexed
       }
 
@@ -709,20 +700,12 @@ export class GuildChatRoom extends ChatRoom {
           return;
         }
 
-        // Update channel metadata to enable slow mode
-        await prisma.guildChannel.update({
-          where: { id: this.guildChannelId },
-          data: {
-            metadata: {
-              slowMode: {
-                enabled: true,
-                duration: duration,
-                enabledBy: user.displayName,
-                enabledAt: new Date().toISOString()
-              }
-            }
-          }
-        });
+        // Note: Channel metadata field would need to be added to GuildChannel schema
+        // For now, just update local state
+        // await prisma.guildChannel.update({
+        //   where: { id: this.guildChannelId },
+        //   data: { /* metadata field not available */ }
+        // });
 
         // Log the action
         await prisma.guildLog.create({
@@ -766,19 +749,12 @@ export class GuildChatRoom extends ChatRoom {
         });
 
       } else if (action === 'disable') {
-        // Update channel metadata to disable slow mode
-        await prisma.guildChannel.update({
-          where: { id: this.guildChannelId },
-          data: {
-            metadata: {
-              slowMode: {
-                enabled: false,
-                disabledBy: user.displayName,
-                disabledAt: new Date().toISOString()
-              }
-            }
-          }
-        });
+        // Note: Channel metadata field would need to be added to GuildChannel schema
+        // For now, just update local state
+        // await prisma.guildChannel.update({
+        //   where: { id: this.guildChannelId },
+        //   data: { /* metadata field not available */ }
+        // });
 
         // Log the action
         await prisma.guildLog.create({

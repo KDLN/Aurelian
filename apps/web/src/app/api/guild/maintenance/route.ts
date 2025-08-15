@@ -268,14 +268,8 @@ async function archiveOldChatMessages() {
   const oldMessages = await prisma.chatMessage.deleteMany({
     where: {
       createdAt: { lt: ninetyDaysAgo },
-      channelType: 'GUILD',
-      // Keep pinned messages
-      NOT: {
-        metadata: {
-          path: ['pinned'],
-          equals: true
-        }
-      }
+      channelType: 'GUILD'
+      // Note: If pinned message functionality is needed, add metadata field to ChatMessage schema
     }
   });
 
