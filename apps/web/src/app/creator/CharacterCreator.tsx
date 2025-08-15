@@ -30,12 +30,52 @@ export default function CharacterCreator() {
   // Load user authentication state
   useEffect(() => {
     const loadUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        setUser(session.user);
-        await loadUserProfile(session.user);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          setUser(session.user);
+          await loadUserProfile(session.user);
+        } else {
+          // No user logged in, load default appearance
+          const defaultAppearance = {
+            name: '',
+            base: 'v01',
+            outfit: 'fstr_v01',
+            hair: 'bob1_v01',
+            hat: ''
+          };
+          setAppearance(defaultAppearance);
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Error loading user:', error);
+        // Fallback to default
+        setAppearance({
+          name: '',
+          base: 'v01',
+          outfit: 'fstr_v01',
+          hair: 'bob1_v01',
+          hat: ''
+        });
+        setLoading(false);
       }
     };
+
+    // Set a timeout to prevent infinite loading
+    const loadingTimeout = setTimeout(() => {
+      console.log('Loading timeout - setting defaults');
+      if (loading) {
+        setAppearance({
+          name: '',
+          base: 'v01',
+          outfit: 'fstr_v01',
+          hair: 'bob1_v01',
+          hat: ''
+        });
+        setLoading(false);
+      }
+    }, 5000); // 5 second timeout
+
     loadUser();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -45,31 +85,64 @@ export default function CharacterCreator() {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(loadingTimeout);
+    };
   }, []);
 
   // Load user profile and character data
   const loadUserProfile = async (authUser: any) => {
     try {
+      console.log('Loading profile for user:', authUser.id);
       const session = await supabase.auth.getSession();
       const token = session.data.session?.access_token;
       
-      if (!token) return;
+      if (!token) {
+        console.log('No token available, loading defaults');
+        setAppearance({
+          name: '',
+          base: 'v01',
+          outfit: 'fstr_v01',
+          hair: 'bob1_v01',
+          hat: ''
+        });
+        setName(authUser.email?.split('@')[0] || '');
+        setLoading(false);
+        return;
+      }
 
       // Load user profile
-      const profileResponse = await fetch('/api/user/profile', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
       let profile = null;
-      if (profileResponse.ok) {
-        const profileData = await profileResponse.json();
-        profile = profileData.profile;
-        setUserProfile(profile);
+      try {
+        const profileResponse = await fetch('/api/user/profile', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (profileResponse.ok) {
+          const profileData = await profileResponse.json();
+          profile = profileData.profile;
+          setUserProfile(profile);
+        }
+      } catch (profileError) {
+        console.log('Profile fetch failed, continuing with defaults:', profileError);
       }
 
       // Load character appearance
-      const dbAppearance = await loadCharacterAppearanceAsync();
+      let dbAppearance;
+      try {
+        dbAppearance = await loadCharacterAppearanceAsync();
+      } catch (appearanceError) {
+        console.log('Appearance fetch failed, using defaults:', appearanceError);
+        dbAppearance = {
+          name: '',
+          base: 'v01',
+          outfit: 'fstr_v01',
+          hair: 'bob1_v01',
+          hat: ''
+        };
+      }
+      
       setAppearance(dbAppearance);
       
       // Set name priority: character name -> profile display name -> email -> default
@@ -77,14 +150,20 @@ export default function CharacterCreator() {
       const profileName = profile?.display;
       const emailName = authUser.email?.split('@')[0]; // Use email prefix as fallback
       
-      setName(characterName || profileName || emailName || 'Trader');
+      setName(characterName || profileName || emailName || '');
+      console.log('Character creator loaded successfully');
       
     } catch (error) {
       console.error('Failed to load user data:', error);
-      // Load default appearance if database fails
-      const defaultAppearance = await loadCharacterAppearanceAsync();
-      setAppearance(defaultAppearance);
-      setName(user?.email?.split('@')[0] || 'Trader');
+      // Load default appearance if everything fails
+      setAppearance({
+        name: '',
+        base: 'v01',
+        outfit: 'fstr_v01',
+        hair: 'bob1_v01',
+        hat: ''
+      });
+      setName(authUser?.email?.split('@')[0] || '');
     } finally {
       setLoading(false);
     }
@@ -220,7 +299,41 @@ export default function CharacterCreator() {
   }
 
   if (loading || !appearance) {
-    return <div>Loading character...</div>;
+    return (
+      <div style={{ padding: 20, background: '#1a1511', minHeight: '100vh', color: '#f1e5c8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 18, marginBottom: 10 }}>Loading character creator...</div>
+          <div style={{ fontSize: 14, color: '#9b8c70' }}>
+            {loading ? 'Loading user data...' : 'Setting up character...'}
+          </div>
+          {/* Fallback button if loading takes too long */}
+          <button 
+            onClick={() => {
+              setLoading(false);
+              setAppearance({
+                name: '',
+                base: 'v01',
+                outfit: 'fstr_v01',
+                hair: 'bob1_v01',
+                hat: ''
+              });
+            }}
+            style={{
+              marginTop: 20,
+              padding: '8px 16px',
+              background: '#533b2c',
+              border: 'none',
+              borderRadius: 4,
+              color: '#f1e5c8',
+              cursor: 'pointer',
+              fontSize: 12
+            }}
+          >
+            Skip Loading (Use Defaults)
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
