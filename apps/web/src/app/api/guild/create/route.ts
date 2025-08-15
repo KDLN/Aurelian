@@ -51,11 +51,20 @@ export async function POST(request: NextRequest) {
 
     // Validate optional fields
     if (description && (typeof description !== 'string' || description.length > 500)) {
-      return createErrorResponse('MISSING_FIELDS', 'Description must be less than 500 characters');
+      return createErrorResponse('VALIDATION_ERROR', 'Description must be less than 500 characters');
     }
 
-    if (emblem && (typeof emblem !== 'string' || emblem.length > 10)) {
-      return createErrorResponse('MISSING_FIELDS', 'Emblem must be less than 10 characters');
+    // Validate emblem object structure
+    if (emblem) {
+      if (typeof emblem !== 'object' || !emblem.symbol || !emblem.color) {
+        return createErrorResponse('VALIDATION_ERROR', 'Emblem must include both symbol and color');
+      }
+      if (typeof emblem.symbol !== 'string' || emblem.symbol.length > 10) {
+        return createErrorResponse('VALIDATION_ERROR', 'Emblem symbol must be less than 10 characters');
+      }
+      if (typeof emblem.color !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(emblem.color)) {
+        return createErrorResponse('VALIDATION_ERROR', 'Emblem color must be a valid hex color code');
+      }
     }
 
     // Check if user is already in a guild
@@ -93,7 +102,7 @@ export async function POST(request: NextRequest) {
         data: {
           name,
           tag: tag.toUpperCase(),
-          emblem,
+          emblem: emblem ? JSON.stringify(emblem) : null,
           description
         }
       });
@@ -156,7 +165,7 @@ export async function POST(request: NextRequest) {
         id: guild.id,
         name: guild.name,
         tag: guild.tag,
-        emblem: guild.emblem,
+        emblem: guild.emblem ? JSON.parse(guild.emblem) : null,
         description: guild.description,
         level: guild.level,
         treasury: guild.treasury,
