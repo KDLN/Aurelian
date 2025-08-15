@@ -62,7 +62,7 @@ export default function Lobby(){
             trade goods, send caravans on missions, and craft valuable items.
           </p>
           
-          <div style={{marginTop:16, display:'grid', gridTemplateColumns:'1fr 1fr', gap:12}}>
+          <div className="main-nav-grid" style={{marginTop:'var(--space-md)', display:'grid', gridTemplateColumns:'1fr 1fr', gap:'var(--space-md)'}}>
             <Link href="/hub" className="nav-btn">
               🏛️ Trading Hub
               <div className="nav-desc">Overview & dashboard</div>
@@ -94,9 +94,9 @@ export default function Lobby(){
             </Link>
           </div>
           
-          <div style={{marginTop:24}}>
+          <div style={{marginTop:'var(--space-xl)'}}>
             <h3>Other Features</h3>
-            <div style={{display:'flex', gap:12}}>
+            <div className="other-features" style={{display:'flex', gap:'var(--space-md)'}}>
               <Link href="/creator" className="nav-btn-small">
                 👤 Character Creator
               </Link>
@@ -111,19 +111,23 @@ export default function Lobby(){
       <style>{`
         .panel{background:#32241d;border:4px solid #533b2c;border-radius:10px;box-shadow:0 4px 0 rgba(0,0,0,.4),inset 0 0 0 2px #1d1410}
         .ae{color:#f1e5c8;font-family:ui-monospace,Menlo,Consolas,monospace;max-width:800px}
-        .muted{color:#c7b38a;font-size:12px}
+        .muted{color:#c7b38a;font-size:var(--font-size-xs)}
         .good{color:#68b06e}
         .bad{color:#d73a49}
         
         .nav-btn {
           display: block;
-          padding: 12px;
+          padding: var(--space-md);
           background: #1d1410;
           border: 2px solid #533b2c;
           border-radius: 6px;
           text-decoration: none;
           color: #f1e5c8;
           transition: all 0.2s;
+          min-height: var(--touch-target-lg);
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
         }
         .nav-btn:hover {
           background: #2a1f18;
@@ -131,25 +135,62 @@ export default function Lobby(){
           transform: translateY(-1px);
         }
         .nav-desc {
-          font-size: 11px;
+          font-size: var(--font-size-xs);
           color: #c7b38a;
-          margin-top: 4px;
+          margin-top: var(--space-xs);
         }
         
         .nav-btn-small {
           display: inline-block;
-          padding: 8px 12px;
+          padding: var(--space-sm) var(--space-md);
           background: #1d1410;
           border: 1px solid #533b2c;
           border-radius: 4px;
           text-decoration: none;
           color: #f1e5c8;
-          font-size: 12px;
+          font-size: var(--font-size-xs);
           transition: all 0.2s;
+          min-height: var(--touch-target-md);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
         }
         .nav-btn-small:hover {
           background: #2a1f18;
           border-color: #6b4d3a;
+        }
+        
+        /* Responsive design */
+        @media (max-width: 640px) {
+          .panel {
+            padding: var(--space-md);
+          }
+          
+          .ae {
+            padding: var(--space-md);
+          }
+          
+          /* Stack navigation on mobile */
+          .main-nav-grid {
+            grid-template-columns: 1fr !important;
+            gap: var(--space-sm) !important;
+          }
+          
+          .nav-btn {
+            min-height: var(--touch-target-lg);
+            padding: var(--space-lg);
+          }
+          
+          .other-features {
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+          
+          .nav-btn-small {
+            width: 100%;
+            justify-content: center;
+            margin-bottom: var(--space-sm);
+          }
         }
       `}</style>
     </div>

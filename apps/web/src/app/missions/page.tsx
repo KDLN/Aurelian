@@ -251,7 +251,7 @@ export default function MissionsPage() {
       {availableAgents.length === 0 && agents.length === 0 && (
         <div className="game-card-sm" style={{ marginTop: '1rem' }}>
           <p className="game-warn game-small">No agents hired!</p>
-          <a href="/agents" className="game-btn game-btn-primary" style={{ fontSize: '12px' }}>
+          <a href="/agents" className="game-btn game-btn-primary" style={{ fontSize: 'var(--font-size-xs)' }}>
             Hire Agents
           </a>
         </div>
@@ -297,7 +297,7 @@ export default function MissionsPage() {
         <button 
           onClick={handleDebugSpeedUp}
           className="game-btn game-btn-warning" 
-          style={{ width: '100%', fontSize: '12px' }}
+          style={{ width: '100%', fontSize: 'var(--font-size-xs)' }}
           disabled={activeMissions.length === 0}
         >
           🚀 DEBUG: Speed Up Missions
@@ -386,11 +386,11 @@ export default function MissionsPage() {
                   onClick={handlePopulateMissions}
                   disabled={populatingMissions}
                   className="game-btn game-btn-primary"
-                  style={{ fontSize: '12px', padding: '8px 12px' }}
+                  style={{ fontSize: 'var(--font-size-xs)', padding: 'var(--space-sm) var(--space-md)' }}
                 >
                   {populatingMissions ? '🔄 Adding Missions...' : '🎯 Add Initial Missions (Debug)'}
                 </button>
-                <p className="game-small game-muted" style={{ textAlign: 'center', marginTop: '8px' }}>
+                <p className="game-small game-muted" style={{ textAlign: 'center', marginTop: 'var(--space-sm)' }}>
                   This will populate the database with starter missions
                 </p>
               </div>
