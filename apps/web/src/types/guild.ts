@@ -241,6 +241,8 @@ export interface AllianceMission {
   maxParticipants: number;
   currentParticipants: number;
   participants: AllianceMissionParticipant[];
+  canJoin?: boolean;
+  isParticipating?: boolean;
   createdAt: string;
   updatedAt: string;
 }

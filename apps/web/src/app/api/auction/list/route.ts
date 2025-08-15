@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
     
     let finalFee = baseFee;
     let allianceDiscount = 0;
-    let allianceBenefits = null;
+    let allianceBenefits: any = null;
 
     // Check for alliance benefits
     const userGuild = await prisma.guildMember.findUnique({
