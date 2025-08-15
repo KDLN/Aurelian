@@ -20,6 +20,7 @@ export default function OnboardingTips() {
   const [isVisible, setIsVisible] = useState(false);
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isCompleted, setIsCompleted] = useState(false);
 
   const steps: OnboardingStep[] = [
     {
@@ -157,6 +158,7 @@ export default function OnboardingTips() {
           // Don't show if user has completed all steps or dismissed
           if (progress.dismissed || (progress.completed?.length >= steps.length)) {
             setIsVisible(false);
+            setIsCompleted(true);
             setLoading(false);
             return;
           }
@@ -215,12 +217,15 @@ export default function OnboardingTips() {
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
+      // Tutorial completed
       setIsVisible(false);
+      setIsCompleted(true);
     }
   };
 
   const dismissOnboarding = async () => {
     setIsVisible(false);
+    setIsCompleted(true);
     if (user) {
       await saveOnboardingProgress({
         completed: steps.map(s => s.id),
@@ -234,6 +239,7 @@ export default function OnboardingTips() {
     setCurrentStep(0);
     setCompletedSteps([]);
     setIsVisible(true);
+    setIsCompleted(false);
     if (user) {
       await saveOnboardingProgress({
         completed: [],
@@ -247,6 +253,11 @@ export default function OnboardingTips() {
   }
 
   if (!isVisible || !user || currentStep >= steps.length) {
+    // Don't show the tutorial button if onboarding is completed
+    if (isCompleted) {
+      return null;
+    }
+    
     return (
       <div style={{
         position: 'fixed',
