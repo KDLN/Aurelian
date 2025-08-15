@@ -21,6 +21,10 @@ export class GuildChatRoom extends ChatRoom {
     MEMBER: 1
   };
 
+  // Slow mode tracking
+  private userLastMessage: Map<string, number> = new Map();
+  private slowModeSettings: { enabled: boolean; duration: number } = { enabled: false, duration: 0 };
+
   async onCreate(options: any) {
     this.guildChannelId = options.guildChannelId;
 
@@ -50,6 +54,17 @@ export class GuildChatRoom extends ChatRoom {
     this.guildId = channel.guildId;
     this.channelName = channel.name || 'general';
     this.requiredRole = channel.roleRequired as GuildRole | undefined;
+
+    // Load slow mode settings from channel metadata
+    if (channel.metadata && typeof channel.metadata === 'object' && 'slowMode' in channel.metadata) {
+      const slowMode = (channel.metadata as any).slowMode;
+      if (slowMode && typeof slowMode === 'object') {
+        this.slowModeSettings = {
+          enabled: slowMode.enabled === true,
+          duration: slowMode.duration || 0
+        };
+      }
+    }
 
     console.info(`GuildChatRoom created for guild ${this.guildId}, channel: ${this.channelName}`);
 
@@ -104,6 +119,21 @@ export class GuildChatRoom extends ChatRoom {
 
   protected async saveMessage(user: ChatUser, message: any): Promise<ChatMessage> {
     try {
+      // Check slow mode restrictions (officers and leaders are exempt)
+      if (this.slowModeSettings.enabled && !this.hasRolePermission(user.guildRole as GuildRole, 'OFFICER')) {
+        const lastMessageTime = this.userLastMessage.get(user.userId) || 0;
+        const now = Date.now();
+        const timeSinceLastMessage = (now - lastMessageTime) / 1000;
+
+        if (timeSinceLastMessage < this.slowModeSettings.duration) {
+          const remainingTime = Math.ceil(this.slowModeSettings.duration - timeSinceLastMessage);
+          throw new Error(`Slow mode active. You can send another message in ${remainingTime} seconds.`);
+        }
+
+        // Update last message time
+        this.userLastMessage.set(user.userId, now);
+      }
+
       // Save message and log guild activity in a transaction
       const savedMessage = await prisma.$transaction(async (tx) => {
         const msg = await tx.chatMessage.create({
@@ -323,9 +353,94 @@ export class GuildChatRoom extends ChatRoom {
       return;
     }
 
-    // Implementation for promoting guild members
-    // This would involve updating the GuildMember table
-    this.send(client, 'info', { message: 'Promote command received (implementation pending)' });
+    const { username, role } = args;
+    if (!username || !role) {
+      this.send(client, 'error', { message: 'Usage: /promote <username> <role>' });
+      return;
+    }
+
+    const validRoles = ['MEMBER', 'TRADER', 'OFFICER'];
+    if (!validRoles.includes(role.toUpperCase())) {
+      this.send(client, 'error', { message: 'Valid roles: MEMBER, TRADER, OFFICER' });
+      return;
+    }
+
+    try {
+      // Find the target user in the guild
+      const targetMember = await prisma.guildMember.findFirst({
+        where: {
+          guildId: this.guildId,
+          user: {
+            profile: {
+              display: username
+            }
+          }
+        },
+        include: {
+          user: {
+            include: {
+              profile: true
+            }
+          }
+        }
+      });
+
+      if (!targetMember) {
+        this.send(client, 'error', { message: `User ${username} not found in guild` });
+        return;
+      }
+
+      // Check if target is already at or above the role
+      const roleHierarchy = { MEMBER: 1, TRADER: 2, OFFICER: 3, LEADER: 4 };
+      const currentLevel = roleHierarchy[targetMember.role];
+      const newLevel = roleHierarchy[role.toUpperCase()];
+
+      if (currentLevel >= newLevel) {
+        this.send(client, 'error', { message: `${username} is already ${targetMember.role} or higher` });
+        return;
+      }
+
+      // Update the member's role
+      await prisma.guildMember.update({
+        where: { id: targetMember.id },
+        data: { role: role.toUpperCase() as any }
+      });
+
+      // Log the promotion
+      await prisma.guildLog.create({
+        data: {
+          guildId: this.guildId,
+          userId: user.userId,
+          action: 'member_promoted',
+          details: {
+            targetUserId: targetMember.userId,
+            targetUsername: username,
+            oldRole: targetMember.role,
+            newRole: role.toUpperCase(),
+            promotedBy: user.displayName,
+            via: 'chat_command'
+          }
+        }
+      });
+
+      // Broadcast system message
+      const systemMessage = {
+        content: `${username} has been promoted to ${role.toUpperCase()} by ${user.displayName}`,
+        metadata: {
+          type: 'system_message',
+          action: 'member_promoted',
+          targetUser: username,
+          newRole: role.toUpperCase()
+        }
+      };
+
+      const chatMessage = await this.saveMessage(user, systemMessage);
+      await this.broadcastMessage(chatMessage);
+
+    } catch (error) {
+      console.error('Failed to promote member:', error);
+      this.send(client, 'error', { message: 'Failed to promote member' });
+    }
   }
 
   private async handleDemoteCommand(client: Client, user: ChatUser, args: any) {
@@ -335,8 +450,114 @@ export class GuildChatRoom extends ChatRoom {
       return;
     }
 
-    // Implementation for demoting guild members
-    this.send(client, 'info', { message: 'Demote command received (implementation pending)' });
+    const { username, role } = args;
+    if (!username) {
+      this.send(client, 'error', { message: 'Usage: /demote <username> [role]' });
+      return;
+    }
+
+    try {
+      // Find the target user in the guild
+      const targetMember = await prisma.guildMember.findFirst({
+        where: {
+          guildId: this.guildId,
+          user: {
+            profile: {
+              display: username
+            }
+          }
+        },
+        include: {
+          user: {
+            include: {
+              profile: true
+            }
+          }
+        }
+      });
+
+      if (!targetMember) {
+        this.send(client, 'error', { message: `User ${username} not found in guild` });
+        return;
+      }
+
+      // Can't demote yourself
+      if (targetMember.userId === user.userId) {
+        this.send(client, 'error', { message: 'You cannot demote yourself' });
+        return;
+      }
+
+      // Determine new role
+      const roleHierarchy = { MEMBER: 1, TRADER: 2, OFFICER: 3, LEADER: 4 };
+      const currentLevel = roleHierarchy[targetMember.role];
+      let newRole = role ? role.toUpperCase() : 'MEMBER';
+
+      // Validate new role
+      if (role) {
+        const validRoles = ['MEMBER', 'TRADER', 'OFFICER'];
+        if (!validRoles.includes(newRole)) {
+          this.send(client, 'error', { message: 'Valid roles: MEMBER, TRADER, OFFICER' });
+          return;
+        }
+        
+        const newLevel = roleHierarchy[newRole];
+        if (newLevel >= currentLevel) {
+          this.send(client, 'error', { message: `Cannot demote ${username} to same or higher role` });
+          return;
+        }
+      } else {
+        // Default demotion logic
+        if (currentLevel <= 1) {
+          this.send(client, 'error', { message: `${username} is already at the lowest role` });
+          return;
+        }
+        
+        // Demote by one level
+        const roleLevels = ['MEMBER', 'TRADER', 'OFFICER', 'LEADER'];
+        newRole = roleLevels[currentLevel - 2]; // currentLevel is 1-indexed, array is 0-indexed
+      }
+
+      // Update the member's role
+      await prisma.guildMember.update({
+        where: { id: targetMember.id },
+        data: { role: newRole as any }
+      });
+
+      // Log the demotion
+      await prisma.guildLog.create({
+        data: {
+          guildId: this.guildId,
+          userId: user.userId,
+          action: 'member_demoted',
+          details: {
+            targetUserId: targetMember.userId,
+            targetUsername: username,
+            oldRole: targetMember.role,
+            newRole: newRole,
+            demotedBy: user.displayName,
+            via: 'chat_command'
+          }
+        }
+      });
+
+      // Broadcast system message
+      const systemMessage = {
+        content: `${username} has been demoted to ${newRole} by ${user.displayName}`,
+        metadata: {
+          type: 'system_message',
+          action: 'member_demoted',
+          targetUser: username,
+          newRole: newRole
+        }
+      };
+
+      const chatMessage = await this.saveMessage(user, systemMessage);
+      await this.broadcastMessage(chatMessage);
+
+    } catch (error) {
+      console.error('Failed to demote member:', error);
+      this.send(client, 'error', { message: 'Failed to demote member' });
+    }
   }
 
   private async handleAnnouncementCommand(client: Client, user: ChatUser, args: any) {
@@ -366,8 +587,110 @@ export class GuildChatRoom extends ChatRoom {
       return;
     }
 
-    // Implementation for pinning messages
-    this.send(client, 'info', { message: 'Pin message feature coming soon' });
+    const { messageId, action } = data; // action: 'pin' or 'unpin'
+    if (!messageId) {
+      this.send(client, 'error', { message: 'Message ID required' });
+      return;
+    }
+
+    try {
+      // Find the message in this channel
+      const message = await prisma.chatMessage.findFirst({
+        where: {
+          id: messageId,
+          guildChannelId: this.guildChannelId,
+          deletedAt: null
+        },
+        include: {
+          user: {
+            include: {
+              profile: true
+            }
+          }
+        }
+      });
+
+      if (!message) {
+        this.send(client, 'error', { message: 'Message not found in this channel' });
+        return;
+      }
+
+      const isPinning = action === 'pin';
+      const currentlyPinned = message.metadata && 
+        typeof message.metadata === 'object' && 
+        'pinned' in message.metadata && 
+        message.metadata.pinned === true;
+
+      if (isPinning && currentlyPinned) {
+        this.send(client, 'error', { message: 'Message is already pinned' });
+        return;
+      }
+
+      if (!isPinning && !currentlyPinned) {
+        this.send(client, 'error', { message: 'Message is not pinned' });
+        return;
+      }
+
+      // Update message metadata
+      const updatedMetadata = {
+        ...(message.metadata as object || {}),
+        pinned: isPinning,
+        ...(isPinning && {
+          pinnedBy: user.displayName,
+          pinnedAt: new Date().toISOString()
+        })
+      };
+
+      await prisma.chatMessage.update({
+        where: { id: messageId },
+        data: { metadata: updatedMetadata }
+      });
+
+      // Log the action
+      await prisma.guildLog.create({
+        data: {
+          guildId: this.guildId,
+          userId: user.userId,
+          action: isPinning ? 'message_pinned' : 'message_unpinned',
+          details: {
+            messageId,
+            channelName: this.channelName,
+            originalAuthor: message.user.profile?.display || 'Unknown',
+            messagePreview: message.content.substring(0, 100),
+            pinnedBy: user.displayName
+          }
+        }
+      });
+
+      // Broadcast pin/unpin notification
+      const notificationMessage = {
+        content: `📌 Message ${isPinning ? 'pinned' : 'unpinned'} by ${user.displayName}`,
+        metadata: {
+          type: 'system_message',
+          action: isPinning ? 'message_pinned' : 'message_unpinned',
+          pinnedMessageId: messageId,
+          originalMessage: {
+            author: message.user.profile?.display || 'Unknown',
+            content: message.content.substring(0, 100) + (message.content.length > 100 ? '...' : ''),
+            timestamp: message.createdAt.getTime()
+          }
+        }
+      };
+
+      const chatMessage = await this.saveMessage(user, notificationMessage);
+      await this.broadcastMessage(chatMessage);
+
+      // Send updated message data to all clients
+      this.broadcast('message_updated', {
+        messageId,
+        metadata: updatedMetadata,
+        action: isPinning ? 'pinned' : 'unpinned'
+      });
+
+    } catch (error) {
+      console.error('Failed to pin/unpin message:', error);
+      this.send(client, 'error', { message: 'Failed to update message pin status' });
+    }
   }
 
   private async handleSlowMode(client: Client, data: any) {
@@ -377,8 +700,135 @@ export class GuildChatRoom extends ChatRoom {
       return;
     }
 
-    // Implementation for slow mode
-    this.send(client, 'info', { message: 'Slow mode feature coming soon' });
+    const { action, duration } = data; // action: 'enable' or 'disable', duration in seconds
+    
+    try {
+      if (action === 'enable') {
+        if (!duration || duration < 1 || duration > 300) {
+          this.send(client, 'error', { message: 'Duration must be between 1 and 300 seconds' });
+          return;
+        }
+
+        // Update channel metadata to enable slow mode
+        await prisma.guildChannel.update({
+          where: { id: this.guildChannelId },
+          data: {
+            metadata: {
+              slowMode: {
+                enabled: true,
+                duration: duration,
+                enabledBy: user.displayName,
+                enabledAt: new Date().toISOString()
+              }
+            }
+          }
+        });
+
+        // Log the action
+        await prisma.guildLog.create({
+          data: {
+            guildId: this.guildId,
+            userId: user.userId,
+            action: 'slow_mode_enabled',
+            details: {
+              channelName: this.channelName,
+              duration: duration,
+              enabledBy: user.displayName
+            }
+          }
+        });
+
+        // Broadcast system message
+        const systemMessage = {
+          content: `🐌 Slow mode enabled by ${user.displayName} - ${duration} second cooldown between messages`,
+          metadata: {
+            type: 'system_message',
+            action: 'slow_mode_enabled',
+            duration: duration,
+            enabledBy: user.displayName
+          }
+        };
+
+        const chatMessage = await this.saveMessage(user, systemMessage);
+        await this.broadcastMessage(chatMessage);
+
+        // Update local slow mode settings
+        this.slowModeSettings = {
+          enabled: true,
+          duration: duration
+        };
+
+        // Notify all clients about slow mode state
+        this.broadcast('slow_mode_updated', {
+          enabled: true,
+          duration: duration,
+          enabledBy: user.displayName
+        });
+
+      } else if (action === 'disable') {
+        // Update channel metadata to disable slow mode
+        await prisma.guildChannel.update({
+          where: { id: this.guildChannelId },
+          data: {
+            metadata: {
+              slowMode: {
+                enabled: false,
+                disabledBy: user.displayName,
+                disabledAt: new Date().toISOString()
+              }
+            }
+          }
+        });
+
+        // Log the action
+        await prisma.guildLog.create({
+          data: {
+            guildId: this.guildId,
+            userId: user.userId,
+            action: 'slow_mode_disabled',
+            details: {
+              channelName: this.channelName,
+              disabledBy: user.displayName
+            }
+          }
+        });
+
+        // Broadcast system message
+        const systemMessage = {
+          content: `🚀 Slow mode disabled by ${user.displayName}`,
+          metadata: {
+            type: 'system_message',
+            action: 'slow_mode_disabled',
+            disabledBy: user.displayName
+          }
+        };
+
+        const chatMessage = await this.saveMessage(user, systemMessage);
+        await this.broadcastMessage(chatMessage);
+
+        // Update local slow mode settings
+        this.slowModeSettings = {
+          enabled: false,
+          duration: 0
+        };
+
+        // Clear all user message timestamps when disabling
+        this.userLastMessage.clear();
+
+        // Notify all clients about slow mode state
+        this.broadcast('slow_mode_updated', {
+          enabled: false,
+          disabledBy: user.displayName
+        });
+
+      } else {
+        this.send(client, 'error', { message: 'Invalid action. Use "enable" or "disable"' });
+      }
+
+    } catch (error) {
+      console.error('Failed to update slow mode:', error);
+      this.send(client, 'error', { message: 'Failed to update slow mode settings' });
+    }
   }
 
   private async handleKickUser(client: Client, data: any) {
@@ -452,7 +902,8 @@ export class GuildChatRoom extends ChatRoom {
       channelId: this.guildChannelId,
       channelName: this.channelName,
       requiredRole: this.requiredRole,
-      userRole: auth.guildRole
+      userRole: auth.guildRole,
+      slowMode: this.slowModeSettings
     });
   }
 }

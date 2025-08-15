@@ -1,36 +1,61 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { 
+  authenticateUser,
+  createErrorResponse,
+  createSuccessResponse,
+  validateRequiredFields,
+  InputValidation,
+  checkRateLimit
+} from '@/lib/apiUtils';
 import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 export async function POST(request: NextRequest) {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
     
-    if (!token) {
-      return NextResponse.json({ error: 'No token provided' }, { status: 401 });
+    // Authenticate user
+    const authResult = await authenticateUser(token);
+    if ('error' in authResult) {
+      return createErrorResponse(authResult.error);
+    }
+    const { user } = authResult;
+
+    // Rate limiting - 1 guild creation per hour per user
+    const rateLimitCheck = checkRateLimit(`guild_create:${user.id}`, 3600000, 1);
+    if (!rateLimitCheck.allowed) {
+      const resetIn = Math.ceil((rateLimitCheck.resetTime! - Date.now()) / 60000);
+      return createErrorResponse('MISSING_FIELDS', `You can only create one guild per hour. Try again in ${resetIn} minutes.`);
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    // Parse and validate request body
+    const body = await request.json();
+    const validationError = validateRequiredFields(body, ['name', 'tag']);
+    if (validationError) {
+      return createErrorResponse('MISSING_FIELDS', validationError);
     }
 
-    const { name, tag, emblem, description } = await request.json();
+    const { name, tag, emblem, description } = body;
 
-    if (!name || !tag) {
-      return NextResponse.json({ error: 'Name and tag are required' }, { status: 400 });
+    // Enhanced validation
+    const nameError = InputValidation.guildName(name);
+    if (nameError) {
+      return createErrorResponse('MISSING_FIELDS', nameError);
     }
 
-    if (tag.length < 3 || tag.length > 5) {
-      return NextResponse.json({ error: 'Tag must be 3-5 characters' }, { status: 400 });
+    const tagError = InputValidation.guildTag(tag);
+    if (tagError) {
+      return createErrorResponse('MISSING_FIELDS', tagError);
+    }
+
+    // Validate optional fields
+    if (description && (typeof description !== 'string' || description.length > 500)) {
+      return createErrorResponse('MISSING_FIELDS', 'Description must be less than 500 characters');
+    }
+
+    if (emblem && (typeof emblem !== 'string' || emblem.length > 10)) {
+      return createErrorResponse('MISSING_FIELDS', 'Emblem must be less than 10 characters');
     }
 
     // Check if user is already in a guild
@@ -39,7 +64,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingMember) {
-      return NextResponse.json({ error: 'You are already in a guild' }, { status: 400 });
+      return createErrorResponse('CONFLICT', 'You are already in a guild');
     }
 
     // Check if guild name or tag already exists
@@ -53,9 +78,10 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingGuild) {
-      return NextResponse.json({ 
-        error: existingGuild.name === name ? 'Guild name already taken' : 'Guild tag already taken' 
-      }, { status: 400 });
+      return createErrorResponse(
+        'CONFLICT', 
+        existingGuild.name === name ? 'Guild name already taken' : 'Guild tag already taken'
+      );
     }
 
     console.log('Creating guild with data:', { name, tag: tag.toUpperCase(), emblem, description });
@@ -125,8 +151,7 @@ export async function POST(request: NextRequest) {
       return newGuild;
     });
 
-    return NextResponse.json({
-      success: true,
+    return createSuccessResponse({
       guild: {
         id: guild.id,
         name: guild.name,
@@ -144,9 +169,6 @@ export async function POST(request: NextRequest) {
     console.error('Error name:', error?.name);
     console.error('Error message:', error?.message);
     console.error('Error stack:', error?.stack);
-    return NextResponse.json(
-      { error: 'Failed to create guild', details: error?.message },
-      { status: 500 }
-    );
+    return createErrorResponse('INTERNAL_ERROR', `Failed to create guild: ${error?.message}`);
   }
 }

@@ -1,48 +1,67 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { 
+  authenticateUser,
+  createErrorResponse,
+  createSuccessResponse,
+  getUserGuildMembership,
+  validateRequiredFields,
+  InputValidation,
+  checkRateLimit,
+  checkRolePermissions,
+  logGuildActivity
+} from '@/lib/apiUtils';
 import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 // POST - Send guild invitation
 export async function POST(request: NextRequest) {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
     
-    if (!token) {
-      return NextResponse.json({ error: 'No token provided' }, { status: 401 });
+    // Authenticate user
+    const authResult = await authenticateUser(token);
+    if ('error' in authResult) {
+      return createErrorResponse(authResult.error);
+    }
+    const { user } = authResult;
+
+    // Rate limiting - 10 invites per hour per user
+    const rateLimitCheck = checkRateLimit(`guild_invite:${user.id}`, 3600000, 10);
+    if (!rateLimitCheck.allowed) {
+      const resetIn = Math.ceil((rateLimitCheck.resetTime! - Date.now()) / 60000);
+      return createErrorResponse('MISSING_FIELDS', `Too many invitations sent. Try again in ${resetIn} minutes.`);
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    // Parse and validate request body
+    const body = await request.json();
+    const validationError = validateRequiredFields(body, ['targetUserId']);
+    if (validationError) {
+      return createErrorResponse('MISSING_FIELDS', validationError);
     }
 
-    const { targetUserId, message } = await request.json();
+    const { targetUserId, message } = body;
 
-    if (!targetUserId) {
-      return NextResponse.json({ error: 'Target user ID is required' }, { status: 400 });
+    // Validate target user ID format
+    if (typeof targetUserId !== 'string' || targetUserId.length < 1) {
+      return createErrorResponse('MISSING_FIELDS', 'Invalid target user ID');
     }
 
-    // Check if inviter is in a guild and has permission
-    const inviterMembership = await prisma.guildMember.findUnique({
-      where: { userId: user.id },
-      include: { guild: true }
-    });
-
-    if (!inviterMembership) {
-      return NextResponse.json({ error: 'You are not in a guild' }, { status: 400 });
+    // Validate message if provided
+    if (message && (typeof message !== 'string' || message.length > 500)) {
+      return createErrorResponse('MISSING_FIELDS', 'Message must be less than 500 characters');
     }
 
-    // Only officers and leaders can invite
-    if (!['LEADER', 'OFFICER'].includes(inviterMembership.role)) {
-      return NextResponse.json({ error: 'Only officers and leaders can invite members' }, { status: 403 });
+    // Get user's guild membership
+    const membershipResult = await getUserGuildMembership(user.id);
+    if ('error' in membershipResult) {
+      return createErrorResponse(membershipResult.error);
+    }
+    const { membership } = membershipResult;
+
+    // Check role permissions
+    if (!checkRolePermissions(membership.role, ['LEADER', 'OFFICER'])) {
+      return createErrorResponse('INSUFFICIENT_PERMISSIONS', 'Only officers and leaders can invite members');
     }
 
     // Check if target user exists and isn't already in a guild
@@ -52,34 +71,34 @@ export async function POST(request: NextRequest) {
     });
 
     if (!targetUser) {
-      return NextResponse.json({ error: 'Target user not found' }, { status: 404 });
+      return createErrorResponse('NOT_FOUND', 'Target user not found');
     }
 
     if (targetUser.guildMembership) {
-      return NextResponse.json({ error: 'User is already in a guild' }, { status: 400 });
+      return createErrorResponse('CONFLICT', 'User is already in a guild');
     }
 
     // Check if guild is at capacity
     const memberCount = await prisma.guildMember.count({
-      where: { guildId: inviterMembership.guildId }
+      where: { guildId: membership.guild.id }
     });
 
-    if (memberCount >= inviterMembership.guild.maxMembers) {
-      return NextResponse.json({ error: 'Guild is at maximum capacity' }, { status: 400 });
+    if (memberCount >= membership.guild.maxMembers) {
+      return createErrorResponse('CONFLICT', 'Guild is at maximum capacity');
     }
 
     // Check if invitation already exists
     const existingInvite = await prisma.guildInvite.findUnique({
       where: {
         guildId_userId: {
-          guildId: inviterMembership.guildId,
+          guildId: membership.guild.id,
           userId: targetUserId
         }
       }
     });
 
     if (existingInvite) {
-      return NextResponse.json({ error: 'Invitation already sent to this user' }, { status: 400 });
+      return createErrorResponse('CONFLICT', 'Invitation already sent to this user');
     }
 
     // Create invitation (expires in 7 days)
@@ -89,43 +108,45 @@ export async function POST(request: NextRequest) {
     const invitation = await prisma.$transaction(async (tx) => {
       const invite = await tx.guildInvite.create({
         data: {
-          guildId: inviterMembership.guildId,
+          guildId: membership.guild.id,
           userId: targetUserId,
           invitedBy: user.id,
-          message,
+          message: message || '',
           expiresAt
         }
       });
 
-      await tx.guildLog.create({
-        data: {
-          guildId: inviterMembership.guildId,
-          userId: user.id,
-          action: 'invitation_sent',
-          details: { targetUserId, message }
-        }
-      });
+      await logGuildActivity(
+        membership.guild.id,
+        user.id,
+        'invitation_sent',
+        { 
+          targetUserId,
+          message: message || '',
+          expiresAt: expiresAt.toISOString()
+        },
+        tx
+      );
 
       return invite;
+    }, {
+      isolationLevel: 'Serializable',
+      timeout: 10000
     });
 
-    return NextResponse.json({
-      success: true,
+    return createSuccessResponse({
       invitation: {
         id: invitation.id,
-        guildName: inviterMembership.guild.name,
-        guildTag: inviterMembership.guild.tag,
+        guildName: membership.guild.name,
+        guildTag: membership.guild.tag,
         message: invitation.message,
         expiresAt: invitation.expiresAt
       }
-    });
+    }, 'Guild invitation sent successfully');
 
   } catch (error) {
     console.error('Error sending guild invitation:', error);
-    return NextResponse.json(
-      { error: 'Failed to send guild invitation' },
-      { status: 500 }
-    );
+    return createErrorResponse('INTERNAL_ERROR', 'Failed to send guild invitation');
   }
 }
 
@@ -134,15 +155,12 @@ export async function GET(request: NextRequest) {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
     
-    if (!token) {
-      return NextResponse.json({ error: 'No token provided' }, { status: 401 });
+    // Authenticate user
+    const authResult = await authenticateUser(token);
+    if ('error' in authResult) {
+      return createErrorResponse(authResult.error);
     }
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
+    const { user } = authResult;
 
     // Get all active invitations for the user
     const invitations = await prisma.guildInvite.findMany({
@@ -176,16 +194,12 @@ export async function GET(request: NextRequest) {
       expiresAt: invite.expiresAt
     }));
 
-    return NextResponse.json({
-      success: true,
+    return createSuccessResponse({
       invitations: formattedInvitations
     });
 
   } catch (error) {
     console.error('Error fetching guild invitations:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch guild invitations' },
-      { status: 500 }
-    );
+    return createErrorResponse('INTERNAL_ERROR', 'Failed to fetch guild invitations');
   }
 }

@@ -107,15 +107,17 @@ export function canManageRole(managerRole: string, targetRole: string) {
   return managerLevel > targetLevel;
 }
 
-// Log guild activity
+// Log guild activity (can be used within transactions)
 export async function logGuildActivity(
   guildId: string,
   userId: string,
   action: string,
-  details?: any
+  details?: any,
+  tx?: any // Transaction object
 ) {
   try {
-    await prisma.guildLog.create({
+    const client = tx || prisma;
+    await client.guildLog.create({
       data: {
         guildId,
         userId,
@@ -134,6 +136,98 @@ export function validateRequiredFields(body: any, fields: string[]) {
   const missing = fields.filter(field => !body[field]);
   return missing.length === 0 ? null : `Missing required fields: ${missing.join(', ')}`;
 }
+
+// Enhanced input validation
+export const InputValidation = {
+  // Guild name validation
+  guildName: (name: string) => {
+    if (!name || typeof name !== 'string') return 'Guild name is required';
+    if (name.length < 3) return 'Guild name must be at least 3 characters';
+    if (name.length > 30) return 'Guild name must be less than 30 characters';
+    if (!/^[a-zA-Z0-9\s\-_]+$/.test(name)) return 'Guild name contains invalid characters';
+    return null;
+  },
+
+  // Guild tag validation
+  guildTag: (tag: string) => {
+    if (!tag || typeof tag !== 'string') return 'Guild tag is required';
+    if (tag.length < 3) return 'Guild tag must be at least 3 characters';
+    if (tag.length > 5) return 'Guild tag must be less than 5 characters';
+    if (!/^[A-Z0-9]+$/.test(tag.toUpperCase())) return 'Guild tag can only contain letters and numbers';
+    return null;
+  },
+
+  // Amount validation for gold/items
+  amount: (amount: any, min = 1, max = 1000000) => {
+    if (amount === undefined || amount === null) return 'Amount is required';
+    if (typeof amount !== 'number' || isNaN(amount)) return 'Amount must be a number';
+    if (!Number.isInteger(amount)) return 'Amount must be a whole number';
+    if (amount < min) return `Amount must be at least ${min}`;
+    if (amount > max) return `Amount cannot exceed ${max.toLocaleString()}`;
+    return null;
+  },
+
+  // Item ID validation
+  itemId: (itemId: string) => {
+    if (!itemId || typeof itemId !== 'string') return 'Item ID is required';
+    if (!/^[a-zA-Z0-9\-_]+$/.test(itemId)) return 'Invalid item ID format';
+    return null;
+  },
+
+  // Message content validation
+  messageContent: (content: string) => {
+    if (!content || typeof content !== 'string') return 'Message content is required';
+    if (content.trim().length === 0) return 'Message cannot be empty';
+    if (content.length > 2000) return 'Message cannot exceed 2000 characters';
+    return null;
+  },
+
+  // Role validation
+  guildRole: (role: string) => {
+    const validRoles = ['LEADER', 'OFFICER', 'TRADER', 'MEMBER'];
+    if (!role || !validRoles.includes(role.toUpperCase())) {
+      return `Invalid role. Must be one of: ${validRoles.join(', ')}`;
+    }
+    return null;
+  }
+};
+
+// Rate limiting using in-memory store (for production, use Redis)
+const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+
+export function checkRateLimit(
+  identifier: string, 
+  windowMs: number = 60000, // 1 minute
+  maxRequests: number = 10
+): { allowed: boolean; resetTime?: number } {
+  const now = Date.now();
+  const key = identifier;
+  
+  const current = rateLimitStore.get(key);
+  
+  if (!current || now > current.resetTime) {
+    // Reset window
+    rateLimitStore.set(key, { count: 1, resetTime: now + windowMs });
+    return { allowed: true };
+  }
+  
+  if (current.count >= maxRequests) {
+    return { allowed: false, resetTime: current.resetTime };
+  }
+  
+  current.count++;
+  return { allowed: true };
+}
+
+// Clean up expired rate limit entries
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, value] of rateLimitStore.entries()) {
+    if (now > value.resetTime) {
+      rateLimitStore.delete(key);
+    }
+  }
+}, 60000); // Clean up every minute
 
 // Common guild member formatting
 export function formatGuildMember(member: any) {
@@ -162,4 +256,85 @@ export function formatGuildInfo(guild: any) {
     isActive: guild.isActive,
     createdAt: guild.createdAt
   };
+}
+
+// Safe treasury operations with race condition protection
+export async function transferGold(
+  fromType: 'user' | 'guild',
+  toType: 'user' | 'guild', 
+  fromId: string,
+  toId: string,
+  amount: number,
+  reason?: string,
+  userId?: string
+) {
+  return await prisma.$transaction(async (tx) => {
+    if (fromType === 'user' && toType === 'guild') {
+      // User to Guild (deposit)
+      const userWallet = await tx.wallet.findUnique({
+        where: { id: fromId },
+        select: { gold: true, userId: true }
+      });
+
+      if (!userWallet || userWallet.gold < amount) {
+        throw new Error('Insufficient user gold');
+      }
+
+      // Atomic operations
+      await tx.wallet.update({
+        where: { 
+          id: fromId,
+          gold: { gte: amount }
+        },
+        data: { gold: { decrement: amount } }
+      });
+
+      await tx.guild.update({
+        where: { id: toId },
+        data: { treasury: { increment: amount } }
+      });
+
+      // Log activity
+      if (userId) {
+        await logGuildActivity(toId, userId, 'treasury_deposit', { amount, reason }, tx);
+      }
+
+    } else if (fromType === 'guild' && toType === 'user') {
+      // Guild to User (withdrawal)
+      const guild = await tx.guild.findUnique({
+        where: { id: fromId },
+        select: { treasury: true }
+      });
+
+      if (!guild || guild.treasury < amount) {
+        throw new Error('Insufficient guild treasury');
+      }
+
+      // Atomic operations
+      await tx.guild.update({
+        where: { 
+          id: fromId,
+          treasury: { gte: amount }
+        },
+        data: { treasury: { decrement: amount } }
+      });
+
+      await tx.wallet.update({
+        where: { id: toId },
+        data: { gold: { increment: amount } }
+      });
+
+      // Log activity
+      if (userId) {
+        await logGuildActivity(fromId, userId, 'treasury_withdraw', { amount, reason }, tx);
+      }
+    } else {
+      throw new Error('Unsupported transfer type');
+    }
+
+    return { success: true };
+  }, {
+    isolationLevel: 'Serializable',
+    timeout: 10000
+  });
 }

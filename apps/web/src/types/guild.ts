@@ -243,3 +243,128 @@ export interface ApiErrorResponse {
   error: string;
   details?: string;
 }
+
+// Standard API Response wrapper
+export interface ApiResponse<T = any> {
+  success: boolean;
+  message?: string;
+  data?: T;
+  error?: string;
+  details?: string;
+}
+
+// Guild Health Report Types
+export interface GuildHealthReport {
+  healthScore: number;
+  status: 'Excellent' | 'Good' | 'Fair' | 'Poor' | 'Critical';
+  memberStats: {
+    total: number;
+    active: number;
+    inactive: number;
+    activityRate: number;
+    roleDistribution: Record<GuildRole, number>;
+    avgContributionPoints: number;
+    topContributors: Array<{
+      name: string;
+      role: GuildRole;
+      points: number;
+    }>;
+  };
+  recentActivity: {
+    totalActivities: number;
+    dailyAverage: number;
+    actionBreakdown: Record<string, number>;
+    dailyActivity: Record<string, number>;
+    mostActiveDay: string;
+  };
+  financialHealth: {
+    currentTreasury: number;
+    expectedTreasury: number;
+    treasuryRatio: number;
+    status: string;
+    guildLevel: number;
+    xp: number;
+    xpNext: number;
+    xpProgress: number;
+  };
+  warehouseHealth: {
+    totalItems: number;
+    uniqueItemTypes: number;
+    diversity: number;
+    itemTypes: string[];
+    topItems: Array<{ name: string; quantity: number }>;
+    isEmpty: boolean;
+    status: string;
+  };
+  leadershipHealth: {
+    totalLeaders: number;
+    totalOfficers: number;
+    activeLeaders: number;
+    activeOfficers: number;
+    leadershipHealth: number;
+    hasActiveLeadership: boolean;
+    needsMoreOfficers: boolean;
+    leaderDetails: Array<{
+      name: string;
+      lastActive: string;
+      isActive: boolean;
+    }>;
+  };
+  recommendations: string[];
+}
+
+// Enhanced activity details
+export interface ActivityDetails {
+  amount?: number;
+  itemId?: string;
+  targetUserId?: string;
+  targetUsername?: string;
+  oldRole?: GuildRole;
+  newRole?: GuildRole;
+  reason?: string;
+  [key: string]: any;
+}
+
+// Type-safe guild activity with better details
+export interface TypedGuildActivity {
+  id: string;
+  action: 
+    | 'guild_created'
+    | 'member_joined'
+    | 'member_left'
+    | 'member_promoted'
+    | 'member_demoted'
+    | 'member_kicked'
+    | 'invitation_sent'
+    | 'invitation_declined'
+    | 'treasury_deposit'
+    | 'treasury_withdraw'
+    | 'warehouse_deposit'
+    | 'warehouse_withdraw'
+    | 'war_declared'
+    | 'alliance_proposed'
+    | string; // Allow other actions
+  details: ActivityDetails;
+  createdAt: string;
+  user: string;
+  userId?: string;
+}
+
+// Loading and error states
+export interface LoadingState {
+  isLoading: boolean;
+  error: string | null;
+}
+
+// Form validation
+export interface ValidationError {
+  field: string;
+  message: string;
+}
+
+export interface FormState<T> extends LoadingState {
+  data: T;
+  errors: ValidationError[];
+  isDirty: boolean;
+  isValid: boolean;
+}

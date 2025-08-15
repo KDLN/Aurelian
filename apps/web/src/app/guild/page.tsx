@@ -1,237 +1,26 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import GameLayout from '@/components/GameLayout';
-import { supabase } from '@/lib/supabaseClient';
-
-type GuildInfo = {
-  id: string;
-  name: string;
-  tag: string;
-  emblem?: any;
-  description?: string;
-  level: number;
-  xp: number;
-  xpNext: number;
-  xpProgress: number;
-  treasury: number;
-  memberCount: number;
-  maxMembers: number;
-  userRole: 'LEADER' | 'OFFICER' | 'TRADER' | 'MEMBER';
-  userJoinedAt: string;
-  userContributionPoints: number;
-  recentAchievements: Array<{
-    key: string;
-    name: string;
-    description: string;
-    unlockedAt: string;
-    reward: any;
-  }>;
-  channels: Array<{
-    id: string;
-    name: string;
-    description?: string;
-    roleRequired?: string;
-  }>;
-  recentActivity: Array<{
-    action: string;
-    details: any;
-    createdAt: string;
-    user: string;
-  }>;
-};
-
-type GuildInvitation = {
-  id: string;
-  guild: {
-    id: string;
-    name: string;
-    tag: string;
-    level: number;
-    memberCount: number;
-  };
-  inviter: {
-    displayName: string;
-  };
-  message?: string;
-  createdAt: string;
-  expiresAt: string;
-};
+import { GuildInfo, GuildRole } from '@/types/guild';
+import { useGuild, useGuildInvitations } from '@/hooks/useGuild';
+import LoadingSpinner from '@/components/guild/LoadingSpinner';
+import ErrorBoundary from '@/components/guild/ErrorBoundary';
+import TreasurySection from '@/components/guild/TreasurySection';
 
 export default function GuildPage() {
-  const [guild, setGuild] = useState<GuildInfo | null>(null);
-  const [invitations, setInvitations] = useState<GuildInvitation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'treasury' | 'wars' | 'invites'>('overview');
-  const [treasuryAmount, setTreasuryAmount] = useState<number>(0);
-  const [treasuryReason, setTreasuryReason] = useState<string>('');
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  useEffect(() => {
-    if (!isClient) return;
-    loadGuildData();
-  }, [isClient]);
-
-  const loadGuildData = async () => {
-    try {
-      setLoading(true);
-      setError('');
-
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        setError('Not authenticated');
-        setLoading(false);
-        return;
-      }
-
-      // Get guild info
-      const guildResponse = await fetch('/api/guild/info', {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
-
-      if (!guildResponse.ok) {
-        throw new Error('Failed to fetch guild data');
-      }
-
-      const guildData = await guildResponse.json();
-      
-      if (guildData.inGuild) {
-        setGuild(guildData.guild);
-      }
-
-      // Get invitations if not in guild
-      if (!guildData.inGuild) {
-        const inviteResponse = await fetch('/api/guild/invite', {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
-
-        if (inviteResponse.ok) {
-          const inviteData = await inviteResponse.json();
-          setInvitations(inviteData.invitations || []);
-        }
-      }
-
-    } catch (err) {
-      console.error('Error loading guild data:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load guild data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleTreasuryDeposit = async () => {
-    try {
-      if (!treasuryAmount || treasuryAmount <= 0) {
-        alert('Please enter a valid amount');
-        return;
-      }
-
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const response = await fetch('/api/guild/treasury/deposit', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ amount: treasuryAmount })
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to deposit gold');
-      }
-
-      const result = await response.json();
-      alert(result.message);
-      setTreasuryAmount(0);
-      loadGuildData();
-
-    } catch (err) {
-      console.error('Error depositing to treasury:', err);
-      alert(err instanceof Error ? err.message : 'Failed to deposit gold');
-    }
-  };
-
-  const handleTreasuryWithdraw = async () => {
-    try {
-      if (!treasuryAmount || treasuryAmount <= 0) {
-        alert('Please enter a valid amount');
-        return;
-      }
-
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const response = await fetch('/api/guild/treasury/withdraw', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ 
-          amount: treasuryAmount,
-          reason: treasuryReason || 'Guild expenses'
-        })
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to withdraw gold');
-      }
-
-      const result = await response.json();
-      alert(result.message);
-      setTreasuryAmount(0);
-      setTreasuryReason('');
-      loadGuildData();
-
-    } catch (err) {
-      console.error('Error withdrawing from treasury:', err);
-      alert(err instanceof Error ? err.message : 'Failed to withdraw gold');
-    }
-  };
+  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'treasury' | 'wars'>('overview');
+  
+  const { guild, invitations, isInGuild, isLoading, error, refresh } = useGuild();
+  const { respondToInvitation, isLoading: inviteLoading, error: inviteError } = useGuildInvitations();
 
   const handleInvitationResponse = async (invitationId: string, action: 'accept' | 'decline') => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const response = await fetch('/api/guild/invite/respond', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ invitationId, action })
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to respond to invitation');
-      }
-
-      const result = await response.json();
-      alert(result.message);
-      
-      // Reload data
-      loadGuildData();
-
-    } catch (err) {
-      console.error('Error responding to invitation:', err);
-      alert(err instanceof Error ? err.message : 'Failed to respond to invitation');
+    const success = await respondToInvitation(invitationId, action);
+    if (success) {
+      await refresh(); // Refresh guild data after accepting/declining
     }
   };
+
 
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
@@ -351,58 +140,32 @@ export default function GuildPage() {
     </div>
   );
 
-  if (!isClient) {
+  // Show loading state
+  if (isLoading) {
     return (
       <GameLayout title="Guild" sidebar={<div>Loading...</div>}>
-        <div>Loading guild information...</div>
+        <LoadingSpinner size="large" text="Loading guild information..." />
       </GameLayout>
     );
   }
 
-  if (loading) {
-    return (
-      <GameLayout title="Guild" sidebar={sidebar}>
-        <div className="game-card">
-          <div className="game-center">Loading guild information...</div>
-        </div>
-      </GameLayout>
-    );
-  }
-
+  // Show error state
   if (error) {
-    const handleSyncUser = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          const response = await fetch('/api/auth/sync-user', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${session.access_token}`
-            }
-          });
-          const result = await response.json();
-          console.log('Sync result:', result);
-          alert('User synced! Try creating a guild again.');
-        }
-      } catch (err) {
-        console.error('Sync error:', err);
-        alert('Sync failed');
-      }
-    };
-
     return (
       <GameLayout title="Guild" sidebar={sidebar}>
-        <div className="game-card">
-          <div className="game-center game-bad">Error: {error}</div>
-          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '16px' }}>
-            <button className="game-btn" onClick={loadGuildData}>
-              Retry
-            </button>
-            <button className="game-btn game-btn-primary" onClick={handleSyncUser}>
-              Sync User
-            </button>
+        <ErrorBoundary>
+          <div className="game-card">
+            <div className="game-center game-bad">
+              <h3>⚠️ Error Loading Guild Data</h3>
+              <p>{error}</p>
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '16px' }}>
+                <button className="game-btn game-btn-primary" onClick={refresh}>
+                  🔄 Try Again
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
+        </ErrorBoundary>
       </GameLayout>
     );
   }
@@ -439,16 +202,24 @@ export default function GuildPage() {
                     <button 
                       className="game-btn game-btn-primary game-btn-small"
                       onClick={() => handleInvitationResponse(invitation.id, 'accept')}
+                      disabled={inviteLoading}
                     >
-                      Accept
+                      {inviteLoading ? <LoadingSpinner size="small" /> : 'Accept'}
                     </button>
                     <button 
                       className="game-btn game-btn-small"
                       onClick={() => handleInvitationResponse(invitation.id, 'decline')}
+                      disabled={inviteLoading}
                     >
-                      Decline
+                      {inviteLoading ? <LoadingSpinner size="small" /> : 'Decline'}
                     </button>
                   </div>
+                  
+                  {inviteError && (
+                    <div className="game-small game-bad" style={{ marginTop: '8px' }}>
+                      ❌ {inviteError}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -519,8 +290,9 @@ export default function GuildPage() {
 
   // In a guild - show guild overview
   return (
-    <GameLayout title={`[${guild.tag}] ${guild.name}`} sidebar={sidebar}>
-      <div className="game-flex-col">
+    <ErrorBoundary>
+      <GameLayout title={`[${guild.tag}] ${guild.name}`} sidebar={sidebar}>
+        <div className="game-flex-col">
         {activeTab === 'overview' && (
           <>
             <div className="game-card">
@@ -660,99 +432,9 @@ export default function GuildPage() {
         )}
 
         {activeTab === 'treasury' && (
-          <div className="game-flex-col">
-            <div className="game-card">
-              <h3>Guild Treasury</h3>
-              <div className="game-center" style={{ margin: '16px 0' }}>
-                <div className="game-big game-good">{guild.treasury.toLocaleString()}g</div>
-                <div className="game-small game-muted">Current Balance</div>
-              </div>
-            </div>
-
-            <div className="game-card">
-              <h3>💰 Deposit Gold</h3>
-              <p className="game-muted game-small">Contribute to your guild's treasury to fund shared activities.</p>
-              <div className="game-flex" style={{ gap: '8px', alignItems: 'center', margin: '16px 0' }}>
-                <input
-                  type="number"
-                  min="1"
-                  value={treasuryAmount || ''}
-                  onChange={(e) => setTreasuryAmount(parseInt(e.target.value) || 0)}
-                  className="game-input"
-                  placeholder="Amount to deposit"
-                  style={{ flex: 1 }}
-                />
-                <button
-                  className="game-btn game-btn-primary"
-                  onClick={handleTreasuryDeposit}
-                  disabled={!treasuryAmount || treasuryAmount <= 0}
-                >
-                  Deposit
-                </button>
-              </div>
-            </div>
-
-            {['LEADER', 'OFFICER'].includes(guild.userRole) && (
-              <div className="game-card">
-                <h3>💸 Withdraw Gold</h3>
-                <p className="game-muted game-small">Leaders and Officers can withdraw gold for guild expenses.</p>
-                <div className="game-flex-col" style={{ gap: '8px', margin: '16px 0' }}>
-                  <div className="game-flex" style={{ gap: '8px', alignItems: 'center' }}>
-                    <input
-                      type="number"
-                      min="1"
-                      max={guild.treasury}
-                      value={treasuryAmount || ''}
-                      onChange={(e) => setTreasuryAmount(parseInt(e.target.value) || 0)}
-                      className="game-input"
-                      placeholder="Amount to withdraw"
-                      style={{ flex: 1 }}
-                    />
-                    <button
-                      className="game-btn game-btn-warning"
-                      onClick={handleTreasuryWithdraw}
-                      disabled={!treasuryAmount || treasuryAmount <= 0 || treasuryAmount > guild.treasury}
-                    >
-                      Withdraw
-                    </button>
-                  </div>
-                  <input
-                    type="text"
-                    value={treasuryReason}
-                    onChange={(e) => setTreasuryReason(e.target.value)}
-                    className="game-input"
-                    placeholder="Reason for withdrawal (optional)"
-                  />
-                </div>
-              </div>
-            )}
-
-            <div className="game-card">
-              <h3>Recent Treasury Activity</h3>
-              {guild.recentActivity.filter(activity => 
-                activity.action === 'treasury_deposit' || activity.action === 'treasury_withdraw'
-              ).length > 0 ? (
-                <div className="game-flex-col">
-                  {guild.recentActivity
-                    .filter(activity => activity.action === 'treasury_deposit' || activity.action === 'treasury_withdraw')
-                    .slice(0, 5)
-                    .map((activity, index) => (
-                    <div key={index} className="game-space-between">
-                      <div>
-                        {activity.action === 'treasury_deposit' ? '💰' : '💸'} <strong>{activity.user}</strong>
-                        <span className="game-small"> {activity.action.replace('treasury_', '').replace('_', ' ')}ed {activity.details?.amount?.toLocaleString()}g</span>
-                      </div>
-                      <div className="game-small game-muted">
-                        {formatTimeAgo(activity.createdAt)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="game-muted">No recent treasury activity</p>
-              )}
-            </div>
-          </div>
+          <ErrorBoundary>
+            <TreasurySection guild={guild} onUpdate={refresh} />
+          </ErrorBoundary>
         )}
 
         {activeTab === 'wars' && (
@@ -769,7 +451,8 @@ export default function GuildPage() {
             </p>
           </div>
         )}
-      </div>
-    </GameLayout>
+        </div>
+      </GameLayout>
+    </ErrorBoundary>
   );
 }

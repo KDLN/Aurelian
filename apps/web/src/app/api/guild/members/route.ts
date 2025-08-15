@@ -1,38 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { 
+  authenticateUser,
+  createErrorResponse,
+  createSuccessResponse,
+  getUserGuildMembership,
+  ROLE_HIERARCHY,
+  canManageRole,
+  logGuildActivity,
+  validateRequiredFields,
+  formatGuildMember
+} from '@/lib/apiUtils';
 import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 // GET - List guild members
 export async function GET(request: NextRequest) {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
     
-    if (!token) {
-      return NextResponse.json({ error: 'No token provided' }, { status: 401 });
+    // Authenticate user
+    const authResult = await authenticateUser(token);
+    if ('error' in authResult) {
+      return createErrorResponse(authResult.error);
     }
+    const { user } = authResult;
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    // Get user's guild membership
+    const membershipResult = await getUserGuildMembership(user.id);
+    if ('error' in membershipResult) {
+      return createErrorResponse(membershipResult.error);
     }
-
-    // Check if user is in a guild
-    const userMembership = await prisma.guildMember.findUnique({
-      where: { userId: user.id },
-      include: { guild: true }
-    });
-
-    if (!userMembership) {
-      return NextResponse.json({ error: 'You are not in a guild' }, { status: 400 });
-    }
+    const { membership: userMembership } = membershipResult;
 
     // Get all guild members
     const members = await prisma.guildMember.findMany({
@@ -50,18 +49,9 @@ export async function GET(request: NextRequest) {
       ]
     });
 
-    const formattedMembers = members.map(member => ({
-      id: member.id,
-      userId: member.userId,
-      role: member.role,
-      joinedAt: member.joinedAt,
-      contributionPoints: member.contributionPoints,
-      lastActive: member.lastActive,
-      displayName: member.user.profile?.display || member.user.email || 'Unknown'
-    }));
+    const formattedMembers = members.map(formatGuildMember);
 
-    return NextResponse.json({
-      success: true,
+    return createSuccessResponse({
       guild: {
         id: userMembership.guild.id,
         name: userMembership.guild.name,
@@ -72,10 +62,7 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Error fetching guild members:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch guild members' },
-      { status: 500 }
-    );
+    return createErrorResponse('INTERNAL_ERROR', 'Failed to fetch guild members');
   }
 }
 
@@ -84,70 +71,66 @@ export async function POST(request: NextRequest) {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
     
-    if (!token) {
-      return NextResponse.json({ error: 'No token provided' }, { status: 401 });
+    // Authenticate user
+    const authResult = await authenticateUser(token);
+    if ('error' in authResult) {
+      return createErrorResponse(authResult.error);
+    }
+    const { user } = authResult;
+
+    // Parse and validate request body
+    const body = await request.json();
+    const validationError = validateRequiredFields(body, ['action', 'targetUserId']);
+    if (validationError) {
+      return createErrorResponse('MISSING_FIELDS', validationError);
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    const { action, targetUserId, newRole } = body;
+
+    // Get user's guild membership
+    const membershipResult = await getUserGuildMembership(user.id);
+    if ('error' in membershipResult) {
+      return createErrorResponse(membershipResult.error);
     }
-
-    const { action, targetUserId, newRole } = await request.json();
-
-    if (!action || !targetUserId) {
-      return NextResponse.json({ error: 'Action and target user ID are required' }, { status: 400 });
-    }
-
-    // Check if user is in a guild and has permission
-    const userMembership = await prisma.guildMember.findUnique({
-      where: { userId: user.id },
-      include: { guild: true }
-    });
-
-    if (!userMembership) {
-      return NextResponse.json({ error: 'You are not in a guild' }, { status: 400 });
-    }
+    const { membership: userMembership } = membershipResult;
 
     // Check if target is in the same guild
     const targetMembership = await prisma.guildMember.findFirst({
       where: { 
         userId: targetUserId,
-        guildId: userMembership.guildId
+        guildId: userMembership.guild.id
       }
     });
 
     if (!targetMembership) {
-      return NextResponse.json({ error: 'Target user is not in your guild' }, { status: 400 });
+      return createErrorResponse('NOT_FOUND', 'Target user is not in your guild');
     }
 
-    // Permission checks
-    const roleHierarchy = { LEADER: 4, OFFICER: 3, TRADER: 2, MEMBER: 1 };
-    const userRoleLevel = roleHierarchy[userMembership.role];
-    const targetRoleLevel = roleHierarchy[targetMembership.role];
+    // Permission checks using utility functions
+    const userRoleLevel = ROLE_HIERARCHY[userMembership.role];
+    const targetRoleLevel = ROLE_HIERARCHY[targetMembership.role];
 
     switch (action) {
       case 'promote':
       case 'demote':
         // Only leaders and officers can promote/demote
         if (userRoleLevel < 3) {
-          return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+          return createErrorResponse('INSUFFICIENT_PERMISSIONS');
         }
         
         // Can't promote/demote someone of equal or higher rank
-        if (targetRoleLevel >= userRoleLevel) {
-          return NextResponse.json({ error: 'Cannot manage member of equal or higher rank' }, { status: 403 });
+        if (!canManageRole(userMembership.role, targetMembership.role)) {
+          return createErrorResponse('INSUFFICIENT_PERMISSIONS', 'Cannot manage member of equal or higher rank');
         }
 
-        if (!newRole || !roleHierarchy[newRole as keyof typeof roleHierarchy]) {
-          return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
+        if (!newRole || !ROLE_HIERARCHY[newRole as keyof typeof ROLE_HIERARCHY]) {
+          return createErrorResponse('MISSING_FIELDS', 'Invalid role');
         }
 
         // Only leader can promote to officer or leader
         if (newRole === 'OFFICER' || newRole === 'LEADER') {
           if (userMembership.role !== 'LEADER') {
-            return NextResponse.json({ error: 'Only guild leader can promote to officer or leader' }, { status: 403 });
+            return createErrorResponse('INSUFFICIENT_PERMISSIONS', 'Only guild leader can promote to officer or leader');
           }
         }
 
@@ -157,18 +140,17 @@ export async function POST(request: NextRequest) {
             data: { role: newRole as any }
           });
 
-          await tx.guildLog.create({
-            data: {
-              guildId: userMembership.guildId,
-              userId: user.id,
-              action: action === 'promote' ? 'member_promoted' : 'member_demoted',
-              details: { 
-                targetUserId,
-                oldRole: targetMembership.role,
-                newRole
-              }
-            }
-          });
+          await logGuildActivity(
+            userMembership.guild.id,
+            user.id,
+            action === 'promote' ? 'member_promoted' : 'member_demoted',
+            { 
+              targetUserId,
+              oldRole: targetMembership.role,
+              newRole
+            },
+            tx
+          );
         });
 
         break;
@@ -176,17 +158,17 @@ export async function POST(request: NextRequest) {
       case 'kick':
         // Only leaders and officers can kick
         if (userRoleLevel < 3) {
-          return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+          return createErrorResponse('INSUFFICIENT_PERMISSIONS');
         }
         
         // Can't kick someone of equal or higher rank
-        if (targetRoleLevel >= userRoleLevel) {
-          return NextResponse.json({ error: 'Cannot kick member of equal or higher rank' }, { status: 403 });
+        if (!canManageRole(userMembership.role, targetMembership.role)) {
+          return createErrorResponse('INSUFFICIENT_PERMISSIONS', 'Cannot kick member of equal or higher rank');
         }
 
         // Can't kick yourself
         if (targetUserId === user.id) {
-          return NextResponse.json({ error: 'Cannot kick yourself' }, { status: 400 });
+          return createErrorResponse('MISSING_FIELDS', 'Cannot kick yourself');
         }
 
         await prisma.$transaction(async (tx) => {
@@ -194,32 +176,28 @@ export async function POST(request: NextRequest) {
             where: { id: targetMembership.id }
           });
 
-          await tx.guildLog.create({
-            data: {
-              guildId: userMembership.guildId,
-              userId: user.id,
-              action: 'member_kicked',
-              details: { 
-                targetUserId,
-                targetRole: targetMembership.role
-              }
-            }
-          });
+          await logGuildActivity(
+            userMembership.guild.id,
+            user.id,
+            'member_kicked',
+            { 
+              targetUserId,
+              targetRole: targetMembership.role
+            },
+            tx
+          );
         });
 
         break;
 
       default:
-        return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+        return createErrorResponse('MISSING_FIELDS', 'Invalid action');
     }
 
-    return NextResponse.json({ success: true });
+    return createSuccessResponse({});
 
   } catch (error) {
     console.error('Error managing guild member:', error);
-    return NextResponse.json(
-      { error: 'Failed to manage guild member' },
-      { status: 500 }
-    );
+    return createErrorResponse('INTERNAL_ERROR', 'Failed to manage guild member');
   }
 }

@@ -1,88 +1,107 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { 
+  authenticateUser,
+  createErrorResponse,
+  createSuccessResponse,
+  getUserGuildMembership,
+  validateRequiredFields,
+  InputValidation,
+  checkRateLimit,
+  logGuildActivity
+} from '@/lib/apiUtils';
 import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 // POST - Withdraw items from guild warehouse
 export async function POST(request: NextRequest) {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
     
-    if (!token) {
-      return NextResponse.json({ error: 'No token provided' }, { status: 401 });
+    // Authenticate user
+    const authResult = await authenticateUser(token);
+    if ('error' in authResult) {
+      return createErrorResponse(authResult.error);
+    }
+    const { user } = authResult;
+
+    // Rate limiting - 20 warehouse operations per minute
+    const rateLimitCheck = checkRateLimit(`warehouse:${user.id}`, 60000, 20);
+    if (!rateLimitCheck.allowed) {
+      return createErrorResponse('MISSING_FIELDS', 'Too many warehouse operations. Please wait a moment.');
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    // Parse and validate request body
+    const body = await request.json();
+    const validationError = validateRequiredFields(body, ['itemId', 'amount']);
+    if (validationError) {
+      return createErrorResponse('MISSING_FIELDS', validationError);
     }
 
-    const { itemId, amount } = await request.json();
+    const { itemId, amount } = body;
 
-    if (!itemId || !amount || amount <= 0) {
-      return NextResponse.json({ error: 'Invalid item or amount' }, { status: 400 });
+    // Enhanced validation
+    const itemError = InputValidation.itemId(itemId);
+    if (itemError) {
+      return createErrorResponse('MISSING_FIELDS', itemError);
+    }
+
+    const amountError = InputValidation.amount(amount, 1, 10000);
+    if (amountError) {
+      return createErrorResponse('MISSING_FIELDS', amountError);
     }
 
     // Get user's guild membership
-    const membership = await prisma.guildMember.findUnique({
-      where: { userId: user.id },
-      select: { guildId: true, role: true }
-    });
-
-    if (!membership) {
-      return NextResponse.json({ error: 'Not in a guild' }, { status: 403 });
+    const membershipResult = await getUserGuildMembership(user.id);
+    if ('error' in membershipResult) {
+      return createErrorResponse(membershipResult.error);
     }
+    const { membership } = membershipResult;
 
-    // Check if guild has enough items in warehouse
-    const guildWarehouse = await prisma.guildWarehouse.findUnique({
-      where: {
-        guildId_itemId: {
-          guildId: membership.guildId,
-          itemId: itemId
+    // Perform the withdrawal transaction with race condition protection
+    const result = await prisma.$transaction(async (tx) => {
+      // Get fresh warehouse data inside transaction
+      const guildWarehouse = await tx.guildWarehouse.findUnique({
+        where: {
+          guildId_itemId: {
+            guildId: membership.guild.id,
+            itemId: itemId
+          }
         }
+      });
+
+      if (!guildWarehouse || guildWarehouse.quantity < amount) {
+        throw new Error('Insufficient items in guild warehouse');
       }
-    });
 
-    if (!guildWarehouse || guildWarehouse.quantity < amount) {
-      return NextResponse.json({ error: 'Insufficient items in guild warehouse' }, { status: 400 });
-    }
-
-    // Perform the withdrawal transaction
-    await prisma.$transaction(async (tx) => {
-      // Remove items from guild warehouse
+      // Use atomic operations for safe quantity updates
       if (guildWarehouse.quantity === amount) {
         // Remove the warehouse record entirely if withdrawing all items
         await tx.guildWarehouse.delete({
           where: {
             guildId_itemId: {
-              guildId: membership.guildId,
+              guildId: membership.guild.id,
               itemId: itemId
             }
           }
         });
       } else {
-        // Reduce the quantity
+        // Atomic decrement with safety check
         await tx.guildWarehouse.update({
           where: {
             guildId_itemId: {
-              guildId: membership.guildId,
+              guildId: membership.guild.id,
               itemId: itemId
-            }
+            },
+            quantity: { gte: amount }
           },
           data: {
-            quantity: guildWarehouse.quantity - amount
+            quantity: { decrement: amount }
           }
         });
       }
 
-      // Add items to user's warehouse
+      // Add items to user's warehouse atomically
       await tx.inventory.upsert({
         where: {
           userId_itemId_location: {
@@ -92,9 +111,7 @@ export async function POST(request: NextRequest) {
           }
         },
         update: {
-          qty: {
-            increment: amount
-          }
+          qty: { increment: amount }
         },
         create: {
           userId: user.id,
@@ -105,19 +122,28 @@ export async function POST(request: NextRequest) {
       });
 
       // Log the withdrawal activity
-      await tx.guildLog.create({
-        data: {
-          guildId: membership.guildId,
-          userId: user.id,
-          action: 'withdraw',
-          details: {
-            itemId: itemId,
-            amount: amount,
-            location: 'warehouse'
-          }
-        }
-      });
+      await logGuildActivity(
+        membership.guild.id,
+        user.id,
+        'warehouse_withdraw',
+        {
+          itemId: itemId,
+          amount: amount,
+          previousQuantity: guildWarehouse.quantity,
+          newQuantity: guildWarehouse.quantity - amount
+        },
+        tx
+      );
+
+      return { success: true };
+    }, {
+      isolationLevel: 'Serializable',
+      timeout: 10000
     });
+
+    if (!result.success) {
+      return createErrorResponse('INTERNAL_ERROR', 'Transaction failed');
+    }
 
     // Get item name for response
     const item = await prisma.itemDef.findUnique({
@@ -125,16 +151,21 @@ export async function POST(request: NextRequest) {
       select: { name: true }
     });
 
-    return NextResponse.json({
-      success: true,
-      message: `Successfully withdrew ${amount} ${item?.name || 'items'} from guild warehouse`
-    });
+    return createSuccessResponse(
+      {},
+      `Successfully withdrew ${amount.toLocaleString()} ${item?.name || 'items'} from guild warehouse`
+    );
 
   } catch (error) {
     console.error('Error withdrawing from guild warehouse:', error);
-    return NextResponse.json(
-      { error: 'Failed to withdraw items' },
-      { status: 500 }
-    );
+    
+    // Handle specific error cases
+    if (error instanceof Error) {
+      if (error.message.includes('Insufficient items')) {
+        return createErrorResponse('MISSING_FIELDS', 'Insufficient items in guild warehouse');
+      }
+    }
+    
+    return createErrorResponse('INTERNAL_ERROR', 'Failed to withdraw items');
   }
 }

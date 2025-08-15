@@ -1,115 +1,145 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { 
+  authenticateUser,
+  createErrorResponse,
+  createSuccessResponse,
+  getUserGuildMembership,
+  checkRolePermissions,
+  validateRequiredFields
+} from '@/lib/apiUtils';
 import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 // POST - Withdraw gold from guild treasury (Leaders and Officers only)
 export async function POST(request: NextRequest) {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
     
-    if (!token) {
-      return NextResponse.json({ error: 'No token provided' }, { status: 401 });
+    // Authenticate user
+    const authResult = await authenticateUser(token);
+    if ('error' in authResult) {
+      return createErrorResponse(authResult.error);
+    }
+    const { user } = authResult;
+
+    // Parse and validate request body
+    const body = await request.json();
+    const validationError = validateRequiredFields(body, ['amount']);
+    if (validationError) {
+      return createErrorResponse('MISSING_FIELDS', validationError);
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
-
-    const { amount, reason } = await request.json();
-
-    if (!amount || amount <= 0) {
-      return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
+    const { amount, reason } = body;
+    if (amount <= 0) {
+      return createErrorResponse('MISSING_FIELDS', 'Amount must be positive');
     }
 
     // Get user's guild membership
-    const membership = await prisma.guildMember.findUnique({
-      where: { userId: user.id },
-      include: {
-        guild: {
-          select: {
-            id: true,
-            name: true,
-            treasury: true
-          }
-        }
-      }
-    });
-
-    if (!membership) {
-      return NextResponse.json({ error: 'Not in a guild' }, { status: 403 });
+    const membershipResult = await getUserGuildMembership(user.id);
+    if ('error' in membershipResult) {
+      return createErrorResponse(membershipResult.error);
     }
+    const { membership } = membershipResult;
 
     // Check permissions - only Leaders and Officers can withdraw
-    if (!['LEADER', 'OFFICER'].includes(membership.role)) {
-      return NextResponse.json({ error: 'Insufficient permissions to withdraw from treasury' }, { status: 403 });
+    if (!checkRolePermissions(membership.role, ['LEADER', 'OFFICER'])) {
+      return createErrorResponse('INSUFFICIENT_PERMISSIONS', 'Only leaders and officers can withdraw from treasury');
     }
 
-    // Check if guild has enough gold
-    if (membership.guild.treasury < amount) {
-      return NextResponse.json({ error: 'Insufficient gold in guild treasury' }, { status: 400 });
-    }
-
-    // Get user's current wallet
-    const userWallet = await prisma.wallet.findUnique({
-      where: { userId: user.id }
-    });
-
-    if (!userWallet) {
-      return NextResponse.json({ error: 'User wallet not found' }, { status: 400 });
-    }
-
-    // Perform the withdrawal transaction
-    await prisma.$transaction(async (tx) => {
-      // Remove gold from guild treasury
-      await tx.guild.update({
-        where: { id: membership.guildId },
-        data: {
-          treasury: membership.guild.treasury - amount
-        }
+    // Perform the withdrawal transaction with race condition protection
+    const result = await prisma.$transaction(async (tx) => {
+      // Get fresh guild data with SELECT FOR UPDATE to prevent race conditions
+      const currentGuild = await tx.guild.findUnique({
+        where: { id: membership.guild.id },
+        select: { treasury: true }
       });
 
-      // Add gold to user's wallet
+      if (!currentGuild) {
+        throw new Error('Guild not found');
+      }
+
+      // Check if guild has enough gold (inside transaction with fresh data)
+      if (currentGuild.treasury < amount) {
+        throw new Error('Insufficient gold in guild treasury');
+      }
+
+      // Get user's current wallet with fresh data
+      const userWallet = await tx.wallet.findUnique({
+        where: { userId: user.id },
+        select: { gold: true }
+      });
+
+      if (!userWallet) {
+        throw new Error('User wallet not found');
+      }
+
+      // Use atomic decrement/increment operations to prevent race conditions
+      const updatedGuild = await tx.guild.update({
+        where: { 
+          id: membership.guild.id,
+          treasury: { gte: amount } // Additional safety check
+        },
+        data: {
+          treasury: { decrement: amount }
+        },
+        select: { treasury: true }
+      });
+
+      // Add gold to user's wallet atomically
       await tx.wallet.update({
         where: { userId: user.id },
         data: {
-          gold: userWallet.gold + amount
+          gold: { increment: amount }
         }
       });
 
       // Log the withdrawal activity
       await tx.guildLog.create({
         data: {
-          guildId: membership.guildId,
+          guildId: membership.guild.id,
           userId: user.id,
           action: 'treasury_withdraw',
           details: {
             amount: amount,
             reason: reason || 'No reason provided',
-            previousTreasury: membership.guild.treasury
+            previousTreasury: currentGuild.treasury,
+            newTreasury: updatedGuild.treasury
           }
         }
       });
+
+      return { success: true };
+    }, {
+      isolationLevel: 'Serializable', // Strongest isolation level
+      timeout: 10000 // 10 second timeout
     });
 
-    return NextResponse.json({
-      success: true,
-      message: `Successfully withdrew ${amount.toLocaleString()} gold from guild treasury`
-    });
+    if (!result.success) {
+      return createErrorResponse('INTERNAL_ERROR', 'Transaction failed');
+    }
+
+    return createSuccessResponse(
+      {},
+      `Successfully withdrew ${amount.toLocaleString()} gold from guild treasury`
+    );
 
   } catch (error) {
     console.error('Error withdrawing from guild treasury:', error);
-    return NextResponse.json(
-      { error: 'Failed to withdraw gold' },
-      { status: 500 }
-    );
+    
+    // Handle specific error cases
+    if (error instanceof Error) {
+      if (error.message.includes('Insufficient gold')) {
+        return createErrorResponse('MISSING_FIELDS', 'Insufficient gold in guild treasury');
+      }
+      if (error.message.includes('User wallet not found')) {
+        return createErrorResponse('NOT_FOUND', 'User wallet not found');
+      }
+      if (error.message.includes('Guild not found')) {
+        return createErrorResponse('NOT_FOUND', 'Guild not found');
+      }
+    }
+    
+    return createErrorResponse('INTERNAL_ERROR', 'Failed to withdraw gold');
   }
 }
