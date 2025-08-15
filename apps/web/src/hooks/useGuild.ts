@@ -44,9 +44,15 @@ export function useGuild(): UseGuildReturn {
 
       const guildData: ApiResponse<{ inGuild: boolean; guild: GuildInfo | null }> = await guildResponse.json();
       
+      console.log('Guild API response:', guildData);
+      console.log('inGuild:', guildData.data?.inGuild);
+      console.log('guild data:', guildData.data?.guild);
+      
       if (guildData.success && guildData.data?.inGuild && guildData.data.guild) {
+        console.log('Setting guild data:', guildData.data.guild);
         setGuild(guildData.data.guild);
       } else {
+        console.log('No guild found or API error, setting null');
         setGuild(null);
       }
 
