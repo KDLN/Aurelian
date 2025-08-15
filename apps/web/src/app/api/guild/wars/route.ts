@@ -156,20 +156,17 @@ export async function POST(request: NextRequest) {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
     
-    if (!token) {
-      return NextResponse.json({ error: 'No token provided' }, { status: 401 });
+    // Authenticate user
+    const authResult = await authenticateUser(token);
+    if ('error' in authResult) {
+      return createErrorResponse(authResult.error);
     }
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
+    const { user } = authResult;
 
     const { action, targetGuildId, type } = await request.json();
 
     if (!action || (!targetGuildId && action !== 'accept' && action !== 'decline')) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      return createErrorResponse('MISSING_FIELDS', 'Missing required fields');
     }
 
     // Get user's guild membership
@@ -249,20 +246,16 @@ export async function POST(request: NextRequest) {
         break;
 
       default:
-        return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+        return createErrorResponse('INVALID_ACTION', 'Invalid action');
     }
 
-    return NextResponse.json({
-      success: true,
+    return createSuccessResponse({
       message: `${type === 'ALLIANCE' ? 'Alliance' : 'War'} declaration sent successfully`,
       result
     });
 
   } catch (error) {
     console.error('Error managing guild war:', error);
-    return NextResponse.json(
-      { error: 'Failed to manage war declaration' },
-      { status: 500 }
-    );
+    return createErrorResponse('INTERNAL_ERROR', 'Failed to manage war declaration');
   }
 }
