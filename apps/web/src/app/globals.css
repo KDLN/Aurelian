@@ -423,8 +423,26 @@ button, .btn, .game-btn {
   line-height: var(--line-height-tight);
 }
 
+/* Game-specific UI elements */
+.game-muted {
+  font-size: var(--font-size-xs) !important;
+  line-height: var(--line-height-normal);
+}
+
+.game-space-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.game-space-between span {
+  font-size: var(--font-size-xs) !important;
+  line-height: var(--line-height-normal);
+}
+
 /* Small text minimum readability */
-.small, small, .text-small {
+.small, small, .text-small, .game-small {
   font-size: var(--font-size-xs) !important;
   line-height: var(--line-height-normal);
 }
