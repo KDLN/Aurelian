@@ -3,6 +3,7 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { useGameWorld } from '@/lib/game/world';
 import { useUserData } from '@/hooks/useUserData';
+import { useMissions } from '@/hooks/useMissionsQuery';
 import { loadCharacterAppearance } from '@/lib/sprites/characterOptions';
 import { CharacterAppearance } from '@/lib/sprites/characterSprites';
 import CharacterViewer from './CharacterViewer';
@@ -38,7 +39,8 @@ export default function GameLayout({
   guildChannels = []
 }: GameLayoutProps) {
   const { world, subscribe } = useGameWorld();
-  const { wallet, user } = useUserData();
+  const { wallet, inventory, user } = useUserData();
+  const { data: missionsData } = useMissions();
   const [, forceUpdate] = useState(0);
   const [currentPath, setCurrentPath] = useState('');
   const [characterAppearance, setCharacterAppearance] = useState<CharacterAppearance | null>(null);
@@ -204,6 +206,41 @@ export default function GameLayout({
                   {wallet ? wallet.gold.toLocaleString() : '0'}
                 </span>
               </div>
+              {!wallet && user && (
+                <div style={{ marginTop: '8px' }}>
+                  <button 
+                    onClick={async () => {
+                      try {
+                        const session = await import('@/lib/supabaseClient').then(m => m.supabase.auth.getSession());
+                        const token = session.data.session?.access_token;
+                        if (!token) return;
+                        
+                        const response = await fetch('/api/user/wallet/create', {
+                          method: 'POST',
+                          headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        
+                        if (response.ok) {
+                          window.location.reload();
+                        }
+                      } catch (error) {
+                        console.error('Failed to create wallet:', error);
+                      }
+                    }}
+                    style={{
+                      fontSize: '10px',
+                      padding: '4px 8px',
+                      background: '#d4af37',
+                      color: '#1a1511',
+                      border: 'none',
+                      borderRadius: '2px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    💰 Create Wallet
+                  </button>
+                </div>
+              )}
               <div className="game-space-between">
                 <span style={{ color: '#9b8c70' }}>EXP:</span>
                 <span style={{ color: '#f1e5c8' }}>0 / 100</span>
@@ -259,7 +296,7 @@ export default function GameLayout({
             <div className="game-flex-col">
               <div className="game-space-between">
                 <span>Warehouse Items:</span>
-                <span>{Object.keys(world.warehouse).length}</span>
+                <span>{inventory?.totalItems || Object.keys(world.warehouse).length}</span>
               </div>
               <div className="game-space-between">
                 <span>Active Listings:</span>
@@ -267,7 +304,7 @@ export default function GameLayout({
               </div>
               <div className="game-space-between">
                 <span>Active Missions:</span>
-                <span>{world.missions.length}</span>
+                <span>{missionsData?.activeMissions?.length || world.missions.length}</span>
               </div>
               <div className="game-space-between">
                 <span>Crafting Jobs:</span>
