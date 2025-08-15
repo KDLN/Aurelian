@@ -424,7 +424,7 @@ button, .btn, .game-btn {
 }
 
 /* Game-specific UI elements */
-.game-muted {
+.game-muted, .game-good.game-small, .game-warn.game-small, .game-bad.game-small {
   font-size: var(--font-size-xs) !important;
   line-height: var(--line-height-normal);
 }
@@ -442,7 +442,8 @@ button, .btn, .game-btn {
 }
 
 /* Small text minimum readability */
-.small, small, .text-small, .game-small {
+.small, small, .text-small, .game-small, 
+.game-muted.game-small, .game-small.game-muted {
   font-size: var(--font-size-xs) !important;
   line-height: var(--line-height-normal);
 }
@@ -472,6 +473,15 @@ input, textarea, select {
   font-size: var(--font-size-base);
   min-height: var(--touch-target-md);
   padding: var(--space-sm) var(--space-md);
+  line-height: var(--line-height-normal);
+}
+
+/* Additional game UI font fixes */
+[class*="game-small"], 
+span.game-small, 
+p.game-small,
+div.game-small {
+  font-size: var(--font-size-xs) !important;
   line-height: var(--line-height-normal);
 }
 
