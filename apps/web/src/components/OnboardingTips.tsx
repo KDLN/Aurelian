@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useUserData } from '@/hooks/useUserData';
+import { supabase } from '@/lib/supabaseClient';
 
 interface OnboardingStep {
   id: string;
@@ -18,6 +19,7 @@ export default function OnboardingTips() {
   const [currentStep, setCurrentStep] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const steps: OnboardingStep[] = [
     {
@@ -88,60 +90,126 @@ export default function OnboardingTips() {
     }
   ];
 
+  // Helper functions for database operations
+  const getAccessToken = async () => {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) throw new Error(`Auth session error: ${error.message}`);
+    const token = data.session?.access_token;
+    if (!token) throw new Error('No auth token found');
+    return token;
+  };
+
+  const loadOnboardingProgress = async () => {
+    try {
+      const token = await getAccessToken();
+      const response = await fetch('/api/user/onboarding', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!response.ok) {
+        console.warn('Failed to load onboarding progress, using defaults');
+        return null;
+      }
+
+      const data = await response.json();
+      return data.onboardingProgress;
+    } catch (error) {
+      console.warn('Error loading onboarding progress:', error);
+      return null;
+    }
+  };
+
+  const saveOnboardingProgress = async (progress: { completed: string[], dismissed?: boolean, lastUpdated: string }) => {
+    try {
+      const token = await getAccessToken();
+      const response = await fetch('/api/user/onboarding', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ onboardingProgress: progress })
+      });
+
+      if (!response.ok) {
+        console.error('Failed to save onboarding progress');
+      }
+    } catch (error) {
+      console.error('Error saving onboarding progress:', error);
+    }
+  };
+
   // Check if user should see onboarding
   useEffect(() => {
-    if (!user) return;
-
-    // Load completed steps from localStorage
-    const saved = localStorage.getItem(`onboarding_${user.id}`);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      setCompletedSteps(parsed.completed || []);
-      
-      // Don't show if user has completed all steps
-      if (parsed.completed?.length >= steps.length) {
-        setIsVisible(false);
-        return;
-      }
+    if (!user) {
+      setLoading(false);
+      return;
     }
 
-    // Show onboarding if this is a new user or incomplete
-    setIsVisible(true);
-    
-    // Find the first incomplete step
-    const nextStepIndex = steps.findIndex(step => {
-      if (saved && JSON.parse(saved).completed?.includes(step.id)) {
-        return false; // Skip completed steps
+    const loadProgress = async () => {
+      try {
+        setLoading(true);
+        const progress = await loadOnboardingProgress();
+        
+        if (progress) {
+          setCompletedSteps(progress.completed || []);
+          
+          // Don't show if user has completed all steps or dismissed
+          if (progress.dismissed || (progress.completed?.length >= steps.length)) {
+            setIsVisible(false);
+            setLoading(false);
+            return;
+          }
+        }
+
+        // Show onboarding if this is a new user or incomplete
+        setIsVisible(true);
+        
+        // Find the first incomplete step
+        const nextStepIndex = steps.findIndex(step => {
+          if (progress?.completed?.includes(step.id)) {
+            return false; // Skip completed steps
+          }
+          
+          // Check condition if it exists
+          if (step.condition && !step.condition()) {
+            return false; // Skip if condition not met
+          }
+          
+          return true; // This is the next step
+        });
+        
+        setCurrentStep(Math.max(0, nextStepIndex));
+      } catch (error) {
+        console.error('Error loading onboarding progress:', error);
+        // Fallback to showing onboarding
+        setIsVisible(true);
+        setCurrentStep(0);
+      } finally {
+        setLoading(false);
       }
-      
-      // Check condition if it exists
-      if (step.condition && !step.condition()) {
-        return false; // Skip if condition not met
-      }
-      
-      return true; // This is the next step
-    });
-    
-    setCurrentStep(Math.max(0, nextStepIndex));
+    };
+
+    loadProgress();
   }, [user, wallet, inventory]);
 
   // Save progress
-  const saveProgress = (stepId: string) => {
+  const saveProgress = async (stepId: string) => {
     if (!user) return;
     
     const newCompleted = [...completedSteps, stepId];
     setCompletedSteps(newCompleted);
     
-    localStorage.setItem(`onboarding_${user.id}`, JSON.stringify({
+    await saveOnboardingProgress({
       completed: newCompleted,
       lastUpdated: new Date().toISOString()
-    }));
+    });
   };
 
-  const nextStep = () => {
+  const nextStep = async () => {
     const currentStepData = steps[currentStep];
     if (currentStepData) {
-      saveProgress(currentStepData.id);
+      await saveProgress(currentStepData.id);
     }
     
     if (currentStep < steps.length - 1) {
@@ -151,25 +219,32 @@ export default function OnboardingTips() {
     }
   };
 
-  const dismissOnboarding = () => {
+  const dismissOnboarding = async () => {
     setIsVisible(false);
     if (user) {
-      localStorage.setItem(`onboarding_${user.id}`, JSON.stringify({
+      await saveOnboardingProgress({
         completed: steps.map(s => s.id),
         dismissed: true,
         lastUpdated: new Date().toISOString()
-      }));
+      });
     }
   };
 
-  const restartOnboarding = () => {
+  const restartOnboarding = async () => {
     setCurrentStep(0);
     setCompletedSteps([]);
     setIsVisible(true);
     if (user) {
-      localStorage.removeItem(`onboarding_${user.id}`);
+      await saveOnboardingProgress({
+        completed: [],
+        lastUpdated: new Date().toISOString()
+      });
     }
   };
+
+  if (loading) {
+    return null; // Don't show anything while loading
+  }
 
   if (!isVisible || !user || currentStep >= steps.length) {
     return (
@@ -254,9 +329,9 @@ export default function OnboardingTips() {
           href={step.actionHref}
           className="game-btn game-btn-primary"
           style={{ flex: 1, fontSize: '12px', textAlign: 'center', textDecoration: 'none' }}
-          onClick={() => {
+          onClick={async () => {
             // Small delay to allow navigation, then mark as complete
-            setTimeout(() => saveProgress(step.id), 1000);
+            setTimeout(async () => await saveProgress(step.id), 1000);
           }}
         >
           {step.actionText}
