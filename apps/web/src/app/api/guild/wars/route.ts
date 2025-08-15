@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
           }
         }
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { proposedAt: 'desc' }
     });
 
     // Format the alliances/rivalries
@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
         },
         type: alliance.type,
         status: alliance.status,
-        proposedAt: alliance.createdAt,
+        proposedAt: alliance.proposedAt,
         acceptedAt: alliance.acceptedAt,
         isProposer: isFromGuild
       };
@@ -176,19 +176,19 @@ export async function POST(request: NextRequest) {
     });
 
     if (!membership) {
-      return NextResponse.json({ error: 'Not in a guild' }, { status: 403 });
+      return createErrorResponse('NOT_IN_GUILD', 'Not in a guild');
     }
 
     // Check permissions
     if (!['LEADER', 'OFFICER'].includes(membership.role)) {
-      return NextResponse.json({ error: 'Only leaders and officers can manage wars' }, { status: 403 });
+      return createErrorResponse('INSUFFICIENT_PERMISSIONS', 'Only leaders and officers can manage wars');
     }
 
     let result;
     switch (action) {
       case 'declare':
         if (!type || !['ALLIANCE', 'RIVALRY'].includes(type)) {
-          return NextResponse.json({ error: 'Invalid alliance type' }, { status: 400 });
+          return createErrorResponse('INVALID_TYPE', 'Invalid alliance type');
         }
 
         // Check if target guild exists
