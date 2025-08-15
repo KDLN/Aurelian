@@ -139,6 +139,7 @@ export default function GameLayout({
     { href: '/crafting', label: 'Crafting' },
     { href: '/contracts', label: 'Contracts' },
     { href: '/warehouse', label: 'Warehouse' },
+    { href: '/inventory', label: 'Inventory' },
     { href: '/guild', label: 'Guild' },
     { href: '/play', label: 'World Map' },
   ];
