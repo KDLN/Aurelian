@@ -12,6 +12,11 @@ export default function WarehousePage() {
   const [transferQty, setTransferQty] = useState(1);
   const [transferTo, setTransferTo] = useState<'caravan' | 'escrow'>('caravan');
 
+  // Debug logging
+  console.log('Warehouse: inventory data:', inventory);
+  console.log('Warehouse: user authenticated:', !!user);
+  console.log('Warehouse: authLoaded:', authLoaded);
+
   // Use real inventory data when available, fallback to mock data
   const warehouseItems = inventory?.inventory || [];
   const warehouseMap = warehouseItems.reduce((acc, item) => {

@@ -99,6 +99,9 @@ export function useUserData() {
       const walletData = await walletResponse.json();
       const inventoryData = await inventoryResponse.json();
 
+      console.log('useUserData: wallet response:', walletData);
+      console.log('useUserData: inventory response:', inventoryData);
+
       setWallet(walletData);
       setInventory(inventoryData);
       
