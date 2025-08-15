@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
     const { user } = authResult;
 
     console.log('Getting guild info for user:', user.id);
+    console.log('User email:', user.email);
 
     // Get user's guild membership with detailed information
     const membership = await prisma.guildMember.findUnique({
