@@ -101,6 +101,8 @@ export function useUserData() {
 
       console.log('useUserData: wallet response:', walletData);
       console.log('useUserData: inventory response:', inventoryData);
+      console.log('useUserData: inventory.inventory array:', inventoryData?.inventory);
+      console.log('useUserData: inventory total items:', inventoryData?.totalItems);
 
       setWallet(walletData);
       setInventory(inventoryData);

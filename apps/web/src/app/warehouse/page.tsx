@@ -14,6 +14,8 @@ export default function WarehousePage() {
 
   // Debug logging
   console.log('Warehouse: inventory data:', inventory);
+  console.log('Warehouse: inventory.inventory array:', inventory?.inventory);
+  console.log('Warehouse: inventory.inventory length:', inventory?.inventory?.length);
   console.log('Warehouse: user authenticated:', !!user);
   console.log('Warehouse: authLoaded:', authLoaded);
 
