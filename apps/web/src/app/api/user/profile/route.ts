@@ -92,6 +92,26 @@ export async function POST(request: NextRequest) {
     console.log('✅ [UserProfile] Updating profile for user:', user.id, 'display:', display);
 
     try {
+      // First ensure the user exists in our database
+      await prisma.user.upsert({
+        where: { id: user.id },
+        update: {
+          email: user.email,
+          updatedAt: new Date()
+        },
+        create: {
+          id: user.id,
+          email: user.email || 'unknown@example.com',
+          caravanSlotsUnlocked: 3,
+          caravanSlotsPremium: 0,
+          craftingLevel: 1,
+          craftingXP: 0,
+          craftingXPNext: 100,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      });
+
       // Check if display name is already taken by another user
       const existingProfile = await prisma.profile.findFirst({
         where: {
@@ -104,7 +124,17 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Username already taken' }, { status: 400 });
       }
 
-      // Update the profile
+      // Ensure wallet exists
+      await prisma.wallet.upsert({
+        where: { userId: user.id },
+        update: {},
+        create: {
+          userId: user.id,
+          gold: 2000
+        }
+      });
+
+      // Update the profile (now that user exists)
       const updatedProfile = await prisma.profile.upsert({
         where: { userId: user.id },
         update: { display: display },
