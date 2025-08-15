@@ -1,28 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { 
+  authenticateUser,
+  createErrorResponse,
+  createSuccessResponse
+} from '@/lib/apiUtils';
 import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 // GET - Get guild wars and alliances
 export async function GET(request: NextRequest) {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
     
-    if (!token) {
-      return NextResponse.json({ error: 'No token provided' }, { status: 401 });
+    // Authenticate user
+    const authResult = await authenticateUser(token);
+    if ('error' in authResult) {
+      return createErrorResponse(authResult.error);
     }
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
+    const { user } = authResult;
 
     // Get user's guild membership
     const membership = await prisma.guildMember.findUnique({
@@ -137,8 +133,7 @@ export async function GET(request: NextRequest) {
       craftingJobs: 0   // Could be calculated from actual crafting jobs
     };
 
-    return NextResponse.json({
-      success: true,
+    return createSuccessResponse({
       wars: {
         rivalries: rivalries,
         canDeclareWar: ['LEADER', 'OFFICER'].includes(membership.role)
@@ -152,10 +147,7 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Error fetching guild wars:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch war data' },
-      { status: 500 }
-    );
+    return createErrorResponse('INTERNAL_ERROR', 'Failed to fetch war data');
   }
 }
 
