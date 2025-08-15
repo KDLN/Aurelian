@@ -49,11 +49,11 @@ export async function POST(request: NextRequest) {
 
     // First, ensure all necessary item definitions exist
     const itemDefs = [
-      { key: 'iron_ore', name: 'Iron Ore', rarity: 'COMMON', description: 'Raw iron ore from the mines' },
-      { key: 'herb', name: 'Herb', rarity: 'COMMON', description: 'Medicinal herbs from the forest' },
-      { key: 'hide', name: 'Hide', rarity: 'COMMON', description: 'Animal hide for crafting' },
-      { key: 'pearl', name: 'Pearl', rarity: 'UNCOMMON', description: 'Lustrous pearl from deep waters' },
-      { key: 'relic_fragment', name: 'Relic Fragment', rarity: 'RARE', description: 'Ancient artifact fragment' }
+      { key: 'iron_ore', name: 'Iron Ore', rarity: 'COMMON' },
+      { key: 'herb', name: 'Herb', rarity: 'COMMON' },
+      { key: 'hide', name: 'Hide', rarity: 'COMMON' },
+      { key: 'pearl', name: 'Pearl', rarity: 'UNCOMMON' },
+      { key: 'relic_fragment', name: 'Relic Fragment', rarity: 'RARE' }
     ];
 
     // Upsert item definitions (create if not exists, update if exists)
@@ -62,16 +62,12 @@ export async function POST(request: NextRequest) {
         where: { key: itemDef.key },
         update: {
           name: itemDef.name,
-          rarity: itemDef.rarity,
-          description: itemDef.description
+          rarity: itemDef.rarity as any
         },
         create: {
           key: itemDef.key,
           name: itemDef.name,
-          rarity: itemDef.rarity,
-          description: itemDef.description,
-          category: 'material',
-          isActive: true
+          rarity: itemDef.rarity as any
         }
       });
     }
