@@ -74,12 +74,18 @@ export async function GET(request: NextRequest) {
     });
 
     if (!membership) {
-      return NextResponse.json({
-        success: true,
+      console.log('No guild membership found for user:', user.id);
+      return createSuccessResponse({
         inGuild: false,
         guild: null
       });
     }
+
+    console.log('Found guild membership:', {
+      guildId: membership.guildId,
+      guildName: membership.guild.name,
+      userRole: membership.role
+    });
 
     // Get recent guild activity
     const recentLogs = await prisma.guildLog.findMany({
@@ -172,8 +178,7 @@ export async function GET(request: NextRequest) {
       roleDistribution
     };
 
-    return NextResponse.json({
-      success: true,
+    return createSuccessResponse({
       inGuild: true,
       guild: guildInfo
     });
