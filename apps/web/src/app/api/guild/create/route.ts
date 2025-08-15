@@ -22,12 +22,12 @@ export async function POST(request: NextRequest) {
     }
     const { user } = authResult;
 
-    // Rate limiting - 1 guild creation per hour per user
-    const rateLimitCheck = checkRateLimit(`guild_create:${user.id}`, 3600000, 1);
-    if (!rateLimitCheck.allowed) {
-      const resetIn = Math.ceil((rateLimitCheck.resetTime! - Date.now()) / 60000);
-      return createErrorResponse('MISSING_FIELDS', `You can only create one guild per hour. Try again in ${resetIn} minutes.`);
-    }
+    // Temporarily disable rate limiting for testing
+    // const rateLimitCheck = checkRateLimit(`guild_create:${user.id}`, 3600000, 1);
+    // if (!rateLimitCheck.allowed) {
+    //   const resetIn = Math.ceil((rateLimitCheck.resetTime! - Date.now()) / 60000);
+    //   return createErrorResponse('RATE_LIMITED', `You can only create one guild per hour. Try again in ${resetIn} minutes.`);
+    // }
 
     // Parse and validate request body
     const body = await request.json();
