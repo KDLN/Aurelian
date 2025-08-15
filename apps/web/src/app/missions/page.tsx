@@ -11,6 +11,7 @@ import { getCaravanStatus, formatTimeRemaining, getRiskColor as getCaravanRiskCo
 import { calculateMissionSuccess, getMissionDifficultyText } from '@/lib/missions/calculator';
 import { agentTypeInfo } from '@/lib/agents/generator';
 import { supabase } from '@/lib/supabaseClient';
+import HelpTooltip, { RiskTooltip, DurationTooltip } from '@/components/HelpTooltip';
 
 export default function MissionsPage() {
   const { data, isLoading, error, refetch } = useMissions(); // Uses optimized 60s polling
@@ -256,7 +257,10 @@ export default function MissionsPage() {
         </div>
       )}
 
-      <h3>Risk Levels</h3>
+      <div className="game-flex" style={{ alignItems: 'center', gap: '8px' }}>
+        <h3>Risk Levels</h3>
+        <RiskTooltip />
+      </div>
       <div className="game-flex-col">
         <div className="game-space-between">
           <span className="game-small">Low Risk:</span>
@@ -457,7 +461,10 @@ export default function MissionsPage() {
                         <span>{mission.distance} km</span>
                       </div>
                       <div className="game-space-between">
-                        <span>Base Duration:</span>
+                        <span>
+                          Base Duration:
+                          <DurationTooltip />
+                        </span>
                         <span className="game-muted">{formatDuration(mission.baseDuration)}</span>
                       </div>
                       <div className="game-space-between">

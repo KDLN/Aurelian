@@ -8,6 +8,8 @@ import { loadCharacterAppearance } from '@/lib/sprites/characterOptions';
 import { CharacterAppearance } from '@/lib/sprites/characterSprites';
 import CharacterViewer from './CharacterViewer';
 import { ChatSystem } from '@/components/chat';
+import HelpTooltip from '@/components/HelpTooltip';
+import OnboardingTips from '@/components/OnboardingTips';
 import '@/lib/game/styles.css';
 
 interface GameLayoutProps {
@@ -143,7 +145,8 @@ export default function GameLayout({
     { href: '/warehouse', label: 'Warehouse' },
     { href: '/inventory', label: 'Inventory' },
     { href: '/guild', label: 'Guild' },
-    { href: '/play', label: 'World Map' },
+    { href: '/world-map', label: 'World Map' },
+    { href: '/help', label: '❓ Help' },
   ];
 
   return (
@@ -292,23 +295,65 @@ export default function GameLayout({
           </div>
 
           <div>
-            <h3>Quick Stats</h3>
+            <div className="game-flex" style={{ alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+              <h3>Quick Stats</h3>
+              <HelpTooltip 
+                content="Overview of your current activities. Click items for quick navigation."
+                position="right"
+              />
+            </div>
             <div className="game-flex-col">
               <div className="game-space-between">
-                <span>Warehouse Items:</span>
-                <span>{inventory?.totalItems || Object.keys(world.warehouse).length}</span>
+                <span>
+                  Warehouse Items:
+                  <HelpTooltip 
+                    content="Items in your personal warehouse storage. Click to visit warehouse."
+                    position="top"
+                    maxWidth="160px"
+                  />
+                </span>
+                <a href="/warehouse" style={{ color: '#f1e5c8', textDecoration: 'none' }}>
+                  {inventory?.totalItems || Object.keys(world.warehouse).length}
+                </a>
               </div>
               <div className="game-space-between">
-                <span>Active Listings:</span>
-                <span>{world.listings.length}</span>
+                <span>
+                  Active Listings:
+                  <HelpTooltip 
+                    content="Items you have listed for sale on the auction house."
+                    position="top"
+                    maxWidth="160px"
+                  />
+                </span>
+                <a href="/auction" style={{ color: '#f1e5c8', textDecoration: 'none' }}>
+                  {world.listings.length}
+                </a>
               </div>
               <div className="game-space-between">
-                <span>Active Missions:</span>
-                <span>{missionsData?.activeMissions?.length || world.missions.length}</span>
+                <span>
+                  Active Missions:
+                  <HelpTooltip 
+                    content="Agents currently out on missions. Check mission control for details."
+                    position="top"
+                    maxWidth="160px"
+                  />
+                </span>
+                <a href="/missions" style={{ color: '#f1e5c8', textDecoration: 'none' }}>
+                  {missionsData?.activeMissions?.length || world.missions.length}
+                </a>
               </div>
               <div className="game-space-between">
-                <span>Crafting Jobs:</span>
-                <span>{world.crafting.length}</span>
+                <span>
+                  Crafting Jobs:
+                  <HelpTooltip 
+                    content="Items currently being crafted. Visit crafting to collect completed jobs."
+                    position="top"
+                    maxWidth="160px"
+                  />
+                </span>
+                <a href="/crafting" style={{ color: '#f1e5c8', textDecoration: 'none' }}>
+                  {world.crafting.length}
+                </a>
               </div>
             </div>
           </div>
@@ -354,6 +399,9 @@ export default function GameLayout({
           )}
         </div>
       </div>
+      
+      {/* Onboarding system - appears globally */}
+      <OnboardingTips />
     </div>
   );
 }
