@@ -21,16 +21,11 @@ type WarehouseItem = {
 type UserInventoryItem = {
   id: string;
   itemId: string;
-  qty: number;
+  itemKey: string;
+  itemName: string;
+  rarity: string;
+  quantity: number;
   location: string;
-  item: {
-    id: string;
-    key: string;
-    name: string;
-    rarity: string;
-    stack: number;
-    meta: any;
-  };
 };
 
 export default function GuildWarehousePage() {
@@ -69,10 +64,11 @@ export default function GuildWarehousePage() {
       }
 
       const warehouseData = await warehouseResponse.json();
+      console.log('Guild warehouse response:', warehouseData);
       setWarehouseItems(warehouseData.items || []);
 
       // Get user's personal warehouse inventory for deposits
-      const inventoryResponse = await fetch('/api/inventory?location=warehouse', {
+      const inventoryResponse = await fetch('/api/user/inventory?location=warehouse', {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }
@@ -80,7 +76,12 @@ export default function GuildWarehousePage() {
 
       if (inventoryResponse.ok) {
         const inventoryData = await inventoryResponse.json();
-        setUserInventory(inventoryData.items || []);
+        console.log('User inventory response:', inventoryData);
+        setUserInventory(inventoryData.inventory || []);
+      } else {
+        console.error('Failed to fetch user inventory:', inventoryResponse.status);
+        const errorData = await inventoryResponse.json();
+        console.error('Inventory error:', errorData);
       }
 
     } catch (err) {
@@ -262,8 +263,9 @@ export default function GuildWarehousePage() {
                 {userInventory.map(item => (
                   <div key={item.id} className="game-space-between" style={{ padding: '8px 0', borderBottom: '1px solid #533b2c' }}>
                     <div>
-                      <strong>{item.item.name}</strong>
-                      <div className="game-small game-muted">You have: {item.qty}</div>
+                      <strong>{item.itemName}</strong>
+                      <div className="game-small game-muted">You have: {item.quantity}</div>
+                      <div className="game-small">Rarity: {item.rarity}</div>
                     </div>
                     <div className="game-flex" style={{ gap: '8px', alignItems: 'center' }}>
                       <input
