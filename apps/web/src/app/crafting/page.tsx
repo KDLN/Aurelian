@@ -47,6 +47,7 @@ export default function CraftingPage() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [quantity, setQuantity] = useState(1);
   const [message, setMessage] = useState('');
+  const [populatingBlueprints, setPopulatingBlueprints] = useState(false);
 
   const categories = ['all', ...Array.from(new Set(blueprints.map(bp => bp.category)))];
   const filteredBlueprints = selectedCategory === 'all' 
@@ -120,6 +121,41 @@ export default function CraftingPage() {
       }
     } catch (err) {
       setMessage(`❌ ${err instanceof Error ? err.message : 'Failed to start debug crafting'}`);
+    }
+  };
+
+  const handlePopulateBlueprints = async () => {
+    setPopulatingBlueprints(true);
+    try {
+      const { data: { session } } = await import('@/lib/supabaseClient').then(m => m.supabase.auth.getSession());
+      const token = session.data.session?.access_token;
+      
+      if (!token) {
+        setMessage('❌ Authentication failed');
+        return;
+      }
+
+      const response = await fetch('/api/crafting/blueprints/populate-starter', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        setMessage(`✅ ${result.message}`);
+        // Refresh the page to show new blueprints
+        window.location.reload();
+      } else {
+        setMessage(`❌ ${result.error || result.message}`);
+      }
+    } catch (err) {
+      console.error('Failed to populate blueprints:', err);
+      setMessage('❌ Failed to populate crafting recipes');
+    } finally {
+      setPopulatingBlueprints(false);
     }
   };
 
@@ -292,7 +328,24 @@ export default function CraftingPage() {
             <h3>Recipe Book</h3>
             <div style={{ maxHeight: '600px', overflowY: 'auto' }}>
               {filteredBlueprints.length === 0 ? (
-                <p className="game-muted">No recipes available in this category.</p>
+                <div className="game-flex-col" style={{ gap: '12px' }}>
+                  <p className="game-muted">No recipes available in this category.</p>
+                  {blueprints.length === 0 && (
+                    <div>
+                      <button 
+                        onClick={handlePopulateBlueprints}
+                        disabled={populatingBlueprints}
+                        className="game-btn game-btn-primary"
+                        style={{ fontSize: '12px', padding: '8px 12px' }}
+                      >
+                        {populatingBlueprints ? '🔄 Adding Recipes...' : '📜 Add Starter Recipes (Debug)'}
+                      </button>
+                      <p className="game-small game-muted" style={{ textAlign: 'center', marginTop: '8px' }}>
+                        This will populate the database with starter crafting recipes
+                      </p>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <div className="game-flex-col" style={{ gap: '8px' }}>
                   {filteredBlueprints.map(blueprint => (
