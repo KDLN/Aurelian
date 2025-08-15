@@ -9,6 +9,8 @@ export class MinimapRenderer {
   private viewOffset = { x: 0, y: 0 };
   private isDragging = false;
   private lastMousePos = { x: 0, y: 0 };
+  private animationFrameId: number | null = null;
+  private selectedPath: { from: string; to: string } | null = null;
 
   constructor(canvas: HTMLCanvasElement, config: MinimapConfig) {
     this.canvas = canvas;
@@ -20,6 +22,7 @@ export class MinimapRenderer {
     
     this.setupEventListeners();
     this.resize();
+    this.startAnimation();
   }
 
   private setupEventListeners() {
@@ -54,6 +57,25 @@ export class MinimapRenderer {
       const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
       this.config.scale = Math.max(0.1, Math.min(3, this.config.scale * zoomFactor));
       this.render();
+    });
+
+    // Click to select paths or areas
+    this.canvas.addEventListener('click', (e) => {
+      if (this.isDragging) return; // Don't select if we were dragging
+      
+      const rect = this.canvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left - this.viewOffset.x) / this.config.scale;
+      const y = (e.clientY - rect.top - this.viewOffset.y) / this.config.scale;
+      
+      // Check for path clicks first
+      const clickedPath = this.getPathAtPoint(x, y);
+      if (clickedPath) {
+        this.selectedPath = clickedPath;
+        return;
+      }
+      
+      // Clear path selection if clicking elsewhere
+      this.selectedPath = null;
     });
 
     // Double-click to center on area
@@ -159,9 +181,10 @@ export class MinimapRenderer {
   private drawConnections() {
     const { ctx } = this;
     
-    ctx.strokeStyle = 'rgba(241, 229, 200, 0.2)';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([5, 5]);
+    // Draw road/path base layer first (wider, darker)
+    ctx.strokeStyle = 'rgba(139, 140, 121, 0.4)';
+    ctx.lineWidth = 8;
+    ctx.setLineDash([]);
     
     this.areas.forEach(area => {
       const centerX = area.bounds.x + area.bounds.width / 2;
@@ -181,7 +204,87 @@ export class MinimapRenderer {
       });
     });
     
+    // Draw road/path center line (brighter, thinner)
+    ctx.strokeStyle = 'rgba(241, 229, 200, 0.8)';
+    ctx.lineWidth = 4;
     ctx.setLineDash([]);
+    
+    this.areas.forEach(area => {
+      const centerX = area.bounds.x + area.bounds.width / 2;
+      const centerY = area.bounds.y + area.bounds.height / 2;
+      
+      area.connections.forEach(connectionId => {
+        const connectedArea = this.areas.find(a => a.id === connectionId);
+        if (!connectedArea) return;
+        
+        const targetX = connectedArea.bounds.x + connectedArea.bounds.width / 2;
+        const targetY = connectedArea.bounds.y + connectedArea.bounds.height / 2;
+        
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.lineTo(targetX, targetY);
+        ctx.stroke();
+      });
+    });
+    
+    // Draw travel direction markers (animated dashes)
+    const time = Date.now() * 0.001; // Convert to seconds
+    ctx.strokeStyle = 'rgba(212, 175, 55, 0.9)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([8, 12]);
+    ctx.lineDashOffset = (time * 20) % 20; // Animate the dash pattern
+    
+    this.areas.forEach(area => {
+      const centerX = area.bounds.x + area.bounds.width / 2;
+      const centerY = area.bounds.y + area.bounds.height / 2;
+      
+      area.connections.forEach(connectionId => {
+        const connectedArea = this.areas.find(a => a.id === connectionId);
+        if (!connectedArea) return;
+        
+        const targetX = connectedArea.bounds.x + connectedArea.bounds.width / 2;
+        const targetY = connectedArea.bounds.y + connectedArea.bounds.height / 2;
+        
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.lineTo(targetX, targetY);
+        ctx.stroke();
+      });
+    });
+    
+    // Highlight selected path
+    if (this.selectedPath) {
+      const fromArea = this.areas.find(a => a.id === this.selectedPath!.from);
+      const toArea = this.areas.find(a => a.id === this.selectedPath!.to);
+      
+      if (fromArea && toArea) {
+        const fromX = fromArea.bounds.x + fromArea.bounds.width / 2;
+        const fromY = fromArea.bounds.y + fromArea.bounds.height / 2;
+        const toX = toArea.bounds.x + toArea.bounds.width / 2;
+        const toY = toArea.bounds.y + toArea.bounds.height / 2;
+        
+        // Bright highlighted path
+        ctx.strokeStyle = 'rgba(255, 215, 0, 1)';
+        ctx.lineWidth = 6;
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.moveTo(fromX, fromY);
+        ctx.lineTo(toX, toY);
+        ctx.stroke();
+        
+        // Pulsing effect
+        const pulse = Math.sin(time * 4) * 0.3 + 0.7;
+        ctx.strokeStyle = `rgba(255, 255, 255, ${pulse * 0.8})`;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(fromX, fromY);
+        ctx.lineTo(toX, toY);
+        ctx.stroke();
+      }
+    }
+    
+    ctx.setLineDash([]);
+    ctx.lineDashOffset = 0;
   }
 
   private drawAreas() {
@@ -368,10 +471,129 @@ export class MinimapRenderer {
       
       yOffset += 18;
     });
+    
+    // Selected path information
+    if (this.selectedPath) {
+      const fromArea = this.areas.find(a => a.id === this.selectedPath!.from);
+      const toArea = this.areas.find(a => a.id === this.selectedPath!.to);
+      
+      if (fromArea && toArea) {
+        // Calculate travel distance and time
+        const fromX = fromArea.bounds.x + fromArea.bounds.width / 2;
+        const fromY = fromArea.bounds.y + fromArea.bounds.height / 2;
+        const toX = toArea.bounds.x + toArea.bounds.width / 2;
+        const toY = toArea.bounds.y + toArea.bounds.height / 2;
+        const distance = Math.sqrt((toX - fromX) ** 2 + (toY - fromY) ** 2);
+        const travelTime = Math.round(distance / 10); // Arbitrary conversion to minutes
+        
+        // Path info panel
+        ctx.fillStyle = 'rgba(26, 21, 17, 0.95)';
+        ctx.fillRect(canvas.width - 300, canvas.height - 150, 290, 140);
+        ctx.strokeStyle = '#d4af37';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(canvas.width - 300, canvas.height - 150, 290, 140);
+        
+        ctx.fillStyle = '#d4af37';
+        ctx.font = 'bold 14px monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText('🛤️ Selected Route', canvas.width - 290, canvas.height - 130);
+        
+        ctx.fillStyle = '#f1e5c8';
+        ctx.font = '12px monospace';
+        
+        yOffset = canvas.height - 110;
+        ctx.fillText(`From: ${fromArea.name}`, canvas.width - 290, yOffset);
+        yOffset += 15;
+        ctx.fillText(`To: ${toArea.name}`, canvas.width - 290, yOffset);
+        yOffset += 15;
+        ctx.fillText(`Distance: ${Math.round(distance)} units`, canvas.width - 290, yOffset);
+        yOffset += 15;
+        ctx.fillText(`Est. Travel: ${travelTime} minutes`, canvas.width - 290, yOffset);
+        yOffset += 15;
+        
+        // Travel conditions
+        const riskLevel = distance > 200 ? 'HIGH' : distance > 150 ? 'MEDIUM' : 'LOW';
+        const riskColor = riskLevel === 'HIGH' ? '#d73a49' : riskLevel === 'MEDIUM' ? '#e36209' : '#28a745';
+        ctx.fillStyle = riskColor;
+        ctx.fillText(`Risk: ${riskLevel}`, canvas.width - 290, yOffset);
+        
+        ctx.fillStyle = '#9b8c70';
+        ctx.font = '10px monospace';
+        ctx.fillText('Click elsewhere to deselect', canvas.width - 290, canvas.height - 20);
+      }
+    }
   }
 
   updateConfig(newConfig: Partial<MinimapConfig>) {
     Object.assign(this.config, newConfig);
     this.render();
+  }
+
+  private startAnimation() {
+    const animate = () => {
+      this.render();
+      this.animationFrameId = requestAnimationFrame(animate);
+    };
+    animate();
+  }
+
+  stopAnimation() {
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+  }
+
+  destroy() {
+    this.stopAnimation();
+  }
+
+  private getPathAtPoint(x: number, y: number): { from: string; to: string } | null {
+    const threshold = 15; // Click detection threshold
+
+    for (const area of this.areas) {
+      const centerX = area.bounds.x + area.bounds.width / 2;
+      const centerY = area.bounds.y + area.bounds.height / 2;
+      
+      for (const connectionId of area.connections) {
+        const connectedArea = this.areas.find(a => a.id === connectionId);
+        if (!connectedArea) continue;
+        
+        const targetX = connectedArea.bounds.x + connectedArea.bounds.width / 2;
+        const targetY = connectedArea.bounds.y + connectedArea.bounds.height / 2;
+        
+        // Calculate distance from point to line segment
+        const distanceToLine = this.pointToLineDistance(x, y, centerX, centerY, targetX, targetY);
+        
+        if (distanceToLine < threshold) {
+          return { from: area.id, to: connectionId };
+        }
+      }
+    }
+    
+    return null;
+  }
+
+  private pointToLineDistance(px: number, py: number, x1: number, y1: number, x2: number, y2: number): number {
+    const A = px - x1;
+    const B = py - y1;
+    const C = x2 - x1;
+    const D = y2 - y1;
+
+    const dot = A * C + B * D;
+    const lenSq = C * C + D * D;
+    
+    if (lenSq === 0) return Math.sqrt(A * A + B * B);
+    
+    let param = dot / lenSq;
+    param = Math.max(0, Math.min(1, param));
+
+    const xx = x1 + param * C;
+    const yy = y1 + param * D;
+
+    const dx = px - xx;
+    const dy = py - yy;
+    
+    return Math.sqrt(dx * dx + dy * dy);
   }
 }
