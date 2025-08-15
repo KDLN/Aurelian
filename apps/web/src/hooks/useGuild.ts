@@ -42,22 +42,22 @@ export function useGuild(): UseGuildReturn {
         throw new Error(`Failed to fetch guild data: ${guildResponse.status}`);
       }
 
-      const guildData: ApiResponse<{ inGuild: boolean; guild: GuildInfo | null }> = await guildResponse.json();
+      const guildData: any = await guildResponse.json();
       
       console.log('Guild API response:', guildData);
-      console.log('inGuild:', guildData.data?.inGuild);
-      console.log('guild data:', guildData.data?.guild);
+      console.log('inGuild:', guildData.inGuild);
+      console.log('guild data:', guildData.guild);
       
-      if (guildData.success && guildData.data?.inGuild && guildData.data.guild) {
-        console.log('Setting guild data:', guildData.data.guild);
-        setGuild(guildData.data.guild);
+      if (guildData.success && guildData.inGuild && guildData.guild) {
+        console.log('Setting guild data:', guildData.guild);
+        setGuild(guildData.guild);
       } else {
         console.log('No guild found or API error, setting null');
         setGuild(null);
       }
 
       // Fetch invitations if not in guild
-      if (!guildData.data?.inGuild) {
+      if (!guildData.inGuild) {
         const inviteResponse = await fetch('/api/guild/invite', {
           headers: {
             'Authorization': `Bearer ${session.access_token}`
