@@ -34,10 +34,11 @@ export async function GET(request: NextRequest) {
     });
 
     if (!profile) {
-      // Return default if no profile exists
+      // Return default if no profile exists - use email prefix as display name
+      const displayName = user.email?.split('@')[0] || 'Anonymous';
       return NextResponse.json({
         avatar: null,
-        display: 'Trader'
+        display: displayName
       });
     }
 
@@ -80,17 +81,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Update or create profile with avatar data
+    const fallbackName = display || avatar.name || user.email?.split('@')[0] || 'Anonymous';
     const profile = await prisma.profile.upsert({
       where: { userId: user.id },
       update: {
         avatar,
-        display: display || avatar.name || 'Trader',
+        display: fallbackName,
         updatedAt: new Date()
       },
       create: {
         userId: user.id,
         avatar,
-        display: display || avatar.name || 'Trader'
+        display: fallbackName
       }
     });
 

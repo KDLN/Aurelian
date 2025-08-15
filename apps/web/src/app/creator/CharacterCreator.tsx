@@ -6,14 +6,18 @@ import {
   saveCharacterAppearance,
   loadCharacterAppearanceAsync
 } from '../../lib/sprites/characterOptions';
+import { supabase } from '../../lib/supabaseClient';
 
 export default function CharacterCreator() {
   const [appearance, setAppearance] = useState<CharacterAppearance | null>(null);
-  const [name, setName] = useState<string>('Trader');
+  const [name, setName] = useState<string>('');
   const [sprite, setSprite] = useState<CharacterSprite | null>(null);
   const [loading, setLoading] = useState(true);
   const [animationType, setAnimationType] = useState<'idle' | 'walk' | 'run'>('idle');
   const [direction, setDirection] = useState<'south' | 'west' | 'east' | 'north'>('south');
+  const [user, setUser] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [saveMessage, setSaveMessage] = useState<string>('');
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | undefined>(undefined);
 
@@ -23,20 +27,68 @@ export default function CharacterCreator() {
     }
   }, [appearance]);
 
+  // Load user authentication state
   useEffect(() => {
-    const loadFromDb = async () => {
-      try {
-        const dbAppearance = await loadCharacterAppearanceAsync();
-        setAppearance(dbAppearance);
-        setName(dbAppearance.name || 'Trader');
-      } catch (error) {
-        console.error('Failed to load character from database:', error);
-      } finally {
-        setLoading(false);
+    const loadUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setUser(session.user);
+        await loadUserProfile(session.user);
       }
     };
-    loadFromDb();
+    loadUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        await loadUserProfile(session.user);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
+
+  // Load user profile and character data
+  const loadUserProfile = async (authUser: any) => {
+    try {
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      
+      if (!token) return;
+
+      // Load user profile
+      const profileResponse = await fetch('/api/user/profile', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      let profile = null;
+      if (profileResponse.ok) {
+        const profileData = await profileResponse.json();
+        profile = profileData.profile;
+        setUserProfile(profile);
+      }
+
+      // Load character appearance
+      const dbAppearance = await loadCharacterAppearanceAsync();
+      setAppearance(dbAppearance);
+      
+      // Set name priority: character name -> profile display name -> email -> default
+      const characterName = dbAppearance.name;
+      const profileName = profile?.display;
+      const emailName = authUser.email?.split('@')[0]; // Use email prefix as fallback
+      
+      setName(characterName || profileName || emailName || 'Trader');
+      
+    } catch (error) {
+      console.error('Failed to load user data:', error);
+      // Load default appearance if database fails
+      const defaultAppearance = await loadCharacterAppearanceAsync();
+      setAppearance(defaultAppearance);
+      setName(user?.email?.split('@')[0] || 'Trader');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     console.log('Setting animation:', animationType, direction);
@@ -113,14 +165,57 @@ export default function CharacterCreator() {
   }
 
   async function save() {
-    if (!appearance) return;
-    const fullAppearance = { ...appearance, name };
+    if (!appearance || !user) {
+      setSaveMessage('❌ Please log in to save your character');
+      return;
+    }
+    
+    setSaveMessage('💾 Saving character...');
+    
     try {
+      const fullAppearance = { ...appearance, name };
+      console.log('Saving character appearance:', fullAppearance);
+      
+      // Save character appearance
       await saveCharacterAppearance(fullAppearance);
-      alert('Character saved! Go to Play to use your character.');
+      
+      // Also update the user's display name if it changed
+      if (name !== userProfile?.display) {
+        const session = await supabase.auth.getSession();
+        const token = session.data.session?.access_token;
+        
+        if (token) {
+          const profileResponse = await fetch('/api/user/profile', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              userId: user.id,
+              display: name
+            })
+          });
+          
+          if (profileResponse.ok) {
+            console.log('Profile display name updated');
+          }
+        }
+      }
+      
+      setSaveMessage('✅ Character saved! Redirecting to game...');
+      
+      // Auto-redirect to game after successful save
+      setTimeout(() => {
+        window.location.href = '/lobby';
+      }, 2000);
+      
     } catch (error) {
       console.error('Failed to save character:', error);
-      alert('Failed to save character. Please try again.');
+      setSaveMessage('❌ Failed to save character. Please try again.');
+      
+      // Clear error message after 5 seconds
+      setTimeout(() => setSaveMessage(''), 5000);
     }
   }
 
@@ -197,21 +292,51 @@ export default function CharacterCreator() {
             </select>
           </div>
 
+          {saveMessage && (
+            <div style={{
+              padding: '8px 12px',
+              marginBottom: '12px',
+              borderRadius: 4,
+              backgroundColor: saveMessage.includes('❌') ? '#7f1d1d' : saveMessage.includes('✅') ? '#166534' : '#1e40af',
+              color: '#f1e5c8',
+              fontSize: 14,
+              textAlign: 'center'
+            }}>
+              {saveMessage}
+            </div>
+          )}
+
           <button 
             onClick={save}
+            disabled={!user || saveMessage.includes('💾')}
             style={{ 
               padding: '12px 20px', 
-              background: '#68b06e', 
+              background: (!user || saveMessage.includes('💾')) ? '#533b2c' : '#68b06e', 
               border: 'none', 
               borderRadius: 4, 
-              color: '#1a1511', 
+              color: (!user || saveMessage.includes('💾')) ? '#9b8c70' : '#1a1511', 
               fontWeight: 'bold',
-              cursor: 'pointer',
-              fontSize: 16
+              cursor: (!user || saveMessage.includes('💾')) ? 'not-allowed' : 'pointer',
+              fontSize: 16,
+              width: '100%'
             }}
           >
-            Save Character
+            {saveMessage.includes('💾') ? 'Saving...' : 'Save Character'}
           </button>
+
+          {!user && (
+            <div style={{
+              marginTop: '12px',
+              padding: '8px',
+              backgroundColor: '#533b2c',
+              borderRadius: 4,
+              fontSize: 12,
+              textAlign: 'center',
+              color: '#9b8c70'
+            }}>
+              Please log in to save your character
+            </div>
+          )}
         </div>
       </div>
 

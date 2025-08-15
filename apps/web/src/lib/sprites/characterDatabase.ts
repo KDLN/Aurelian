@@ -66,7 +66,7 @@ export async function loadCharacterFromDatabase(
     const data = await response.json();
     if (data.avatar) {
       return {
-        name: data.avatar.name || data.display || 'Trader',
+        name: data.avatar.name || data.display || '',
         base: data.avatar.base || 'v01',
         outfit: data.avatar.outfit || 'fstr_v01',
         hair: data.avatar.hair || 'bob1_v01',

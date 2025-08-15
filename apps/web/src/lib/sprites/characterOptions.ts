@@ -90,7 +90,7 @@ export async function saveCharacterAppearance(appearance: CharacterAppearance) {
 
 export function loadCharacterAppearance(): CharacterAppearance {
   return {
-    name: 'Trader',
+    name: '',
     base: 'v01',
     outfit: 'fstr_v01',
     hair: 'bob1_v01',
