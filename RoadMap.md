@@ -90,18 +90,37 @@ A complete interactive medieval trading route system with:
 - [x] Guild wars and competitions
 - [x] Member contribution tracking
 
-### 2.2 Hub Ownership & Taxation
-- [ ] Guilds can claim and control trading hubs
-- [ ] Taxation system (% of all trades in hub)
-- [ ] Tax revenue goes to guild treasury
-- [ ] Hub upgrade system (defenses, warehouses, markets)
-- [ ] Hub benefits for guild members (reduced fees)
-- [ ] Contested hub capture mechanics
-- [ ] Hub maintenance costs
+### 2.2 Guild Alliance System ⭐ **NEXT PRIORITY**
+- [ ] **Alliance Management**: Propose, accept, decline, and break alliances
+- [ ] **Travel Tax Benefits**: 25-50% tax reduction on allied guild roads  
+- [ ] **Auction Fee Benefits**: 10-15% fee reduction in allied markets
+- [ ] **Alliance Chat Channels**: Shared communication between allied guilds
+- [ ] **Safe Passage System**: No attacks in neutral zones between allies
+- [ ] **Alliance Directory**: View all current alliances and benefits
+- [ ] **Joint Mission Access**: Special multi-guild cooperative missions
+- [ ] **Alliance Activity Feed**: Track alliance-related guild events
+- [ ] **Alliance UI Integration**: Clear ally/enemy indicators throughout game
+
+### 2.3 Hub-Based Guild Wars ⭐ **NEXT AFTER ALLIANCES**
+- [ ] **Contest Declaration System**: Challenge other guilds for hub control
+- [ ] **Economic Competition Mechanics**: Win through trade volume, missions, crafting activity
+- [ ] **Real-time Contest Scoring**: Track guild performance during 7-day contests
+- [ ] **Hub Control Benefits**: Tax revenue, reduced fees, strategic advantages
+- [ ] **Contest Types**: Capture uncontrolled hubs or challenge existing owners
+- [ ] **Victory Rewards**: Treasury bonuses, ongoing tax income, prestige achievements
+- [ ] **Hub Value Tiers**: Major/Regional/Minor hubs with different reward levels
+- [ ] **Balancing Systems**: Maintenance costs, revolt risks, contest cooldowns
+- [ ] **Contest UI**: Live leaderboards, activity tracking, strategic coordination tools
+
+### 2.4 Hub Ownership & Taxation
+- [ ] Advanced hub upgrade system (defenses, warehouses, markets)
 - [ ] NPC guard hiring for defense
 - [ ] Trade embargo powers
+- [ ] Hub specialization bonuses (crafting, storage, speed)
+- [ ] Inter-hub trade route management
+- [ ] Hub prosperity and growth mechanics
 
-### 2.3 Road Building & Infrastructure
+### 2.5 Road Building & Infrastructure
 - [ ] Guild-funded road construction projects
 - [ ] Road quality tiers affecting travel speed
 - [ ] Maintenance costs and road decay over time

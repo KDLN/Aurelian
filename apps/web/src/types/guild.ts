@@ -107,12 +107,13 @@ export interface GuildInvitation {
   expiresAt: string;
 }
 
-// Guild Alliance/Rivalry
+// Guild Alliance/Rivalry (Enhanced)
 export interface GuildAlliance {
   id: string;
   type: 'ALLIANCE' | 'RIVALRY';
-  status: 'PENDING' | 'ACCEPTED' | 'DECLINED';
-  opponent: {
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED';
+  isProposer: boolean;
+  otherGuild: {
     id: string;
     name: string;
     tag: string;
@@ -122,7 +123,138 @@ export interface GuildAlliance {
   };
   proposedAt: string;
   acceptedAt?: string;
-  isProposer: boolean;
+  expiresAt?: string;
+  brokenAt?: string;
+  brokenReason?: string;
+  terms?: AllianceTerms;
+  proposalMessage?: string;
+  benefits?: AllianceBenefits;
+  channels?: AllianceChannelInfo[];
+  activeMissions?: AllianceMissionInfo[];
+}
+
+// Alliance Terms and Conditions
+export interface AllianceTerms {
+  travelTaxReduction: number;
+  auctionFeeReduction: number;
+  safePassage: boolean;
+  sharedChat: boolean;
+  jointMissions: boolean;
+}
+
+// Alliance Benefits (runtime calculated)
+export interface AllianceBenefits {
+  travelTaxReduction: number;
+  auctionFeeReduction: number;
+  safePassage: boolean;
+  sharedChat: boolean;
+  jointMissions: boolean;
+}
+
+// Alliance Channel Info
+export interface AllianceChannelInfo {
+  id: string;
+  name: string;
+  isActive: boolean;
+}
+
+// Alliance Mission Info
+export interface AllianceMissionInfo {
+  id: string;
+  name: string;
+  status: string;
+  currentParticipants: number;
+  maxParticipants: number;
+}
+
+// Alliance Statistics
+export interface AllianceStats {
+  totalActive: number;
+  totalAlliances: number;
+  totalRivalries: number;
+  pendingIncoming: number;
+  pendingOutgoing: number;
+  totalSharedChannels: number;
+  totalActiveMissions: number;
+  averageTravelBenefit: number;
+  averageAuctionBenefit: number;
+}
+
+// Alliance Activity
+export interface AllianceActivity {
+  id: string;
+  action: string;
+  details: any;
+  createdAt: string;
+  user: string;
+}
+
+// Alliance Management Data
+export interface AllianceManagement {
+  alliances: {
+    active: GuildAlliance[];
+    pending: {
+      incoming: GuildAlliance[];
+      outgoing: GuildAlliance[];
+    };
+    past: GuildAlliance[];
+  };
+  stats: AllianceStats;
+  recentActivity: AllianceActivity[];
+  userGuild: {
+    id: string;
+    name: string;
+    tag: string;
+    userRole: GuildRole;
+    canManageAlliances: boolean;
+    canBreakAlliances: boolean;
+  };
+}
+
+// Alliance Proposal Form Data
+export interface AllianceProposal {
+  targetGuildId: string;
+  type: 'ALLIANCE' | 'RIVALRY';
+  message?: string;
+  terms?: Partial<AllianceTerms>;
+}
+
+// Alliance Response Form Data
+export interface AllianceResponse {
+  allianceId: string;
+  action: 'ACCEPT' | 'DECLINE';
+  responseMessage?: string;
+}
+
+// Joint Alliance Mission
+export interface AllianceMission {
+  id: string;
+  allianceId: string;
+  name: string;
+  description: string;
+  requirements: any;
+  rewards: any;
+  status: 'active' | 'completed' | 'cancelled';
+  startedAt: string;
+  completedAt?: string;
+  expiresAt?: string;
+  maxParticipants: number;
+  currentParticipants: number;
+  participants: AllianceMissionParticipant[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Alliance Mission Participant
+export interface AllianceMissionParticipant {
+  id: string;
+  userId: string;
+  guildId: string;
+  displayName: string;
+  guildName: string;
+  guildTag: string;
+  contribution?: any;
+  joinedAt: string;
 }
 
 // Guild Warehouse Item
@@ -236,6 +368,63 @@ export interface GuildWarsResponse {
     canDeclareWar: boolean;
   };
   competitions: GuildCompetition;
+}
+
+export interface AllianceManagementResponse {
+  success: true;
+  data: AllianceManagement;
+}
+
+export interface AllianceProposalResponse {
+  success: true;
+  message: string;
+  alliance: {
+    id: string;
+    type: 'ALLIANCE' | 'RIVALRY';
+    status: 'PENDING';
+    fromGuild: { id: string; name: string; tag: string; };
+    toGuild: { id: string; name: string; tag: string; };
+    proposedAt: string;
+    expiresAt?: string;
+    terms?: AllianceTerms;
+    proposalMessage?: string;
+  };
+}
+
+export interface AllianceResponseConfirmation {
+  success: true;
+  message: string;
+  alliance: {
+    id: string;
+    type: 'ALLIANCE' | 'RIVALRY';
+    status: 'ACCEPTED' | 'DECLINED';
+    fromGuild: { id: string; name: string; tag: string; };
+    toGuild: { id: string; name: string; tag: string; };
+    proposedAt: string;
+    acceptedAt?: string;
+    terms?: AllianceTerms;
+    travelTaxReduction: number;
+    auctionFeeReduction: number;
+  };
+}
+
+export interface AllianceBreakResponse {
+  success: true;
+  message: string;
+  details: {
+    allianceId: string;
+    brokenAt: string;
+    reason: string;
+    otherGuild: {
+      id: string;
+      name: string;
+      tag: string;
+    };
+    cleanupActions: {
+      channelsDeactivated: number;
+      missionsCancelled: number;
+    };
+  };
 }
 
 // API Error Response

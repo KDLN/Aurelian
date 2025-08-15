@@ -10,6 +10,7 @@ export interface ChatUser {
   displayName: string;
   guildId?: string;
   guildRole?: string;
+  guildTag?: string;
   lastSeen: Date;
   isOnline: boolean;
 }
@@ -22,6 +23,7 @@ export interface ChatMessage {
   timestamp: number;
   channelType: string;
   guildChannelId?: string;
+  allianceChannelId?: string;
   editedAt?: number;
   metadata?: any;
 }
