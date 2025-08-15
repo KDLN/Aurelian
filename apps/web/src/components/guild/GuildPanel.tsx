@@ -3,25 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useGuild } from '@/hooks/useGuild';
 import AllianceDirectory from '@/components/AllianceDirectory';
-
-// Simple placeholder components
-const LoadingSpinner = () => (
-  <div className="flex items-center justify-center h-32">
-    <div className="text-[#f1e5c8]">Loading...</div>
-  </div>
-);
-
-const ErrorBoundary = ({ children }: { children: React.ReactNode }) => (
-  <div className="bg-[#2d1810] border border-[#8b6f31] rounded-lg p-6">
-    {children}
-  </div>
-);
-
-const TreasurySection = () => (
-  <div className="bg-[#1a1008] border border-[#8b6f31] rounded-lg p-6">
-    <div className="text-[#f1e5c8]">Treasury management coming soon...</div>
-  </div>
-);
+import TreasurySection from './TreasurySection';
+import LoadingSpinner from './LoadingSpinner';
+import ErrorBoundary from './ErrorBoundary';
 
 export function GuildPanel() {
   const { guild, isLoading, error, isInGuild } = useGuild();
