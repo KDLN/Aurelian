@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
       id: membership.guild.id,
       name: membership.guild.name,
       tag: membership.guild.tag,
-      emblem: membership.guild.emblem,
+      emblem: membership.guild.emblem ? JSON.parse(membership.guild.emblem) : null,
       description: membership.guild.description,
       level: currentLevel,
       xp: currentXP,
