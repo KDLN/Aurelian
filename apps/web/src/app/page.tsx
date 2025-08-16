@@ -372,26 +372,17 @@ export default function Home() {
               </div>
             </div>
           ) : (
-            <div className="logged-in-section">
-              <div className="auth-status">
-                Trading as <strong>{userProfile?.display || user.email}</strong>
-                <button onClick={signOut} className="btn-secondary">Sign Out</button>
-              </div>
-              <h2>Continue Your Journey</h2>
-              <div className="quick-links">
-                <a href="/warehouse" className="btn-primary">📦 Warehouse</a>
-                <a href="/auction" className="btn-primary">💰 Auction House</a>
-                <a href="/market" className="btn-primary featured-link">📊 Market Dashboard</a>
-                <a href="/missions" className="btn-primary">🗺️ Missions</a>
-                <a href="/crafting" className="btn-primary">🔨 Crafting</a>
-              </div>
-              <div className="secondary-links">
-                <a href="/profile">Profile</a>
-                <a href="/contracts">Contracts</a>
-                <a href="/hub">Trading Hub</a>
-                <a href="/creator">Character Creator</a>
-              </div>
-            </div>
+            // Redirect authenticated users to hub instead of showing logged-in section
+            (() => {
+              if (typeof window !== 'undefined') {
+                window.location.href = '/hub';
+              }
+              return (
+                <div className="auth-status">
+                  <div>Redirecting to Trading Hub...</div>
+                </div>
+              );
+            })()
           )
         ) : (
           <div className="auth-container">

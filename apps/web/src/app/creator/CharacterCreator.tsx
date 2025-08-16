@@ -10,7 +10,6 @@ import { supabase } from '../../lib/supabaseClient';
 
 export default function CharacterCreator() {
   const [appearance, setAppearance] = useState<CharacterAppearance | null>(null);
-  const [name, setName] = useState<string>('');
   const [sprite, setSprite] = useState<CharacterSprite | null>(null);
   const [loading, setLoading] = useState(true);
   const [animationType, setAnimationType] = useState<'idle' | 'walk' | 'run'>('idle');
@@ -38,7 +37,6 @@ export default function CharacterCreator() {
         } else {
           // No user logged in, load default appearance
           const defaultAppearance = {
-            name: '',
             base: 'v01',
             outfit: 'fstr_v01',
             hair: 'bob1_v01',
@@ -51,7 +49,6 @@ export default function CharacterCreator() {
         console.error('Error loading user:', error);
         // Fallback to default
         setAppearance({
-          name: '',
           base: 'v01',
           outfit: 'fstr_v01',
           hair: 'bob1_v01',
@@ -66,7 +63,6 @@ export default function CharacterCreator() {
       console.log('Loading timeout - setting defaults');
       if (loading) {
         setAppearance({
-          name: '',
           base: 'v01',
           outfit: 'fstr_v01',
           hair: 'bob1_v01',
@@ -101,13 +97,11 @@ export default function CharacterCreator() {
       if (!token) {
         console.log('No token available, loading defaults');
         setAppearance({
-          name: '',
           base: 'v01',
           outfit: 'fstr_v01',
           hair: 'bob1_v01',
           hat: ''
         });
-        setName(authUser.email?.split('@')[0] || '');
         setLoading(false);
         return;
       }
@@ -135,7 +129,6 @@ export default function CharacterCreator() {
       } catch (appearanceError) {
         console.log('Appearance fetch failed, using defaults:', appearanceError);
         dbAppearance = {
-          name: '',
           base: 'v01',
           outfit: 'fstr_v01',
           hair: 'bob1_v01',
@@ -144,13 +137,6 @@ export default function CharacterCreator() {
       }
       
       setAppearance(dbAppearance);
-      
-      // Set name priority: character name -> profile display name -> email -> default
-      const characterName = dbAppearance.name;
-      const profileName = profile?.display;
-      const emailName = authUser.email?.split('@')[0]; // Use email prefix as fallback
-      
-      setName(characterName || profileName || emailName || '');
       console.log('Character creator loaded successfully');
       
     } catch (error) {
@@ -218,11 +204,11 @@ export default function CharacterCreator() {
       // Position character in center of canvas - sprites are 64x64 so scale down
       spriteInstance.draw(ctx, w/2, h/2, 2); // Scale 2x for 64px sprites = 128px display
 
-      // Draw name
+      // Draw character label
       ctx.fillStyle = '#f1e5c8';
       ctx.font = '16px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText(name, w/2, h - 40);
+      ctx.fillText(userProfile?.display || 'Character Preview', w/2, h - 40);
 
       animationRef.current = requestAnimationFrame(animate);
     };
@@ -252,42 +238,15 @@ export default function CharacterCreator() {
     setSaveMessage('💾 Saving character...');
     
     try {
-      const fullAppearance = { ...appearance, name };
-      console.log('Saving character appearance:', fullAppearance);
+      console.log('Saving character appearance:', appearance);
       
       // Save character appearance
-      await saveCharacterAppearance(fullAppearance);
+      await saveCharacterAppearance(appearance);
       
-      // Also update the user's display name if it changed
-      if (name !== userProfile?.display) {
-        const session = await supabase.auth.getSession();
-        const token = session.data.session?.access_token;
-        
-        if (token) {
-          const profileResponse = await fetch('/api/user/profile', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              userId: user.id,
-              display: name
-            })
-          });
-          
-          if (profileResponse.ok) {
-            console.log('Profile display name updated');
-          }
-        }
-      }
+      setSaveMessage('✅ Character appearance saved!');
       
-      setSaveMessage('✅ Character saved! Redirecting to game...');
-      
-      // Auto-redirect to game after successful save
-      setTimeout(() => {
-        window.location.href = '/lobby';
-      }, 2000);
+      // Clear success message after 3 seconds
+      setTimeout(() => setSaveMessage(''), 3000);
       
     } catch (error) {
       console.error('Failed to save character:', error);
@@ -339,17 +298,12 @@ export default function CharacterCreator() {
   return (
     <div style={{ padding: 20, display: 'grid', gridTemplateColumns: '350px 1fr', gap: 20, background: '#1a1511', minHeight: '100vh', color: '#f1e5c8' }}>
       <div style={{ background: '#231913', padding: 20, borderRadius: 8, border: '2px solid #533b2c' }}>
-        <h1 style={{ fontSize: 24, marginBottom: 20 }}>Character Creator</h1>
+        <h1 style={{ fontSize: 24, marginBottom: 20 }}>Character Appearance</h1>
+        <p style={{ fontSize: 14, color: '#9b8c70', marginBottom: 20 }}>
+          Customize your character's appearance. Your trading name is managed in your profile settings.
+        </p>
         
         <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
-          <div>
-            <label style={{ display: 'block', marginBottom: 5 }}>Name</label>
-            <input 
-              value={name} 
-              onChange={e => setName(e.target.value)}
-              style={{ width: '100%', padding: 8, background: '#1a1511', border: '1px solid #533b2c', color: '#f1e5c8', borderRadius: 4 }}
-            />
-          </div>
 
           <div>
             <label style={{ display: 'block', marginBottom: 5 }}>Skin Tone</label>
@@ -434,8 +388,36 @@ export default function CharacterCreator() {
               width: '100%'
             }}
           >
-            {saveMessage.includes('💾') ? 'Saving...' : 'Save Character'}
+            {saveMessage.includes('💾') ? 'Saving...' : 'Save Appearance'}
           </button>
+
+          <div style={{ display: 'flex', gap: 10 }}>
+            <a href="/profile" style={{ 
+              flex: 1, 
+              textAlign: 'center', 
+              padding: '10px', 
+              background: '#533b2c', 
+              color: '#f1e5c8', 
+              textDecoration: 'none', 
+              borderRadius: 4,
+              fontSize: 14
+            }}>
+              📝 Edit Profile Name
+            </a>
+            <a href="/hub" style={{ 
+              flex: 1, 
+              textAlign: 'center', 
+              padding: '10px', 
+              background: '#1a1511', 
+              border: '1px solid #533b2c',
+              color: '#f1e5c8', 
+              textDecoration: 'none', 
+              borderRadius: 4,
+              fontSize: 14
+            }}>
+              ← Back to Hub
+            </a>
+          </div>
 
           {!user && (
             <div style={{

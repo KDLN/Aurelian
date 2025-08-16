@@ -2,146 +2,284 @@
 
 import { useEffect, useState } from 'react';
 import GameLayout from '@/components/GameLayout';
-import { useGameWorld } from '@/lib/game/world';
+import { useUserDataQuery } from '@/hooks/useUserDataQuery';
+import { useAgents } from '@/hooks/useAgents';
+import { useMissions } from '@/hooks/useMissionsQuery';
+import { supabase } from '@/lib/supabaseClient';
+import Link from 'next/link';
 
-export default function GameHub() {
-  const { world } = useGameWorld();
+interface RecentActivity {
+  id: string;
+  type: 'mission_completed' | 'auction_sold' | 'agent_hired' | 'item_crafted';
+  message: string;
+  timestamp: Date;
+  reward?: number;
+}
 
-  const warehouseItems = Object.entries(world.warehouse)
-    .filter(([, qty]) => qty > 0)
-    .sort(([a], [b]) => a.localeCompare(b));
+export default function TradingHub() {
+  const { wallet, inventory } = useUserDataQuery();
+  const { agents } = useAgents();
+  const { data: missionData } = useMissions();
+  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
+  const [user, setUser] = useState<any>(null);
 
-  const recentListings = world.listings
-    .slice(-3)
-    .reverse();
+  useEffect(() => {
+    // Get user info
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user);
+    });
 
-  const activeMissions = world.missions
-    .filter(mission => mission.progress < 100)
-    .slice(0, 3);
+    // Mock recent activity for now
+    setRecentActivity([
+      {
+        id: '1',
+        type: 'mission_completed',
+        message: 'Mission to Ironclad completed successfully',
+        timestamp: new Date(Date.now() - 15 * 60 * 1000),
+        reward: 450
+      },
+      {
+        id: '2',
+        type: 'auction_sold',
+        message: 'Sold 5 Iron Ore for 200g',
+        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
+        reward: 200
+      },
+      {
+        id: '3',
+        type: 'agent_hired',
+        message: 'Hired new Scout agent: Marcus',
+        timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000)
+      }
+    ]);
+  }, []);
 
-  const activeCrafting = world.crafting.slice(0, 3);
+  const activeMissions = missionData?.activeMissions || [];
+  const availableAgents = agents.filter(agent => agent._count.missions === 0);
+
+  // Get top warehouse items
+  const warehouseItems = inventory?.inventory
+    ?.filter(item => item.location === 'warehouse' && item.quantity > 0)
+    ?.sort((a, b) => b.quantity - a.quantity)
+    ?.slice(0, 6) || [];
+
+  const getActivityIcon = (type: RecentActivity['type']) => {
+    switch (type) {
+      case 'mission_completed': return '🎯';
+      case 'auction_sold': return '💰';
+      case 'agent_hired': return '👥';
+      case 'item_crafted': return '⚒️';
+      default: return '📝';
+    }
+  };
+
+  const formatTimeAgo = (timestamp: Date) => {
+    const now = new Date();
+    const diff = now.getTime() - timestamp.getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    
+    if (hours > 0) return `${hours}h ago`;
+    if (minutes > 0) return `${minutes}m ago`;
+    return 'Just now';
+  };
+
+  const sidebar = (
+    <div>
+      <h3>Quick Actions</h3>
+      <div className="game-flex-col">
+        <Link href="/warehouse" className="game-btn game-btn-primary">
+          📦 Warehouse
+        </Link>
+        <Link href="/auction" className="game-btn game-btn-primary">
+          💰 Auction House
+        </Link>
+        <Link href="/missions" className="game-btn game-btn-primary">
+          🗺️ Missions
+        </Link>
+        <Link href="/agents" className="game-btn game-btn-secondary">
+          👥 Agents
+        </Link>
+        <Link href="/crafting" className="game-btn game-btn-secondary">
+          ⚒️ Crafting
+        </Link>
+      </div>
+
+      <h3>Account Status</h3>
+      <div className="game-flex-col">
+        <div className="game-space-between">
+          <span className="game-small">Gold:</span>
+          <span className="game-good game-small">{wallet?.gold?.toLocaleString() || 0}g</span>
+        </div>
+        <div className="game-space-between">
+          <span className="game-small">Agents:</span>
+          <span className="game-good game-small">{agents.length}/4</span>
+        </div>
+        <div className="game-space-between">
+          <span className="game-small">Active Missions:</span>
+          <span className="game-warn game-small">{activeMissions.length}</span>
+        </div>
+      </div>
+
+      <div style={{ marginTop: '1rem' }}>
+        <Link href="/profile" className="game-btn game-btn-secondary" style={{ width: '100%', textAlign: 'center', display: 'block', marginBottom: '0.5rem' }}>
+          👤 Profile
+        </Link>
+        <Link href="/guild" className="game-btn game-btn-secondary" style={{ width: '100%', textAlign: 'center', display: 'block', marginBottom: '0.5rem' }}>
+          🏰 Guild
+        </Link>
+      </div>
+    </div>
+  );
 
   return (
-    <GameLayout title="Trading Hub" characterActivity="idle" characterLocation="Hub: Verdant">
+    <GameLayout 
+      title="Trading Hub" 
+      characterActivity="planning" 
+      characterLocation="Trading Hub"
+      sidebar={sidebar}
+    >
       <div className="game-flex-col">
-        <div>
-          <h2>Welcome to Aurelian</h2>
-          <p className="game-muted">
-            A world-backed trading simulation. Manage your warehouse, trade goods, 
-            send caravans on missions, and craft valuable items.
-          </p>
+        <div className="game-card">
+          <div className="game-grid-2">
+            <div>
+              <h2>Welcome back, {user?.email?.split('@')[0] || 'Trader'}!</h2>
+              <p className="game-muted">
+                Manage your trading empire from the central hub. Check your progress, 
+                review recent activity, and plan your next moves.
+              </p>
+            </div>
+            <div className="game-card-nested">
+              <h4>Today's Summary</h4>
+              <div className="game-grid-2 game-small">
+                <div className="game-space-between">
+                  <span>Gold:</span>
+                  <span className="game-good">{wallet?.gold?.toLocaleString() || 0}g</span>
+                </div>
+                <div className="game-space-between">
+                  <span>Available Agents:</span>
+                  <span className="game-good">{availableAgents.length}</span>
+                </div>
+                <div className="game-space-between">
+                  <span>Active Missions:</span>
+                  <span className={activeMissions.length > 0 ? 'game-warn' : 'game-good'}>
+                    {activeMissions.length}
+                  </span>
+                </div>
+                <div className="game-space-between">
+                  <span>Warehouse Items:</span>
+                  <span className="game-good">{warehouseItems.length}</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="game-grid-2">
           <div className="game-card">
-            <h3>Warehouse Overview</h3>
-            {warehouseItems.length > 0 ? (
+            <h3>Recent Activity</h3>
+            {recentActivity.length > 0 ? (
               <div className="game-flex-col">
-                {warehouseItems.map(([item, qty]) => (
-                  <div key={item} className="game-space-between">
-                    <span>{item}</span>
-                    <span className="game-pill">{qty}</span>
+                {recentActivity.map(activity => (
+                  <div key={activity.id} className="game-space-between">
+                    <div>
+                      <span>{getActivityIcon(activity.type)} {activity.message}</span>
+                      <div className="game-muted game-small">{formatTimeAgo(activity.timestamp)}</div>
+                    </div>
+                    {activity.reward && (
+                      <span className="game-good game-small">+{activity.reward}g</span>
+                    )}
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="game-muted">No items in warehouse</p>
+              <p className="game-muted">No recent activity</p>
             )}
           </div>
 
           <div className="game-card">
-            <h3>Market Prices</h3>
-            <div className="game-flex-col">
-              {Object.keys(world.commodities).map(item => (
-                <div key={item} className="game-space-between">
-                  <span>{item}</span>
-                  <span className="game-pill game-pill-good">{world.priceOf(item)}g</span>
-                </div>
-              ))}
-            </div>
+            <h3>Top Warehouse Items</h3>
+            {warehouseItems.length > 0 ? (
+              <div className="game-flex-col">
+                {warehouseItems.map(item => (
+                  <div key={item.id} className="game-space-between">
+                    <span>{item.itemName || item.itemKey.replace(/_/g, ' ')}</span>
+                    <span className="game-pill game-pill-good">{item.quantity}</span>
+                  </div>
+                ))}
+                <Link href="/warehouse" className="game-btn game-btn-small" style={{ marginTop: '0.5rem' }}>
+                  View All Items
+                </Link>
+              </div>
+            ) : (
+              <div>
+                <p className="game-muted">No items in warehouse</p>
+                <Link href="/market" className="game-btn game-btn-primary" style={{ marginTop: '0.5rem' }}>
+                  Browse Market
+                </Link>
+              </div>
+            )}
           </div>
         </div>
 
-        {recentListings.length > 0 && (
-          <div className="game-card">
-            <h3>Recent Auction Listings</h3>
-            <table>
-              <thead>
-                <tr>
-                  <th>Item</th>
-                  <th>Qty</th>
-                  <th>Price</th>
-                  <th>Age</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentListings.map(listing => (
-                  <tr key={listing.id}>
-                    <td>{listing.item}</td>
-                    <td>{listing.qty}</td>
-                    <td>{listing.price}g</td>
-                    <td>{listing.age}min</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
         {activeMissions.length > 0 && (
           <div className="game-card">
-            <h3>Active Missions</h3>
-            <div className="game-flex-col">
-              {activeMissions.map(mission => (
-                <div key={mission.id}>
+            <h3>Active Missions ({activeMissions.length})</h3>
+            <div className="game-grid-3">
+              {activeMissions.slice(0, 3).map(mission => (
+                <div key={mission.id} className="game-card-sm">
                   <div className="game-space-between">
-                    <span>{mission.item} x{mission.qty}</span>
-                    <span className={`game-pill ${
-                      mission.risk === 'LOW' ? 'game-pill-good' :
-                      mission.risk === 'MEDIUM' ? 'game-pill-warn' : 'game-pill-bad'
+                    <span className="game-small">{mission.mission?.name || 'Unknown Mission'}</span>
+                    <span className={`game-pill game-pill-${
+                      mission.mission?.riskLevel === 'LOW' ? 'good' : 
+                      mission.mission?.riskLevel === 'MEDIUM' ? 'warn' : 'bad'
                     }`}>
-                      {mission.risk}
+                      {mission.mission?.riskLevel || 'UNKNOWN'}
                     </span>
                   </div>
-                  <div className="game-progress">
-                    <div 
-                      className="game-progress-fill" 
-                      style={{ width: `${mission.progress}%` }}
-                    >
-                      {mission.progress}%
-                    </div>
+                  <div className="game-muted game-small">
+                    Agent: {agents.find(a => a.id === mission.agentId)?.name || 'Unknown'}
                   </div>
                 </div>
               ))}
             </div>
+            {activeMissions.length > 3 && (
+              <Link href="/missions" className="game-btn game-btn-small" style={{ marginTop: '0.5rem' }}>
+                View All Missions ({activeMissions.length})
+              </Link>
+            )}
           </div>
         )}
 
-        {activeCrafting.length > 0 && (
-          <div className="game-card">
-            <h3>Active Crafting</h3>
-            <div className="game-flex-col">
-              {activeCrafting.map(job => (
-                <div key={job.id} className="game-space-between">
-                  <span>{job.out} x{job.qty}</span>
-                  <span className="game-muted">
-                    {Math.max(0, job.eta - (world.day - 1) * 24 * 60 - world.minute)}min
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
+        {/* Game News/Updates */}
         <div className="game-card">
-          <h3>Quick Actions</h3>
-          <div className="game-grid-3">
-            <a href="/auction" className="game-btn">Visit Auction</a>
-            <a href="/missions" className="game-btn">Send Mission</a>
-            <a href="/crafting" className="game-btn">Start Crafting</a>
-            <a href="/contracts" className="game-btn">Trade Contracts</a>
-            <a href="/warehouse" className="game-btn">Manage Warehouse</a>
-            <a href="/lobby" className="game-btn">Return to Lobby</a>
+          <h3>📢 Game Updates & News</h3>
+          <div className="game-flex-col">
+            <div className="game-card-nested">
+              <h4 className="game-good">✨ New Feature: Guild System</h4>
+              <p className="game-small">
+                Join or create guilds to collaborate with other traders. Share resources, 
+                coordinate missions, and compete in guild challenges!
+              </p>
+              <Link href="/guild" className="game-btn game-btn-small">Explore Guilds</Link>
+            </div>
+            
+            <div className="game-card-nested">
+              <h4 className="game-warn">⚡ Market Volatility Alert</h4>
+              <p className="game-small">
+                Increased demand for Iron Ore and Herbs in northern cities. 
+                Consider redirecting caravans for higher profits.
+              </p>
+              <Link href="/market" className="game-btn game-btn-small">Check Prices</Link>
+            </div>
+
+            <div className="game-card-nested">
+              <h4>🔧 System Improvements</h4>
+              <p className="game-small">
+                Recent updates include improved UI scaling for high-resolution displays, 
+                better inventory management, and enhanced mission tracking.
+              </p>
+            </div>
           </div>
         </div>
       </div>

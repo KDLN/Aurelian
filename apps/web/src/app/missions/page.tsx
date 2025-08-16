@@ -227,11 +227,6 @@ export default function MissionsPage() {
 
   const sidebar = useMemo(() => (
     <div>
-      <h3>Mission Guide</h3>
-      <p className="game-muted game-small">
-        Select an agent and mission to send them on expeditions. Agents with better equipment have higher success rates.
-      </p>
-      
       <h3>Agent Status</h3>
       <div className="game-flex-col">
         <div className="game-space-between">
@@ -256,25 +251,6 @@ export default function MissionsPage() {
           </a>
         </div>
       )}
-
-      <div className="game-flex" style={{ alignItems: 'center', gap: '8px' }}>
-        <h3>Risk Levels</h3>
-        <RiskTooltip />
-      </div>
-      <div className="game-flex-col">
-        <div className="game-space-between">
-          <span className="game-small">Low Risk:</span>
-          <span className="game-good game-small">85% base success</span>
-        </div>
-        <div className="game-space-between">
-          <span className="game-small">Medium Risk:</span>
-          <span className="game-warn game-small">65% base success</span>
-        </div>
-        <div className="game-space-between">
-          <span className="game-small">High Risk:</span>
-          <span className="game-bad game-small">40% base success</span>
-        </div>
-      </div>
 
       {mounted && wallet && (
         <div style={{ marginTop: '1rem' }}>
@@ -307,7 +283,7 @@ export default function MissionsPage() {
         </div>
       </div>
     </div>
-  ), [mounted, wallet, handleDebugSpeedUp, activeMissions.length]);
+  ), [mounted, wallet, handleDebugSpeedUp, activeMissions.length, agents.length, availableAgents.length]);
 
   if (isLoading) {
     return (
@@ -353,6 +329,35 @@ export default function MissionsPage() {
             <p className="game-good">{completionMessage}</p>
           </div>
         )}
+
+        {/* Mission Guide and Quick Stats */}
+        <div className="game-card">
+          <div className="game-grid-2">
+            <div>
+              <h3>Mission Control</h3>
+              <p className="game-muted game-small">
+                Select an agent and mission to send them on expeditions. Agents with better equipment have higher success rates.
+              </p>
+            </div>
+            <div>
+              <h4>Risk Levels <RiskTooltip /></h4>
+              <div className="game-grid-3 game-small">
+                <div className="game-space-between">
+                  <span>Low Risk:</span>
+                  <span className="game-good">85% base</span>
+                </div>
+                <div className="game-space-between">
+                  <span>Medium Risk:</span>
+                  <span className="game-warn">65% base</span>
+                </div>
+                <div className="game-space-between">
+                  <span>High Risk:</span>
+                  <span className="game-bad">40% base</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <div className="game-card">
           <h3>Available Missions</h3>

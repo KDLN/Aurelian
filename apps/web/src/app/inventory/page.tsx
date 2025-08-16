@@ -34,6 +34,19 @@ export default function InventoryPage() {
   const [transferFrom, setTransferFrom] = useState<'warehouse' | 'caravan' | 'escrow'>('warehouse');
   const [transferTo, setTransferTo] = useState<'warehouse' | 'caravan' | 'escrow'>('caravan');
 
+  // Auto-set transfer from location when view changes
+  const handleLocationChange = (newLocation: 'all' | 'warehouse' | 'caravan' | 'escrow') => {
+    setSelectedLocation(newLocation);
+    // If a specific location is selected, set it as the transfer from location
+    if (newLocation !== 'all') {
+      setTransferFrom(newLocation as 'warehouse' | 'caravan' | 'escrow');
+      // Auto-set transfer to location to something different
+      if (newLocation === 'warehouse') setTransferTo('caravan');
+      else if (newLocation === 'caravan') setTransferTo('warehouse');
+      else if (newLocation === 'escrow') setTransferTo('warehouse');
+    }
+  };
+
   const locations = ['warehouse', 'caravan', 'escrow'];
 
   useEffect(() => {
@@ -243,7 +256,7 @@ export default function InventoryPage() {
                 <label className="game-small">View Location</label>
                 <select 
                   value={selectedLocation}
-                  onChange={(e) => setSelectedLocation(e.target.value as any)}
+                  onChange={(e) => handleLocationChange(e.target.value as any)}
                   style={{ width: '100%' }}
                 >
                   <option value="all">All Locations</option>
