@@ -85,13 +85,13 @@ export default function FeedbackPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="flex flex-col h-screen">
+    <div className="fixed inset-0 bg-gray-50">
+      <div className="flex flex-col h-full">
         {/* Top bar with page info and controls */}
-        <div className="bg-white shadow-sm border-b p-4 flex-shrink-0">
+        <div className="bg-white shadow-sm border-b p-3 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-bold text-gray-800">UI/UX Feedback Study</h1>
+              <h1 className="text-lg font-bold text-gray-800">UI/UX Feedback Study</h1>
               <p className="text-sm text-gray-600">
                 Page {index + 1} of {PAGES.length}: <span className="font-semibold">{page.name}</span>
               </p>
@@ -114,25 +114,25 @@ export default function FeedbackPage() {
         <div className="flex flex-1 overflow-hidden">
           {/* Left side - Feedback form */}
           <div className="w-80 bg-white shadow-lg overflow-y-auto flex-shrink-0">
-            <div className="p-6 space-y-4">
-              <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="p-4 space-y-3">
+              <form onSubmit={handleSubmit} className="space-y-3">
                 {QUESTIONS.map(q => (
                   <label key={q.id} className="block">
-                    <span className="block font-medium text-gray-700 mb-2 text-sm">{q.label}</span>
+                    <span className="block font-medium text-gray-700 mb-1 text-sm">{q.label}</span>
                     <textarea
                       name={q.id}
                       required
-                      rows={3}
-                      className="w-full border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none text-sm"
+                      rows={2}
+                      className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none text-sm"
                       placeholder="Please share your thoughts..."
                     />
                   </label>
                 ))}
                 
-                <div className="pt-4">
+                <div className="pt-3">
                   <button
                     type="submit"
-                    className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700 transition-colors"
+                    className="w-full rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700 transition-colors"
                   >
                     {index + 1 < PAGES.length ? `Next Page` : 'Submit All Feedback'}
                   </button>
@@ -141,10 +141,10 @@ export default function FeedbackPage() {
             </div>
           </div>
 
-          {/* Right side - Full-width website preview */}
-          <div className="flex-1 bg-gray-100 p-4">
+          {/* Right side - Full-screen website preview */}
+          <div className="flex-1 bg-gray-100 p-2">
             <div className="h-full bg-white rounded-lg shadow-lg overflow-hidden">
-              <div className="bg-gray-800 p-3 flex items-center space-x-2">
+              <div className="bg-gray-800 p-2 flex items-center space-x-2">
                 <div className="flex space-x-1">
                   <div className="w-3 h-3 bg-red-500 rounded-full"></div>
                   <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
@@ -157,8 +157,8 @@ export default function FeedbackPage() {
               <iframe
                 src={page.url}
                 title={page.name}
-                className="w-full h-full border-0"
-                style={{ height: 'calc(100% - 52px)', width: '100%' }}
+                className="w-full border-0"
+                style={{ height: 'calc(100% - 44px)', width: '100%' }}
               />
             </div>
           </div>
