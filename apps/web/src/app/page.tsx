@@ -372,17 +372,25 @@ export default function Home() {
               </div>
             </div>
           ) : (
-            // Redirect authenticated users to hub instead of showing logged-in section
-            (() => {
-              if (typeof window !== 'undefined') {
-                window.location.href = '/hub';
-              }
-              return (
-                <div className="auth-status">
-                  <div>Redirecting to Trading Hub...</div>
+            <div className="auth-container">
+              <div className="auth-card">
+                <div className="auth-header">
+                  <h2>🏛️ Welcome Back, {userProfile?.display || 'Trader'}</h2>
+                  <p className="auth-subtitle">Your trading empire awaits</p>
                 </div>
-              );
-            })()
+                <div className="auth-buttons auth-buttons-main">
+                  <a href="/hub" className="auth-button auth-button-primary">
+                    <span>🏛️ Enter Trading Hub</span>
+                  </a>
+                  <button
+                    onClick={signOut}
+                    className="auth-button auth-button-secondary"
+                  >
+                    <span>🚪 Sign Out</span>
+                  </button>
+                </div>
+              </div>
+            </div>
           )
         ) : (
           <div className="auth-container">
