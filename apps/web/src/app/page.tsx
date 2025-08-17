@@ -262,6 +262,20 @@ export default function Home() {
     }
   }
 
+  async function signInWithDiscord() {
+    setErrorMsg('');
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'discord',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`
+      }
+    });
+    
+    if (error) {
+      setErrorMsg('Discord sign in failed: ' + error.message);
+    }
+  }
+
   async function signOut() {
     await supabase.auth.signOut();
     setUser(null);
@@ -347,6 +361,11 @@ export default function Home() {
                 <div className="auth-header">
                   <h2>🏺 Choose Your Trading Name</h2>
                   <p className="auth-subtitle">Your reputation in the frontier begins here</p>
+                  {user?.user_metadata?.full_name && (
+                    <p className="auth-suggestion">
+                      💡 Suggestion from Discord: <strong>{user.user_metadata.full_name}</strong>
+                    </p>
+                  )}
                 </div>
                 <form onSubmit={saveUsername} className="auth-form">
                   <div className="input-group">
@@ -354,11 +373,30 @@ export default function Home() {
                     <input
                       value={newUsername}
                       onChange={(e) => setNewUsername(e.target.value)}
-                      placeholder="Enter your trader name..."
+                      placeholder={user?.user_metadata?.full_name || "Enter your trader name..."}
                       className="auth-input"
                       required
                     />
                     <div className="input-help">3-20 characters, letters, numbers, and underscores only</div>
+                    {user?.user_metadata?.full_name && (
+                      <button
+                        type="button"
+                        onClick={() => setNewUsername(user.user_metadata.full_name)}
+                        className="suggestion-button"
+                        style={{
+                          background: 'none',
+                          border: '1px solid #5865F2',
+                          color: '#5865F2',
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '4px',
+                          fontSize: '0.8rem',
+                          marginTop: '0.25rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Use Discord name
+                      </button>
+                    )}
                   </div>
                   <button type="submit" className="auth-button auth-button-primary">
                     <span>Establish Identity</span>
@@ -444,6 +482,20 @@ export default function Home() {
                   </div>
                   
                   <div className="auth-buttons">
+                    <button
+                      type="button"
+                      onClick={signInWithDiscord}
+                      className="auth-button auth-button-discord"
+                      style={{
+                        backgroundColor: '#5865F2',
+                        color: 'white',
+                        border: 'none',
+                        marginBottom: '0.5rem'
+                      }}
+                    >
+                      <span>🎮 Sign Up with Discord</span>
+                    </button>
+                    <div style={{ textAlign: 'center', margin: '0.5rem 0', color: '#999' }}>or</div>
                     <button type="submit" className="auth-button auth-button-primary">
                       <span>🚀 Create Account</span>
                     </button>
@@ -492,6 +544,20 @@ export default function Home() {
                   </div>
                   
                   <div className="auth-buttons">
+                    <button
+                      type="button"
+                      onClick={signInWithDiscord}
+                      className="auth-button auth-button-discord"
+                      style={{
+                        backgroundColor: '#5865F2',
+                        color: 'white',
+                        border: 'none',
+                        marginBottom: '0.5rem'
+                      }}
+                    >
+                      <span>🎮 Continue with Discord</span>
+                    </button>
+                    <div style={{ textAlign: 'center', margin: '0.5rem 0', color: '#999' }}>or</div>
                     <button type="submit" className="auth-button auth-button-primary">
                       <span>🔓 Sign In</span>
                     </button>
@@ -568,6 +634,18 @@ export default function Home() {
                   <p className="auth-subtitle">Choose your path to begin</p>
                 </div>
                 <div className="auth-buttons auth-buttons-main">
+                  <button
+                    onClick={signInWithDiscord}
+                    className="auth-button auth-button-discord"
+                    style={{
+                      backgroundColor: '#5865F2',
+                      color: 'white',
+                      border: 'none',
+                      marginBottom: '1rem'
+                    }}
+                  >
+                    <span>🎮 Continue with Discord</span>
+                  </button>
                   <button
                     onClick={() => setAuthMode('signup')}
                     className="auth-button auth-button-primary"

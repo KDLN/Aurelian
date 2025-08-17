@@ -63,50 +63,35 @@ async function syncUserToDatabase(user: any) {
       }
     });
 
-    // Create profile - check for username in metadata first
-    const displayName = user.user_metadata?.username || 
-                       user.user_metadata?.display_name || 
-                       user.email?.split('@')[0] || 
-                       'Anonymous';
-                       
-    console.log(`🔤 Setting display name to: ${displayName} (from metadata: ${JSON.stringify(user.user_metadata)})`);
+    // For OAuth providers (Discord, etc.), don't auto-assign username
+    // Let users choose their own trading name through the UI
+    const isOAuthProvider = user.app_metadata?.provider !== 'email';
     
-    // Check if the display name is already taken by another user
-    if (displayName !== 'Anonymous' && displayName !== user.email?.split('@')[0]) {
-      const existingProfile = await prisma.profile.findFirst({
-        where: {
-          display: displayName,
-          userId: { not: user.id }
+    console.log(`🔤 User provider: ${user.app_metadata?.provider}, isOAuth: ${isOAuthProvider}`);
+    console.log(`🔤 User metadata: ${JSON.stringify(user.user_metadata)}`);
+    
+    if (isOAuthProvider) {
+      // For OAuth users, create profile without display name (null)
+      // This will trigger the username selection flow in the frontend
+      await prisma.profile.upsert({
+        where: { userId: user.id },
+        update: {
+          // Don't update display name for existing OAuth users
+        },
+        create: {
+          userId: user.id,
+          display: null // This will trigger username selection
         }
       });
-      
-      if (existingProfile) {
-        console.log(`⚠️ Username '${displayName}' already taken, falling back to email-based name`);
-        const fallbackName = user.email?.split('@')[0] || 'Anonymous';
-        
-        await prisma.profile.upsert({
-          where: { userId: user.id },
-          update: {
-            display: fallbackName
-          },
-          create: {
-            userId: user.id,
-            display: fallbackName
-          }
-        });
-      } else {
-        await prisma.profile.upsert({
-          where: { userId: user.id },
-          update: {
-            display: displayName
-          },
-          create: {
-            userId: user.id,
-            display: displayName
-          }
-        });
-      }
     } else {
+      // For email/password users, use the username from signup metadata
+      const displayName = user.user_metadata?.username || 
+                         user.user_metadata?.display_name || 
+                         user.email?.split('@')[0] || 
+                         'Anonymous';
+                         
+      console.log(`🔤 Setting display name to: ${displayName} (from metadata)`);
+      
       await prisma.profile.upsert({
         where: { userId: user.id },
         update: {
