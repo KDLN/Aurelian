@@ -11,50 +11,73 @@ const SYNC_CACHE_TTL = 300000; // 5 minutes
  */
 async function addStarterItems(userId: string) {
   try {
-    // Ensure required items exist in database
-    const requiredItems = [
-      { key: 'herb', name: 'Herb', rarity: 'COMMON' },
-      { key: 'iron_ore', name: 'Iron Ore', rarity: 'COMMON' }
-    ];
-
-    // Upsert item definitions (create if not exists)
-    for (const itemDef of requiredItems) {
-      await prisma.itemDef.upsert({
-        where: { key: itemDef.key },
-        update: {}, // Don't update existing items
-        create: {
-          key: itemDef.key,
-          name: itemDef.name,
-          rarity: itemDef.rarity as any
-        }
-      });
-    }
-
-    // Get the item IDs
-    const herbItem = await prisma.itemDef.findUnique({ where: { key: 'herb' } });
-    const ironItem = await prisma.itemDef.findUnique({ where: { key: 'iron_ore' } });
-
-    if (!herbItem || !ironItem) {
-      console.error('Could not find required starter items');
+    // Validate userId is a proper UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(userId)) {
+      console.error('Invalid userId format for starter items:', userId);
       return;
     }
 
-    // Add starter inventory
-    const starterItems = [
-      { itemId: herbItem.id, qty: 5, location: 'warehouse' },
-      { itemId: ironItem.id, qty: 2, location: 'warehouse' }
-    ];
+    // Verify user exists before creating inventory
+    const userExists = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true }
+    });
 
-    for (const item of starterItems) {
-      await prisma.inventory.create({
+    if (!userExists) {
+      console.error('User not found when adding starter items:', userId);
+      return;
+    }
+
+    // Get existing item definitions (they should already exist)
+    const [herbItem, ironItem] = await Promise.all([
+      prisma.itemDef.findUnique({ where: { key: 'herb' } }),
+      prisma.itemDef.findUnique({ where: { key: 'iron_ore' } })
+    ]);
+
+    if (!herbItem || !ironItem) {
+      console.error('Required starter items not found in database');
+      console.error('Herb item exists:', !!herbItem);
+      console.error('Iron item exists:', !!ironItem);
+      return;
+    }
+
+    // Check if user already has these items to avoid duplicates
+    const existingInventory = await prisma.inventory.findMany({
+      where: {
+        userId: userId,
+        itemId: { in: [herbItem.id, ironItem.id] },
+        location: 'warehouse'
+      }
+    });
+
+    if (existingInventory.length > 0) {
+      console.log(`User ${userId} already has starter items, skipping`);
+      return;
+    }
+
+    // Add starter inventory in a single transaction
+    await prisma.$transaction(async (tx) => {
+      // Create herb inventory
+      await tx.inventory.create({
         data: {
           userId: userId,
-          itemId: item.itemId,
-          qty: item.qty,
-          location: item.location
+          itemId: herbItem.id,
+          qty: 5,
+          location: 'warehouse'
         }
       });
-    }
+
+      // Create iron ore inventory  
+      await tx.inventory.create({
+        data: {
+          userId: userId,
+          itemId: ironItem.id,
+          qty: 2,
+          location: 'warehouse'
+        }
+      });
+    });
 
     console.log(`✅ Added starter items to user ${userId}: 5 herbs, 2 iron ore`);
   } catch (error) {
