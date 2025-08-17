@@ -290,10 +290,10 @@ export class AuctionRoom extends Room {
                 meta: { listingId, itemName: dbListing.item.name, fee: fee, feePercent: feePercent }
               },
               {
-                userId: 'AUCTION_HOUSE',
+                userId: null,
                 amount: fee,
                 reason: 'auction_fee',
-                meta: { listingId, itemName: dbListing.item.name, feePercent: feePercent }
+                meta: { listingId, itemName: dbListing.item.name, feePercent: feePercent, note: 'AUCTION_HOUSE' }
               }
             ]
           });

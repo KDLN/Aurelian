@@ -1,29 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { supabase } from '@/lib/supabaseClient';
+import { withAuth, getRequestBody } from '@/lib/auth/middleware';
+import { createSuccessResponse, createErrorResponse } from '@/lib/apiUtils';
 
 export async function POST(request: NextRequest) {
-  try {
-    // Get auth token from headers
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const token = authHeader.substring(7);
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+  return withAuth(request, async (user) => {
+    const body = await getRequestBody<{ listingId: string }>(request);
     
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    if (!body?.listingId) {
+      return createErrorResponse('MISSING_FIELDS', 'Missing listing ID');
     }
-
-    // Get request body
-    const body = await request.json();
+    
     const { listingId } = body;
-
-    if (!listingId) {
-      return NextResponse.json({ error: 'Missing listing ID' }, { status: 400 });
-    }
 
     // Process the purchase in a transaction
     const result = await prisma.$transaction(async (tx) => {
@@ -139,18 +127,10 @@ export async function POST(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({ 
-      success: true,
-      message: `Purchased ${result.listing.qty} ${result.listing.item.name} for ${result.totalCost} gold`
+    return createSuccessResponse({
+      message: `Purchased ${result.listing.qty} ${result.listing.item.name} for ${result.totalCost} gold`,
+      listing: result.listing,
+      totalCost: result.totalCost
     });
-
-  } catch (error: any) {
-    console.error('Buy item error:', error);
-    return NextResponse.json({ 
-      error: error.message || 'Internal server error' 
-    }, { 
-      status: error.message?.includes('not found') ? 404 : 
-              error.message?.includes('Insufficient') ? 400 : 500 
-    });
-  }
+  });
 }

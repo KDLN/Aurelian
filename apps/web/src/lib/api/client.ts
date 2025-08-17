@@ -278,8 +278,8 @@ class APIClient {
     list: (itemKey: string, quantity: number, pricePerUnit: number) =>
       this.post('/api/auction/list', { itemKey, quantity, pricePerUnit }),
     
-    buy: (listingId: string, quantity: number) =>
-      this.post('/api/auction/buy', { listingId, quantity }),
+    buy: (listingId: string) =>
+      this.post('/api/auction/buy', { listingId }),
   };
 
   /**
