@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { withAuth, getRequestBody } from '@/lib/auth/middleware';
 import { createSuccessResponse, createErrorResponse } from '@/lib/apiUtils';
 import { ActivityLogger } from '@/lib/services/activityLogger';
+import { DailyStatsTracker } from '@/lib/services/dailyStatsTracker';
 
 export async function POST(request: NextRequest) {
   return withAuth(request, async (user) => {
@@ -128,7 +129,7 @@ export async function POST(request: NextRequest) {
       };
     });
 
-    // Log activities for both buyer and seller
+    // Log activities and track stats for both buyer and seller
     await ActivityLogger.logTradeCompleted(
       user.id, 
       result.listing.item.name, 
@@ -143,6 +144,12 @@ export async function POST(request: NextRequest) {
       result.listing.qty, 
       result.totalCost
     );
+
+    // Track daily stats
+    await DailyStatsTracker.trackGoldSpent(user.id, result.totalCost);
+    await DailyStatsTracker.trackItemsTraded(user.id, result.listing.qty);
+    await DailyStatsTracker.trackGoldEarned(result.listing.sellerId, result.totalCost);
+    await DailyStatsTracker.trackItemsTraded(result.listing.sellerId, result.listing.qty);
 
     return createSuccessResponse({
       message: `Purchased ${result.listing.qty} ${result.listing.item.name} for ${result.totalCost} gold`,

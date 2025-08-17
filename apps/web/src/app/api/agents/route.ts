@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { PrismaClient } from '@prisma/client';
 import { generateRandomAgent, getHiringCost } from '@/lib/agents/generator';
 import { ActivityLogger } from '@/lib/services/activityLogger';
+import { DailyStatsTracker } from '@/lib/services/dailyStatsTracker';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -129,8 +130,10 @@ export async function POST(request: NextRequest) {
       return agent;
     });
 
-    // Log the agent hiring activity
+    // Log the agent hiring activity and track stats
     await ActivityLogger.logAgentHired(user.id, newAgentData.name, newAgentData.class);
+    await DailyStatsTracker.trackAgentHired(user.id);
+    await DailyStatsTracker.trackGoldSpent(user.id, hiringCost);
 
     return NextResponse.json({ 
       agent: result,

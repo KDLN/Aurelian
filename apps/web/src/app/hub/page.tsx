@@ -25,6 +25,7 @@ export default function TradingHub() {
   const [profile, setProfile] = useState<any>(null);
   const [guildInfo, setGuildInfo] = useState<any>(null);
   const [craftingInfo, setCraftingInfo] = useState<any>(null);
+  const [dailyStats, setDailyStats] = useState<any>(null);
 
   useEffect(() => {
     const initializeHubData = async () => {
@@ -55,10 +56,14 @@ export default function TradingHub() {
         fetch('/api/crafting/jobs', {
           headers: { 'Authorization': `Bearer ${session.access_token}` },
         }).catch(() => null), // Crafting is optional
+        // Daily stats
+        fetch('/api/user/stats?period=summary', {
+          headers: { 'Authorization': `Bearer ${session.access_token}` },
+        }).catch(() => null), // Stats is optional
       ];
 
       try {
-        const [activitiesRes, profileRes, guildRes, craftingRes] = await Promise.all(fetchPromises);
+        const [activitiesRes, profileRes, guildRes, craftingRes, statsRes] = await Promise.all(fetchPromises);
 
         // Handle activities
         if (activitiesRes?.ok) {
@@ -82,6 +87,12 @@ export default function TradingHub() {
         if (craftingRes?.ok) {
           const result = await craftingRes.json();
           setCraftingInfo(result);
+        }
+
+        // Handle daily stats (optional)
+        if (statsRes?.ok) {
+          const result = await statsRes.json();
+          setDailyStats(result.summary);
         }
       } catch (error) {
         console.error('Error fetching hub data:', error);
@@ -190,35 +201,31 @@ export default function TradingHub() {
               <h4>Today's Summary</h4>
               <div className="game-grid-2 game-small">
                 <div className="game-space-between">
-                  <span>Gold:</span>
-                  <span className="game-good">{wallet?.gold?.toLocaleString() || 0}g</span>
+                  <span>Gold Earned:</span>
+                  <span className="game-good">+{dailyStats?.todaysStats?.goldEarned || 0}g</span>
                 </div>
                 <div className="game-space-between">
-                  <span>Available Agents:</span>
-                  <span className="game-good">{availableAgents.length}</span>
+                  <span>Missions Done:</span>
+                  <span className="game-good">{dailyStats?.todaysStats?.missionsCompleted || 0}</span>
                 </div>
                 <div className="game-space-between">
-                  <span>Active Missions:</span>
-                  <span className={activeMissions.length > 0 ? 'game-warn' : 'game-good'}>
-                    {activeMissions.length}
+                  <span>Items Traded:</span>
+                  <span className="game-good">{dailyStats?.todaysStats?.itemsTraded || 0}</span>
+                </div>
+                <div className="game-space-between">
+                  <span>Items Crafted:</span>
+                  <span className="game-good">{dailyStats?.todaysStats?.itemsCrafted || 0}</span>
+                </div>
+                <div className="game-space-between">
+                  <span>Net Gold:</span>
+                  <span className={dailyStats?.performance?.netGoldWeek >= 0 ? 'game-good' : 'game-bad'}>
+                    {dailyStats?.performance?.netGoldWeek >= 0 ? '+' : ''}{dailyStats?.performance?.netGoldWeek || 0}g
                   </span>
                 </div>
                 <div className="game-space-between">
-                  <span>Warehouse Items:</span>
-                  <span className="game-good">{warehouseItems.length}</span>
+                  <span>Success Rate:</span>
+                  <span className="game-good">{dailyStats?.performance?.missionSuccessRate || 0}%</span>
                 </div>
-                <div className="game-space-between">
-                  <span>Crafting Jobs:</span>
-                  <span className={craftingInfo?.activeJobs?.length > 0 ? 'game-warn' : 'game-good'}>
-                    {craftingInfo?.activeJobs?.length || 0}
-                  </span>
-                </div>
-                {guildInfo && (
-                  <div className="game-space-between">
-                    <span>Guild:</span>
-                    <span className="game-good">[{guildInfo.tag}]</span>
-                  </div>
-                )}
               </div>
             </div>
           </div>

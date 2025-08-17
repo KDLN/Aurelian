@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { verifyJWT } from '@/lib/auth/jwt';
 import { ActivityLogger } from '@/lib/services/activityLogger';
+import { DailyStatsTracker } from '@/lib/services/dailyStatsTracker';
 
 const prisma = new PrismaClient();
 
@@ -171,12 +172,13 @@ export async function POST(request: NextRequest) {
       };
     });
 
-    // Log the crafting activity
+    // Log the crafting activity and track stats
     await ActivityLogger.logItemCrafted(
       userId, 
       result.craftJob.blueprint.output.name, 
       result.itemsCreated
     );
+    await DailyStatsTracker.trackItemsCrafted(userId, result.itemsCreated);
 
     return NextResponse.json({
       success: true,

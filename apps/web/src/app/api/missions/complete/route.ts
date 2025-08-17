@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { prisma } from '@/lib/prisma';
 import { ActivityLogger } from '@/lib/services/activityLogger';
+import { DailyStatsTracker } from '@/lib/services/dailyStatsTracker';
 
 export const dynamic = 'force-dynamic';
 
@@ -455,10 +456,15 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // Log activity for successful missions
+    // Log activity and track stats for missions
+    const missionDestination = missionDef.toHub || missionDef.fromHub || 'Unknown';
+    
     if (success && actualReward > 0) {
-      const missionDestination = missionDef.toHub || missionDef.fromHub || 'Unknown';
       await ActivityLogger.logMissionCompleted(user.id, missionDestination, actualReward);
+      await DailyStatsTracker.trackMissionCompleted(user.id, true);
+      await DailyStatsTracker.trackGoldEarned(user.id, actualReward);
+    } else {
+      await DailyStatsTracker.trackMissionCompleted(user.id, false);
     }
 
     // Calculate gold lost for reporting
