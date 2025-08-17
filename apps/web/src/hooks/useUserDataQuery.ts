@@ -96,8 +96,9 @@ export function useUserWallet() {
     queryKey: userKeys.wallet(user?.id || ''),
     queryFn: fetchUserWallet,
     enabled: !!user,
-    staleTime: 2 * 60 * 1000, // 2 minutes for wallet data
+    staleTime: 30 * 1000, // 30 seconds for wallet data to update more frequently
     gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: 60 * 1000, // Refetch every minute to catch live updates
   });
 }
 

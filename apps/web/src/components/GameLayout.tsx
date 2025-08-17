@@ -4,7 +4,7 @@ import { ReactNode, useEffect, useState } from 'react';
 import GameButton from '@/components/ui/GameButton';
 import GamePanel from '@/components/ui/GamePanel';
 import { useGameWorld } from '@/lib/game/world';
-import { useUserData } from '@/hooks/useUserData';
+import { useUserDataQuery } from '@/hooks/useUserDataQuery';
 import { useMissions } from '@/hooks/useMissionsQuery';
 import { loadCharacterAppearance } from '@/lib/sprites/characterOptions';
 import { CharacterAppearance } from '@/lib/sprites/characterSprites';
@@ -43,7 +43,7 @@ export default function GameLayout({
   guildChannels = []
 }: GameLayoutProps) {
   const { world, subscribe } = useGameWorld();
-  const { wallet, inventory, user } = useUserData();
+  const { wallet, inventory, user } = useUserDataQuery();
   const { data: missionsData } = useMissions();
   const [, forceUpdate] = useState(0);
   const [currentPath, setCurrentPath] = useState('');
