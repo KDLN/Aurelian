@@ -22,40 +22,73 @@ export default function TradingHub() {
   const { data: missionData } = useMissions();
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
+  const [guildInfo, setGuildInfo] = useState<any>(null);
+  const [craftingInfo, setCraftingInfo] = useState<any>(null);
 
   useEffect(() => {
-    // Get user info
-    supabase.auth.getUser().then(({ data }) => {
+    const initializeHubData = async () => {
+      // Get user info
+      const { data } = await supabase.auth.getUser();
       setUser(data.user);
-    });
 
-    // Fetch real user activities
-    const fetchActivities = async () => {
+      if (!data.user) return;
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
+
+      // Fetch all hub data in parallel
+      const fetchPromises = [
+        // Activities
+        fetch('/api/user/activities?limit=5', {
+          headers: { 'Authorization': `Bearer ${session.access_token}` },
+        }),
+        // Profile
+        fetch('/api/user/profile', {
+          headers: { 'Authorization': `Bearer ${session.access_token}` },
+        }),
+        // Guild info
+        fetch('/api/guild', {
+          headers: { 'Authorization': `Bearer ${session.access_token}` },
+        }).catch(() => null), // Guild is optional
+        // Crafting info
+        fetch('/api/crafting/jobs', {
+          headers: { 'Authorization': `Bearer ${session.access_token}` },
+        }).catch(() => null), // Crafting is optional
+      ];
+
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.access_token) {
-          const response = await fetch('/api/user/activities?limit=5', {
-            headers: {
-              'Authorization': `Bearer ${session.access_token}`,
-            },
-          });
+        const [activitiesRes, profileRes, guildRes, craftingRes] = await Promise.all(fetchPromises);
 
-          if (response.ok) {
-            const result = await response.json();
-            setRecentActivity(result.activities || []);
-          } else {
-            console.error('Failed to fetch activities:', response.status);
-            // Keep empty array if fetch fails
-            setRecentActivity([]);
-          }
+        // Handle activities
+        if (activitiesRes?.ok) {
+          const result = await activitiesRes.json();
+          setRecentActivity(result.activities || []);
+        }
+
+        // Handle profile
+        if (profileRes?.ok) {
+          const result = await profileRes.json();
+          setProfile(result.profile);
+        }
+
+        // Handle guild (optional)
+        if (guildRes?.ok) {
+          const result = await guildRes.json();
+          setGuildInfo(result.guild);
+        }
+
+        // Handle crafting (optional)
+        if (craftingRes?.ok) {
+          const result = await craftingRes.json();
+          setCraftingInfo(result);
         }
       } catch (error) {
-        console.error('Error fetching activities:', error);
-        setRecentActivity([]);
+        console.error('Error fetching hub data:', error);
       }
     };
 
-    fetchActivities();
+    initializeHubData();
   }, []);
 
   const activeMissions = missionData?.activeMissions || [];
@@ -104,14 +137,33 @@ export default function TradingHub() {
           <span className="game-small">Active Missions:</span>
           <span className="game-warn game-small">{activeMissions.length}</span>
         </div>
+        <div className="game-space-between">
+          <span className="game-small">Crafting Jobs:</span>
+          <span className="game-good game-small">{craftingInfo?.activeJobs?.length || 0}</span>
+        </div>
+        {guildInfo && (
+          <div className="game-space-between">
+            <span className="game-small">Guild:</span>
+            <span className="game-good game-small">[{guildInfo.tag}] {guildInfo.name}</span>
+          </div>
+        )}
       </div>
 
       <div style={{ marginTop: '1rem' }}>
         <Link href="/profile" className="game-btn game-btn-secondary" style={{ width: '100%', textAlign: 'center', display: 'block', marginBottom: '0.5rem' }}>
           👤 Profile
         </Link>
-        <Link href="/guild" className="game-btn game-btn-secondary" style={{ width: '100%', textAlign: 'center', display: 'block', marginBottom: '0.5rem' }}>
-          🏰 Guild
+        {guildInfo ? (
+          <Link href="/guild" className="game-btn game-btn-secondary" style={{ width: '100%', textAlign: 'center', display: 'block', marginBottom: '0.5rem' }}>
+            🏰 {guildInfo.tag}
+          </Link>
+        ) : (
+          <Link href="/guild" className="game-btn game-btn-secondary" style={{ width: '100%', textAlign: 'center', display: 'block', marginBottom: '0.5rem' }}>
+            🏰 Join Guild
+          </Link>
+        )}
+        <Link href="/crafting" className="game-btn game-btn-secondary" style={{ width: '100%', textAlign: 'center', display: 'block', marginBottom: '0.5rem' }}>
+          ⚒️ Crafting {craftingInfo?.activeJobs?.length > 0 ? `(${craftingInfo.activeJobs.length})` : ''}
         </Link>
       </div>
     </div>
@@ -128,7 +180,7 @@ export default function TradingHub() {
         <div className="game-card">
           <div className="game-grid-2">
             <div>
-              <h2>Welcome back, {user?.email?.split('@')[0] || 'Trader'}!</h2>
+              <h2>Welcome back, {profile?.display || user?.email?.split('@')[0] || 'Trader'}!</h2>
               <p className="game-muted">
                 Manage your trading empire from the central hub. Check your progress, 
                 review recent activity, and plan your next moves.
@@ -155,6 +207,18 @@ export default function TradingHub() {
                   <span>Warehouse Items:</span>
                   <span className="game-good">{warehouseItems.length}</span>
                 </div>
+                <div className="game-space-between">
+                  <span>Crafting Jobs:</span>
+                  <span className={craftingInfo?.activeJobs?.length > 0 ? 'game-warn' : 'game-good'}>
+                    {craftingInfo?.activeJobs?.length || 0}
+                  </span>
+                </div>
+                {guildInfo && (
+                  <div className="game-space-between">
+                    <span>Guild:</span>
+                    <span className="game-good">[{guildInfo.tag}]</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
