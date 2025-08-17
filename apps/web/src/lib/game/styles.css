@@ -1,5 +1,6 @@
 /* Aurelian Game UI Styles */
 :root {
+  /* Color System */
   --bg: #231913;
   --panel: #32241d;
   --edge: #533b2c;
@@ -7,14 +8,35 @@
   --muted: #c7b38a;
   --accent: #d65b5b;
   --good: #68b06e;
+  --good-hover: #7bc081;
+  --good-border: #4a8a50;
+  --good-border-hover: #5a9a5f;
   --warn: #b7b34d;
+  --warn-border: #9a9840;
   --bad: #d66a5b;
+  --bad-border: #b85449;
   --button: #7b4b2d;
   --button-border: #a36a43;
   --input-bg: #2e231d;
   --input-border: #4b3527;
   --card-bg: #2e231d;
   --card-border: #4b3527;
+
+  /* Typography */
+  --font-size-xs: 0.7rem;
+  --font-size-sm: 0.875rem;
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 6px;
+  --space-md: 8px;
+  --space-lg: 12px;
+
+  /* Touch Targets */
+  --touch-target-sm: 28px;
+  --touch-target-md: 32px;
 }
 
 .game {
@@ -78,24 +100,27 @@
 
 /* Buttons */
 .game-btn {
-  background: var(--button);
+  background: var(--panel);
   color: var(--text);
-  border: 2px solid var(--button-border);
-  padding: 6px 10px;
-  border-radius: 8px;
+  border: 2px solid var(--edge);
+  padding: 6px 12px;
+  border-radius: 6px;
   cursor: pointer;
-  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.4);
   font-family: inherit;
-  font-size: 13px;
+  font-size: var(--font-size-sm);
+  text-align: center;
+  opacity: 0.8;
+  transition: all 0.2s ease;
 }
 
 .game-btn:hover {
-  filter: brightness(1.08);
+  background: var(--button);
+  border-color: var(--button-border);
 }
 
 .game-btn:active {
-  transform: translateY(1px);
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
+  background: var(--input-bg);
+  border-color: var(--input-border);
 }
 
 .game-btn:disabled {
@@ -103,19 +128,37 @@
   cursor: not-allowed;
 }
 
+.game-btn-secondary {
+  background: var(--button);
+  color: var(--text);
+  border-color: var(--button-border);
+}
+
+.game-btn-secondary:hover {
+  background: var(--panel);
+  border-color: var(--edge);
+}
+
 .game-btn-primary {
   background: var(--good);
-  border-color: #4a8a50;
+  border-color: var(--good-border);
+  text-align: center;
+  opacity: 0.8;
+}
+
+.game-btn-primary:hover {
+  background: var(--good-hover);
+  border-color: var(--good-border-hover);
 }
 
 .game-btn-danger {
   background: var(--bad);
-  border-color: #b85449;
+  border-color: var(--bad-border);
 }
 
 .game-btn-warning {
   background: var(--warn);
-  border-color: #9a9840;
+  border-color: var(--warn-border);
 }
 
 .game-btn-small {
@@ -155,14 +198,6 @@
   line-height: var(--line-height-tight);
 }
 
-.game-btn-primary {
-  background: linear-gradient(135deg, #68b06e 0%, #4a8a4f 100%);
-  border-color: #3d6f42;
-}
-
-.game-btn-primary:hover {
-  background: linear-gradient(135deg, #7bc081 0%, #5a9a5f 100%);
-}
 
 /* Form elements */
 .game input,
@@ -226,11 +261,11 @@
 }
 
 .game-small {
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm);
 }
 
 .game-tiny {
-  font-size: 0.7rem;
+  font-size: var(--font-size-xs);
   line-height: var(--line-height-normal);
 }
 
@@ -264,17 +299,17 @@
 
 .game-pill-good {
   background: var(--good);
-  border-color: #4a8a50;
+  border-color: var(--good-border);
 }
 
 .game-pill-bad {
   background: var(--bad);
-  border-color: #b85449;
+  border-color: var(--bad-border);
 }
 
 .game-pill-warn {
   background: var(--warn);
-  border-color: #9a9840;
+  border-color: var(--warn-border);
 }
 
 /* Layout utilities */
@@ -525,6 +560,44 @@
   overflow-y: auto;
 }
 
+/* Mobile Table Utilities */
+.game-table-mobile {
+  font-size: var(--font-size-xs);
+  table-layout: fixed;
+}
+
+.game-table-mobile th,
+.game-table-mobile td {
+  padding: var(--space-xs) 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Auction Table Column Layout */
+.game-table-auction .game-table-mobile th:nth-child(1), 
+.game-table-auction .game-table-mobile td:nth-child(1) { width: 20%; } /* Item */
+.game-table-auction .game-table-mobile th:nth-child(2), 
+.game-table-auction .game-table-mobile td:nth-child(2) { width: 7%; }  /* Qty */
+.game-table-auction .game-table-mobile th:nth-child(3), 
+.game-table-auction .game-table-mobile td:nth-child(3) { width: 11%; } /* Price */
+.game-table-auction .game-table-mobile th:nth-child(4), 
+.game-table-auction .game-table-mobile td:nth-child(4) { width: 11%; } /* Total */
+.game-table-auction .game-table-mobile th:nth-child(5), 
+.game-table-auction .game-table-mobile td:nth-child(5) { width: 14%; } /* Seller */
+.game-table-auction .game-table-mobile th:nth-child(6), 
+.game-table-auction .game-table-mobile td:nth-child(6) { width: 8%; }  /* Age */
+.game-table-auction .game-table-mobile th:nth-child(7), 
+.game-table-auction .game-table-mobile td:nth-child(7) { width: 9%; }  /* Duration */
+.game-table-auction .game-table-mobile th:nth-child(8), 
+.game-table-auction .game-table-mobile td:nth-child(8) { width: 20%; } /* Action */
+
+.game-btn-mobile {
+  padding: 2px var(--space-xs);
+  font-size: 0.65rem;
+  min-width: auto;
+}
+
 /* Mobile responsive */
 @media (max-width: 768px) {
   .game-container {
@@ -549,32 +622,21 @@
     font-size: var(--font-size-xs);
   }
 
-  /* Auction house table mobile fixes */
   .game table {
-    font-size: 0.7rem;
+    font-size: var(--font-size-xs);
     table-layout: fixed;
   }
-  
+
   .game th,
   .game td {
-    padding: 3px 1px;
+    padding: var(--space-xs) 1px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
   
-  /* Optimized column distribution for mobile (8 columns now) */
-  .game th:nth-child(1), .game td:nth-child(1) { width: 20%; } /* Item */
-  .game th:nth-child(2), .game td:nth-child(2) { width: 7%; }  /* Qty */
-  .game th:nth-child(3), .game td:nth-child(3) { width: 11%; } /* Price */
-  .game th:nth-child(4), .game td:nth-child(4) { width: 11%; } /* Total */
-  .game th:nth-child(5), .game td:nth-child(5) { width: 14%; } /* Seller */
-  .game th:nth-child(6), .game td:nth-child(6) { width: 8%; }  /* Age */
-  .game th:nth-child(7), .game td:nth-child(7) { width: 9%; }  /* Duration */
-  .game th:nth-child(8), .game td:nth-child(8) { width: 20%; } /* Action */
-  
   .game-btn-small {
-    padding: 2px 4px;
+    padding: 2px var(--space-xs);
     font-size: 0.65rem;
     min-width: auto;
   }

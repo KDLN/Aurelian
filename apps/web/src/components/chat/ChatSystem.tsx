@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Client, Room } from 'colyseus.js';
+import GameButton from '@/components/ui/GameButton';
 import { supabase } from '@/lib/supabaseClient';
 import { ChannelTabs } from './ChannelTabs';
 import { MessageArea } from './MessageArea';
@@ -307,13 +308,13 @@ export function ChatSystem({
       <div className={`${className} game-card`}>
         <div className="game-center game-bad" style={{ padding: '20px' }}>
           <div>Chat Error: {error}</div>
-          <button 
-            className="game-btn game-btn-small" 
+          <GameButton 
+            size="small" 
             onClick={initializeChat}
             style={{ marginTop: '10px' }}
           >
             Retry Connection
-          </button>
+          </GameButton>
         </div>
       </div>
     );
@@ -378,13 +379,13 @@ export function ChatSystem({
         </span>
         
         {!showUserList && (
-          <button 
-            className="game-btn game-btn-small"
+          <GameButton 
+            size="small"
             onClick={() => setShowUserList(true)}
             style={{ fontSize: '10px', padding: '2px 6px' }}
           >
             Users ({users.length})
-          </button>
+          </GameButton>
         )}
       </div>
     </div>

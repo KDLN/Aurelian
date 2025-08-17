@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import GameLayout from '@/components/GameLayout';
+import GameButton from '@/components/ui/GameButton';
 import { useGameWorld } from '@/lib/game/world';
 import { useUserData } from '@/hooks/useUserData';
 import { supabase } from '@/lib/supabaseClient';
@@ -233,14 +234,14 @@ export default function WarehousePage() {
             </div>
           </div>
           
-          <button 
-            className="game-btn game-btn-primary"
+          <GameButton 
+            variant="primary"
             onClick={handleTransfer}
             disabled={!selectedItem || transferQty <= 0}
             style={{ marginTop: '12px' }}
           >
             Transfer {transferQty} {selectedItem} to {transferTo}
-          </button>
+          </GameButton>
         </div>
 
           <div className="game-card">
@@ -281,14 +282,14 @@ export default function WarehousePage() {
             ) : (
               <div className="game-flex-col" style={{ gap: '12px' }}>
                 <p className="game-muted">Warehouse is empty</p>
-                <button 
+                <GameButton 
                   onClick={handlePopulateStarter}
                   disabled={populatingStarter}
-                  className="game-btn game-btn-primary"
+                  variant="primary"
                   style={{ fontSize: '12px', padding: '8px 12px' }}
                 >
                   {populatingStarter ? '🔄 Adding Items...' : '🎁 Add Starter Items (Debug)'}
-                </button>
+                </GameButton>
                 <p className="game-small game-muted" style={{ textAlign: 'center' }}>
                   This will give you starter items to test the warehouse functionality
                 </p>
@@ -328,9 +329,9 @@ export default function WarehousePage() {
           <div className="game-card">
             <h3>Quick Actions</h3>
             <div className="game-grid-3">
-              <a href="/missions" className="game-btn">Send Mission</a>
-              <a href="/auction" className="game-btn">List Items</a>
-              <a href="/crafting" className="game-btn">Start Crafting</a>
+              <GameButton href="/missions">Send Mission</GameButton>
+              <GameButton href="/auction">List Items</GameButton>
+              <GameButton href="/crafting">Start Crafting</GameButton>
             </div>
           </div>
         </div>

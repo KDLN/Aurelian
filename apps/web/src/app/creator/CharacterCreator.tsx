@@ -1,5 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import GameButton from '@/components/ui/GameButton';
+import GamePanel from '@/components/ui/GamePanel';
 import { CharacterSprite, CharacterAppearance } from '../../lib/sprites/characterSprites';
 import {
   CHARACTER_OPTIONS,
@@ -266,7 +268,7 @@ export default function CharacterCreator() {
             {loading ? 'Loading user data...' : 'Setting up character...'}
           </div>
           {/* Fallback button if loading takes too long */}
-          <button 
+          <GameButton 
             onClick={() => {
               setLoading(false);
               setAppearance({
@@ -277,19 +279,11 @@ export default function CharacterCreator() {
                 hat: ''
               });
             }}
-            style={{
-              marginTop: 20,
-              padding: '8px 16px',
-              background: '#533b2c',
-              border: 'none',
-              borderRadius: 4,
-              color: '#f1e5c8',
-              cursor: 'pointer',
-              fontSize: 12
-            }}
+            size="small"
+            style={{ marginTop: 20 }}
           >
             Skip Loading (Use Defaults)
-          </button>
+          </GameButton>
         </div>
       </div>
     );
@@ -373,50 +367,22 @@ export default function CharacterCreator() {
             </div>
           )}
 
-          <button 
+          <GameButton 
             onClick={save}
             disabled={!user || saveMessage.includes('💾')}
-            style={{ 
-              padding: '12px 20px', 
-              background: (!user || saveMessage.includes('💾')) ? '#533b2c' : '#68b06e', 
-              border: 'none', 
-              borderRadius: 4, 
-              color: (!user || saveMessage.includes('💾')) ? '#9b8c70' : '#1a1511', 
-              fontWeight: 'bold',
-              cursor: (!user || saveMessage.includes('💾')) ? 'not-allowed' : 'pointer',
-              fontSize: 16,
-              width: '100%'
-            }}
+            variant="primary"
+            style={{ width: '100%' }}
           >
             {saveMessage.includes('💾') ? 'Saving...' : 'Save Appearance'}
-          </button>
+          </GameButton>
 
           <div style={{ display: 'flex', gap: 10 }}>
-            <a href="/profile" style={{ 
-              flex: 1, 
-              textAlign: 'center', 
-              padding: '10px', 
-              background: '#533b2c', 
-              color: '#f1e5c8', 
-              textDecoration: 'none', 
-              borderRadius: 4,
-              fontSize: 14
-            }}>
+            <GameButton href="/profile" variant="secondary" style={{ flex: 1, textAlign: 'center' }}>
               📝 Edit Profile Name
-            </a>
-            <a href="/hub" style={{ 
-              flex: 1, 
-              textAlign: 'center', 
-              padding: '10px', 
-              background: '#1a1511', 
-              border: '1px solid #533b2c',
-              color: '#f1e5c8', 
-              textDecoration: 'none', 
-              borderRadius: 4,
-              fontSize: 14
-            }}>
+            </GameButton>
+            <GameButton href="/hub" style={{ flex: 1, textAlign: 'center' }}>
               ← Back to Hub
-            </a>
+            </GameButton>
           </div>
 
           {!user && (
@@ -449,51 +415,51 @@ export default function CharacterCreator() {
         {loading && <div>Loading sprites...</div>}
         
         <div style={{ display: 'flex', gap: 10 }}>
-          <button 
+          <GameButton 
             onClick={() => setAnimationType('idle')}
-            style={{ padding: '8px 16px', background: animationType === 'idle' ? '#68b06e' : '#533b2c', border: 'none', borderRadius: 4, color: '#f1e5c8', cursor: 'pointer' }}
+            variant={animationType === 'idle' ? 'primary' : 'default'}
           >
             Idle
-          </button>
-          <button 
+          </GameButton>
+          <GameButton 
             onClick={() => setAnimationType('walk')}
-            style={{ padding: '8px 16px', background: animationType === 'walk' ? '#68b06e' : '#533b2c', border: 'none', borderRadius: 4, color: '#f1e5c8', cursor: 'pointer' }}
+            variant={animationType === 'walk' ? 'primary' : 'default'}
           >
             Walk
-          </button>
-          <button 
+          </GameButton>
+          <GameButton 
             onClick={() => setAnimationType('run')}
-            style={{ padding: '8px 16px', background: animationType === 'run' ? '#68b06e' : '#533b2c', border: 'none', borderRadius: 4, color: '#f1e5c8', cursor: 'pointer' }}
+            variant={animationType === 'run' ? 'primary' : 'default'}
           >
             Run
-          </button>
+          </GameButton>
         </div>
 
         <div style={{ display: 'flex', gap: 10 }}>
-          <button 
+          <GameButton 
             onClick={() => setDirection('south')}
-            style={{ padding: '8px 16px', background: direction === 'south' ? '#68b06e' : '#533b2c', border: 'none', borderRadius: 4, color: '#f1e5c8', cursor: 'pointer' }}
+            variant={direction === 'south' ? 'primary' : 'default'}
           >
             South
-          </button>
-          <button 
+          </GameButton>
+          <GameButton 
             onClick={() => setDirection('west')}
-            style={{ padding: '8px 16px', background: direction === 'west' ? '#68b06e' : '#533b2c', border: 'none', borderRadius: 4, color: '#f1e5c8', cursor: 'pointer' }}
+            variant={direction === 'west' ? 'primary' : 'default'}
           >
             West
-          </button>
-          <button 
+          </GameButton>
+          <GameButton 
             onClick={() => setDirection('east')}
-            style={{ padding: '8px 16px', background: direction === 'east' ? '#68b06e' : '#533b2c', border: 'none', borderRadius: 4, color: '#f1e5c8', cursor: 'pointer' }}
+            variant={direction === 'east' ? 'primary' : 'default'}
           >
             East
-          </button>
-          <button 
+          </GameButton>
+          <GameButton 
             onClick={() => setDirection('north')}
-            style={{ padding: '8px 16px', background: direction === 'north' ? '#68b06e' : '#533b2c', border: 'none', borderRadius: 4, color: '#f1e5c8', cursor: 'pointer' }}
+            variant={direction === 'north' ? 'primary' : 'default'}
           >
             North
-          </button>
+          </GameButton>
         </div>
       </div>
     </div>

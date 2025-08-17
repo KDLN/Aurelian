@@ -1,6 +1,8 @@
 'use client';
 
 import { ReactNode, useEffect, useState } from 'react';
+import GameButton from '@/components/ui/GameButton';
+import GamePanel from '@/components/ui/GamePanel';
 import { useGameWorld } from '@/lib/game/world';
 import { useUserData } from '@/hooks/useUserData';
 import { useMissions } from '@/hooks/useMissionsQuery';
@@ -152,7 +154,7 @@ export default function GameLayout({
   return (
     <div className="game">
       <div className="game-container">
-        <div className="game-panel game-panel-left">
+        <GamePanel side="left">
           {/* Character Viewer at the top */}
           {showCharacterViewer && characterAppearance && (
             <div style={{ marginBottom: '16px' }}>
@@ -211,7 +213,7 @@ export default function GameLayout({
               </div>
               {!wallet && user && (
                 <div style={{ marginTop: '8px' }}>
-                  <button 
+                  <GameButton 
                     onClick={async () => {
                       try {
                         const session = await import('@/lib/supabaseClient').then(m => m.supabase.auth.getSession());
@@ -230,18 +232,11 @@ export default function GameLayout({
                         console.error('Failed to create wallet:', error);
                       }
                     }}
-                    style={{
-                      fontSize: '10px',
-                      padding: '4px 8px',
-                      background: '#d4af37',
-                      color: '#1a1511',
-                      border: 'none',
-                      borderRadius: '2px',
-                      cursor: 'pointer'
-                    }}
+                    variant="warning"
+                    size="small"
                   >
                     💰 Create Wallet
-                  </button>
+                  </GameButton>
                 </div>
               )}
               <div className="game-space-between">
@@ -365,17 +360,17 @@ export default function GameLayout({
           )}
 
           <div>
-            <button 
-              className="game-btn game-btn-warning" 
+            <GameButton 
+              variant="warning" 
               onClick={() => world.tick()}
               style={{ width: '100%' }}
             >
               Advance Time (+10 min)
-            </button>
+            </GameButton>
           </div>
-        </div>
+        </GamePanel>
 
-        <div className="game-panel game-panel-right" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <GamePanel side="right" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
           {/* Main Content Area */}
           <div style={{ flex: '1', overflow: 'auto', marginBottom: '16px' }}>
             {children}
@@ -397,7 +392,7 @@ export default function GameLayout({
               />
             </div>
           )}
-        </div>
+        </GamePanel>
       </div>
       
       {/* Onboarding system - appears globally */}

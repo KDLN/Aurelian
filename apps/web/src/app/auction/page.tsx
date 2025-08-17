@@ -3,6 +3,9 @@
 import { useState, useEffect } from 'react';
 import GameLayout from '@/components/GameLayout';
 import MarketOverview from '@/components/MarketOverview';
+import GameButton from '@/components/ui/GameButton';
+import GamePanel from '@/components/ui/GamePanel';
+import { GameTable, GameTableHeader, GameTableBody, GameTableRow, GameTableCell } from '@/components/ui/GameTable';
 import { useGameWorld } from '@/lib/game/world';
 import { useUserDataQuery } from '@/hooks/useUserDataQuery';
 import { getRTClient } from '@/lib/rtClient';
@@ -258,9 +261,9 @@ export default function AuctionPage() {
         {isConnected ? ' ✅ Connected' : ' ⚠️ Connecting...'}
       </p>
       
-      <a href="/market" className="game-btn game-btn-small" style={{ display: 'block', textAlign: 'center', marginBottom: '12px', textDecoration: 'none' }}>
+      <GameButton href="/market" size="small" className="w-full text-center mb-3">
         📊 Market Dashboard
-      </a>
+      </GameButton>
       
       <h3>Current Prices</h3>
       <div className="game-flex-col">
@@ -376,13 +379,13 @@ export default function AuctionPage() {
           </div>
           
           <div className="game-flex" style={{ marginTop: '12px' }}>
-            <button 
-              className="game-btn game-btn-primary"
+            <GameButton 
+              variant="primary"
               onClick={handleList}
               disabled={!isConnected || !selectedItem || quantity <= 0 || price <= 0}
             >
               List for {duration} minutes
-            </button>
+            </GameButton>
             
             {selectedItem && (
               <div className="game-small game-muted">
@@ -400,20 +403,20 @@ export default function AuctionPage() {
         <div className="game-card">
           <h3>Active Listings ({listings.length}) - Live</h3>
           {listings.length > 0 ? (
-            <table>
-              <thead>
-                <tr>
-                  <th>Item</th>
-                  <th>Qty</th>
-                  <th>Price/Unit</th>
-                  <th>Total</th>
-                  <th>Seller</th>
-                  <th>Age</th>
-                  <th>Duration</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
+            <GameTable variant="auction">
+              <GameTableHeader>
+                <GameTableRow>
+                  <GameTableCell header>Item</GameTableCell>
+                  <GameTableCell header>Qty</GameTableCell>
+                  <GameTableCell header>Price/Unit</GameTableCell>
+                  <GameTableCell header>Total</GameTableCell>
+                  <GameTableCell header>Seller</GameTableCell>
+                  <GameTableCell header>Age</GameTableCell>
+                  <GameTableCell header>Duration</GameTableCell>
+                  <GameTableCell header>Action</GameTableCell>
+                </GameTableRow>
+              </GameTableHeader>
+              <GameTableBody>
                 {listings.map(listing => {
                   const marketPrice = getMarketPrice(listing.item);
                   const priceStatus = getPriceStatus(listing.price, marketPrice);
@@ -421,37 +424,38 @@ export default function AuctionPage() {
                   const isOwn = user && listing.sellerId === user.id;
                   
                   return (
-                    <tr key={listing.id}>
-                      <td>{listing.item}</td>
-                      <td>{listing.qty}</td>
-                      <td>{listing.price}g</td>
-                      <td>{(listing.qty * listing.price).toLocaleString()}g</td>
-                      <td className={isOwn ? 'game-good' : ''}>{listing.seller}</td>
-                      <td className={`game-${ageStatus}`}>{listing.age}min</td>
-                      <td className="game-small">{listing.duration}min</td>
-                      <td>
+                    <GameTableRow key={listing.id}>
+                      <GameTableCell>{listing.item}</GameTableCell>
+                      <GameTableCell>{listing.qty}</GameTableCell>
+                      <GameTableCell>{listing.price}g</GameTableCell>
+                      <GameTableCell>{(listing.qty * listing.price).toLocaleString()}g</GameTableCell>
+                      <GameTableCell className={isOwn ? 'game-good' : ''}>{listing.seller}</GameTableCell>
+                      <GameTableCell className={`game-${ageStatus}`}>{listing.age}min</GameTableCell>
+                      <GameTableCell className="game-small">{listing.duration}min</GameTableCell>
+                      <GameTableCell>
                         {isOwn ? (
-                          <button 
-                            className="game-btn game-btn-small"
+                          <GameButton 
+                            size="small"
                             onClick={() => handleCancel(listing.id)}
                           >
                             Cancel
-                          </button>
+                          </GameButton>
                         ) : (
-                          <button 
-                            className="game-btn game-btn-small game-btn-primary"
+                          <GameButton 
+                            variant="primary"
+                            size="small"
                             onClick={() => handleBuy(listing)}
                             disabled={(wallet?.gold || 0) < listing.qty * listing.price}
                           >
                             Buy
-                          </button>
+                          </GameButton>
                         )}
-                      </td>
-                    </tr>
+                      </GameTableCell>
+                    </GameTableRow>
                   );
                 })}
-              </tbody>
-            </table>
+              </GameTableBody>
+            </GameTable>
           ) : (
             <p className="game-muted">
               {isConnected ? 'No active listings' : 'Connecting to auction house...'}
