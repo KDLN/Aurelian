@@ -86,25 +86,6 @@ export default function TradingHub() {
 
   const sidebar = (
     <div>
-      <h3>Quick Actions</h3>
-      <div className="game-flex-col">
-        <Link href="/warehouse" className="game-btn game-btn-primary">
-          📦 Warehouse
-        </Link>
-        <Link href="/auction" className="game-btn game-btn-primary">
-          💰 Auction House
-        </Link>
-        <Link href="/missions" className="game-btn game-btn-primary">
-          🗺️ Missions
-        </Link>
-        <Link href="/agents" className="game-btn game-btn-secondary">
-          👥 Agents
-        </Link>
-        <Link href="/crafting" className="game-btn game-btn-secondary">
-          ⚒️ Crafting
-        </Link>
-      </div>
-
       <h3>Account Status</h3>
       <div className="game-flex-col">
         <div className="game-space-between">

@@ -154,7 +154,7 @@ export default function GameLayout({
   return (
     <div className="game">
       <div className="game-container">
-        <GamePanel side="left">
+        <GamePanel side="left" style={{ height: 'calc(100vh - 24px)', overflow: 'auto' }}>
           {/* Character Viewer at the top */}
           {showCharacterViewer && characterAppearance && (
             <div style={{ marginBottom: '16px' }}>
@@ -370,19 +370,21 @@ export default function GameLayout({
           </div>
         </GamePanel>
 
-        <GamePanel side="right" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-          {/* Main Content Area */}
-          <div style={{ flex: '1', overflow: 'auto', marginBottom: '16px' }}>
+        <GamePanel side="right" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 24px)' }}>
+          {/* Main Content Area - Scrollable */}
+          <div style={{ flex: '1', overflow: 'auto', paddingBottom: '16px', minHeight: 0 }}>
             {children}
           </div>
           
-          {/* Chat Area - Bottom Half */}
+          {/* Chat Area - Fixed at Bottom */}
           {showChat && (
             <div style={{ 
-              height: '400px', 
-              minHeight: '300px',
+              height: '350px', 
+              minHeight: '350px',
+              maxHeight: '350px',
               borderTop: '2px solid #533b2c',
-              paddingTop: '8px'
+              paddingTop: '8px',
+              flexShrink: 0
             }}>
               <ChatSystem
                 initialChannel={chatInitialChannel}
