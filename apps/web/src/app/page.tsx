@@ -27,16 +27,27 @@ export default function Home() {
         addDebugLog('Detected OAuth tokens in URL fragment');
         
         try {
-          // Let Supabase handle the session from the URL
-          const { data, error } = await supabase.auth.getSession();
-          if (error) {
-            console.error('Error getting session from URL:', error);
-            addDebugLog(`Session error: ${error.message}`);
-          } else if (data.session) {
-            console.log('✅ Session established from OAuth tokens');
-            addDebugLog('✅ Session established successfully');
-            // Clear the URL hash
-            window.history.replaceState({}, document.title, window.location.pathname);
+          // Parse tokens from URL hash
+          const hashParams = new URLSearchParams(hash.substring(1));
+          const access_token = hashParams.get('access_token');
+          const refresh_token = hashParams.get('refresh_token');
+          
+          if (access_token) {
+            // Set the session with the tokens from the URL
+            const { data, error } = await supabase.auth.setSession({
+              access_token,
+              refresh_token: refresh_token || '',
+            });
+            
+            if (error) {
+              console.error('Error setting session from URL tokens:', error);
+              addDebugLog(`Session error: ${error.message}`);
+            } else if (data.session) {
+              console.log('✅ Session established from OAuth tokens');
+              addDebugLog('✅ Session established successfully');
+              // Clear the URL hash
+              window.history.replaceState({}, document.title, window.location.pathname);
+            }
           }
         } catch (error) {
           console.error('Error handling implicit auth:', error);
