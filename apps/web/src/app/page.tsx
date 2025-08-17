@@ -283,11 +283,19 @@ export default function Home() {
       return;
     }
 
+    // Check if user exists
+    if (!user?.id) {
+      setErrorMsg('User not found. Please refresh the page and try again.');
+      console.error('No user ID available:', user);
+      return;
+    }
+
     try {
       // Get the auth token
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        setErrorMsg('Please log in again.');
+        setErrorMsg('No session found. Please log in again.');
+        console.error('No session available');
         return;
       }
 
@@ -310,8 +318,16 @@ export default function Home() {
         if (result.error?.includes('already taken') || result.error?.includes('23505')) {
           setErrorMsg('Username already taken.');
         } else {
-          setErrorMsg('Failed to save username. Please try again.');
-          console.error('Profile save error:', result);
+          // Show detailed error for debugging
+          const errorDetails = `Failed to save username. Status: ${response.status}, Error: ${result.error || result.message || JSON.stringify(result)}`;
+          setErrorMsg(errorDetails);
+          console.error('Profile save error:', {
+            status: response.status,
+            statusText: response.statusText,
+            result: result,
+            userId: user?.id,
+            username: newUsername
+          });
         }
         return;
       }
@@ -321,9 +337,11 @@ export default function Home() {
       
       // Update the profile state with the new username
       setUserProfile({ display: newUsername });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Username save error:', error);
-      setErrorMsg('An error occurred. Please try again.');
+      // Show detailed error for debugging
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      setErrorMsg(`Network/System error: ${errorMessage}`);
     }
   }
 
