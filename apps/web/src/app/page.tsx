@@ -551,6 +551,10 @@ export default function Home() {
                   </div>
                   
                   <div className="auth-buttons">
+                    <button type="submit" className="auth-button auth-button-primary">
+                      <span>🚀 Create Account</span>
+                    </button>
+                    <div style={{ textAlign: 'center', margin: '0.5rem 0', color: '#999' }}>OR</div>
                     <button
                       type="button"
                       onClick={signInWithDiscord}
@@ -562,11 +566,7 @@ export default function Home() {
                         marginBottom: '0.5rem'
                       }}
                     >
-                      <span>🎮 Sign Up with Discord</span>
-                    </button>
-                    <div style={{ textAlign: 'center', margin: '0.5rem 0', color: '#999' }}>or</div>
-                    <button type="submit" className="auth-button auth-button-primary">
-                      <span>🚀 Create Account</span>
+                      <span>🎮 Discord</span>
                     </button>
                     <button
                       type="button"
@@ -613,6 +613,10 @@ export default function Home() {
                   </div>
                   
                   <div className="auth-buttons">
+                    <button type="submit" className="auth-button auth-button-primary">
+                      <span>🔓 Sign In</span>
+                    </button>
+                    <div style={{ textAlign: 'center', margin: '0.5rem 0', color: '#999' }}>OR</div>
                     <button
                       type="button"
                       onClick={signInWithDiscord}
@@ -624,11 +628,7 @@ export default function Home() {
                         marginBottom: '0.5rem'
                       }}
                     >
-                      <span>🎮 Continue with Discord</span>
-                    </button>
-                    <div style={{ textAlign: 'center', margin: '0.5rem 0', color: '#999' }}>or</div>
-                    <button type="submit" className="auth-button auth-button-primary">
-                      <span>🔓 Sign In</span>
+                      <span>🎮 Discord</span>
                     </button>
                     <button
                       type="button"
@@ -704,18 +704,6 @@ export default function Home() {
                 </div>
                 <div className="auth-buttons auth-buttons-main">
                   <button
-                    onClick={signInWithDiscord}
-                    className="auth-button auth-button-discord"
-                    style={{
-                      backgroundColor: '#5865F2',
-                      color: 'white',
-                      border: 'none',
-                      marginBottom: '1rem'
-                    }}
-                  >
-                    <span>🎮 Continue with Discord</span>
-                  </button>
-                  <button
                     onClick={() => setAuthMode('signup')}
                     className="auth-button auth-button-primary"
                   >
@@ -726,6 +714,18 @@ export default function Home() {
                     className="auth-button auth-button-secondary"
                   >
                     <span>🏛️ Sign In</span>
+                  </button>
+                  <div style={{ textAlign: 'center', margin: '1rem 0', color: '#999' }}>OR</div>
+                  <button
+                    onClick={signInWithDiscord}
+                    className="auth-button auth-button-discord"
+                    style={{
+                      backgroundColor: '#5865F2',
+                      color: 'white',
+                      border: 'none'
+                    }}
+                  >
+                    <span>🎮 Discord</span>
                   </button>
                 </div>
               </div>
