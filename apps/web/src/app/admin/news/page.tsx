@@ -209,8 +209,8 @@ export default function NewsManagement() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <div className="min-h-screen bg-background p-2 sm:p-4">
+      <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
         <Card>
           <CardHeader>
@@ -274,7 +274,7 @@ export default function NewsManagement() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label>Category</Label>
                       <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
@@ -308,7 +308,7 @@ export default function NewsManagement() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         id="pinned"
@@ -354,7 +354,7 @@ export default function NewsManagement() {
                   
                   return (
                     <Card key={item.id} className="relative">
-                      <CardContent className="p-6">
+                      <CardContent className="p-4 sm:p-6">
                         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
                           <div className="flex-1 min-w-0">
                             {/* Badges */}
@@ -390,12 +390,12 @@ export default function NewsManagement() {
                           </div>
                           
                           {/* Actions */}
-                          <div className="flex lg:flex-col gap-2 lg:ml-4">
+                          <div className="flex flex-col sm:flex-row lg:flex-col gap-2 lg:ml-4 w-full sm:w-auto">
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => handleEdit(item)}
-                              className="flex-1 lg:flex-none"
+                              className="w-full sm:flex-1 lg:w-auto"
                             >
                               <Edit className="w-4 h-4 mr-2" />
                               Edit
@@ -404,7 +404,7 @@ export default function NewsManagement() {
                               variant={item.isActive ? "outline" : "default"}
                               size="sm"
                               onClick={() => handleToggleActive(item)}
-                              className="flex-1 lg:flex-none"
+                              className="w-full sm:flex-1 lg:w-auto"
                             >
                               {item.isActive ? (
                                 <>
@@ -422,7 +422,7 @@ export default function NewsManagement() {
                               variant="destructive"
                               size="sm"
                               onClick={() => handleDelete(item.id)}
-                              className="flex-1 lg:flex-none"
+                              className="w-full sm:flex-1 lg:w-auto"
                             >
                               <Trash2 className="w-4 h-4 mr-2" />
                               Delete
