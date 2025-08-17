@@ -235,10 +235,17 @@ export default function TradingHub() {
         {/* Game News/Updates */}
         <div className="game-card">
           <h3>📢 Game Updates & News</h3>
-          <div className="game-flex-col">
+          <div 
+            className="game-flex-col" 
+            style={{ 
+              maxHeight: '300px', 
+              overflow: 'auto',
+              paddingRight: '4px'
+            }}
+          >
             <div className="game-card-nested">
               <h4 className="game-good">✨ New Feature: Guild System</h4>
-              <p className="game-small">
+              <p>
                 Join or create guilds to collaborate with other traders. Share resources, 
                 coordinate missions, and compete in guild challenges!
               </p>
@@ -247,7 +254,7 @@ export default function TradingHub() {
             
             <div className="game-card-nested">
               <h4 className="game-warn">⚡ Market Volatility Alert</h4>
-              <p className="game-small">
+              <p>
                 Increased demand for Iron Ore and Herbs in northern cities. 
                 Consider redirecting caravans for higher profits.
               </p>
@@ -256,9 +263,33 @@ export default function TradingHub() {
 
             <div className="game-card-nested">
               <h4>🔧 System Improvements</h4>
-              <p className="game-small">
+              <p>
                 Recent updates include improved UI scaling for high-resolution displays, 
                 better inventory management, and enhanced mission tracking.
+              </p>
+            </div>
+
+            <div className="game-card-nested">
+              <h4 className="game-good">🎉 Celebration Event</h4>
+              <p>
+                Special rewards for completing missions during the harvest festival! 
+                Double experience and bonus gold until the end of the month.
+              </p>
+            </div>
+
+            <div className="game-card-nested">
+              <h4>📊 Economy Report</h4>
+              <p>
+                Trading volume has increased 25% this quarter. Popular trade routes 
+                include Beacon to Ironclad and Pearl Harbor to Silk Road settlements.
+              </p>
+            </div>
+
+            <div className="game-card-nested">
+              <h4 className="game-warn">🚧 Maintenance Notice</h4>
+              <p>
+                Server maintenance scheduled for tomorrow at 3 AM UTC. Expected downtime: 30 minutes.
+                All progress will be saved automatically.
               </p>
             </div>
           </div>

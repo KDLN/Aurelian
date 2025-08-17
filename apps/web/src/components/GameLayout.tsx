@@ -371,8 +371,8 @@ export default function GameLayout({
         </GamePanel>
 
         <GamePanel side="right" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 24px)' }}>
-          {/* Main Content Area - Scrollable */}
-          <div style={{ flex: '1', overflow: 'auto', paddingBottom: '16px', minHeight: 0 }}>
+          {/* Main Content Area */}
+          <div style={{ flex: '1', overflow: 'hidden', paddingBottom: '16px', minHeight: 0 }}>
             {children}
           </div>
           
