@@ -42,11 +42,13 @@ export default function Home() {
             if (error) {
               console.error('Error setting session from URL tokens:', error);
               addDebugLog(`Session error: ${error.message}`);
+              return false;
             } else if (data.session) {
               console.log('✅ Session established from OAuth tokens');
               addDebugLog('✅ Session established successfully');
               // Clear the URL hash
               window.history.replaceState({}, document.title, window.location.pathname);
+              return true;
             }
           }
         } catch (error) {
@@ -54,11 +56,15 @@ export default function Home() {
           addDebugLog(`Implicit auth error: ${error}`);
         }
       }
+      return false;
     };
 
-    handleImplicitAuth();
-
-    supabase.auth.getUser().then(async ({ data }) => {
+    const initializeAuth = async () => {
+      // First handle implicit auth if needed
+      const implicitAuthHandled = await handleImplicitAuth();
+      
+      // Then get the user (which should now have the session if implicit auth was handled)
+      const { data } = await supabase.auth.getUser();
       setUser(data.user);
       
       // If user exists, fetch their profile
@@ -95,7 +101,53 @@ export default function Home() {
       }
       
       setIsLoading(false);
+    };
+
+    initializeAuth();
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session?.user?.id);
+      
+      if (event === 'SIGNED_IN' && session) {
+        setUser(session.user);
+        
+        // Fetch profile when user signs in
+        try {
+          const response = await fetch('/api/user/profile', {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`,
+            },
+          });
+
+          const result = await response.json();
+          console.log('Profile fetch after auth change:', result);
+          
+          const prof = result.profile;
+          setUserProfile(prof);
+          
+          if (!prof || !prof.display) {
+            console.log('Auth change: Setting needsUsername to true');
+            setNeedsUsername(true);
+          } else {
+            console.log('Auth change: User has display name:', prof.display);
+            setNeedsUsername(false);
+          }
+        } catch (error) {
+          console.error('Error fetching profile after auth change:', error);
+          setNeedsUsername(true);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setUserProfile(null);
+        setNeedsUsername(false);
+      }
     });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   function validateUsername(name: string) {
