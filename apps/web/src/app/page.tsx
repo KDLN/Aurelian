@@ -312,22 +312,38 @@ export default function Home() {
         }),
       });
 
-      const result = await response.json();
+      let result;
+      let responseText = '';
+      
+      try {
+        // Try to parse as JSON
+        result = await response.json();
+      } catch (jsonError) {
+        // If JSON parsing fails, get the raw text
+        responseText = await response.text();
+        result = { rawText: responseText };
+      }
 
       if (!response.ok) {
         if (result.error?.includes('already taken') || result.error?.includes('23505')) {
           setErrorMsg('Username already taken.');
         } else {
-          // Show detailed error for debugging
-          const errorDetails = `Failed to save username. Status: ${response.status}, Error: ${result.error || result.message || JSON.stringify(result)}`;
-          setErrorMsg(errorDetails);
-          console.error('Profile save error:', {
+          // Show complete error details for debugging
+          const errorInfo = {
             status: response.status,
             statusText: response.statusText,
-            result: result,
+            headers: Object.fromEntries(response.headers.entries()),
+            body: result,
+            rawText: responseText,
+            url: response.url,
             userId: user?.id,
-            username: newUsername
-          });
+            username: newUsername,
+            timestamp: new Date().toISOString()
+          };
+          
+          const errorDetails = `ERROR ${response.status}: ${JSON.stringify(errorInfo, null, 2)}`;
+          setErrorMsg(errorDetails);
+          console.error('Profile save error:', errorInfo);
         }
         return;
       }
