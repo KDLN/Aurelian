@@ -2,7 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import GameLayout from '@/components/GameLayout';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Trash2, Edit, Eye, EyeOff, Plus, X } from 'lucide-react';
 
 interface NewsItem {
   id: string;
@@ -20,6 +28,21 @@ interface NewsItem {
   };
 }
 
+const categories = [
+  { value: 'update', label: '🆕 Update', variant: 'default' as const },
+  { value: 'event', label: '🎉 Event', variant: 'secondary' as const },
+  { value: 'maintenance', label: '🚧 Maintenance', variant: 'destructive' as const },
+  { value: 'market', label: '📈 Market', variant: 'outline' as const },
+  { value: 'announcement', label: '📢 Announcement', variant: 'secondary' as const }
+];
+
+const priorities = [
+  { value: 'low', label: 'Low', variant: 'outline' as const },
+  { value: 'normal', label: 'Normal', variant: 'secondary' as const },
+  { value: 'high', label: 'High', variant: 'default' as const },
+  { value: 'urgent', label: 'Urgent', variant: 'destructive' as const }
+];
+
 export default function NewsManagement() {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -33,21 +56,6 @@ export default function NewsManagement() {
     isPinned: false,
     expiresAt: ''
   });
-
-  const categories = [
-    { value: 'update', label: '🆕 Update', color: 'good' },
-    { value: 'event', label: '🎉 Event', color: 'warn' },
-    { value: 'maintenance', label: '🚧 Maintenance', color: 'bad' },
-    { value: 'market', label: '📈 Market', color: 'warn' },
-    { value: 'announcement', label: '📢 Announcement', color: 'muted' }
-  ];
-
-  const priorities = [
-    { value: 'low', label: 'Low' },
-    { value: 'normal', label: 'Normal' },
-    { value: 'high', label: 'High' },
-    { value: 'urgent', label: 'Urgent' }
-  ];
 
   useEffect(() => {
     fetchNews();
@@ -98,20 +106,24 @@ export default function NewsManagement() {
 
       if (response.ok) {
         await fetchNews();
-        setShowCreateForm(false);
-        setEditingNews(null);
-        setFormData({
-          title: '',
-          content: '',
-          category: 'announcement',
-          priority: 'normal',
-          isPinned: false,
-          expiresAt: ''
-        });
+        resetForm();
       }
     } catch (error) {
       console.error('Error saving news:', error);
     }
+  };
+
+  const resetForm = () => {
+    setShowCreateForm(false);
+    setEditingNews(null);
+    setFormData({
+      title: '',
+      content: '',
+      category: 'announcement',
+      priority: 'normal',
+      isPinned: false,
+      expiresAt: ''
+    });
   };
 
   const handleEdit = (newsItem: NewsItem) => {
@@ -178,183 +190,254 @@ export default function NewsManagement() {
     return categories.find(c => c.value === category) || categories[4];
   };
 
+  const getPriorityInfo = (priority: string) => {
+    return priorities.find(p => p.value === priority) || priorities[1];
+  };
+
   if (isLoading) {
     return (
-      <GameLayout title="News Management">
-        <div className="game-card">
-          <p>Loading news management...</p>
+      <div className="min-h-screen bg-background p-4">
+        <div className="max-w-6xl mx-auto">
+          <Card>
+            <CardContent className="p-6">
+              <p>Loading news management...</p>
+            </CardContent>
+          </Card>
         </div>
-      </GameLayout>
+      </div>
     );
   }
 
   return (
-    <GameLayout title="News Management">
-      <div className="game-flex-col">
-        <div className="game-card">
-          <div className="game-space-between">
-            <h2>News & Announcements Management</h2>
-            <button 
-              className="game-btn game-btn-primary"
-              onClick={() => {
-                setShowCreateForm(!showCreateForm);
-                setEditingNews(null);
-                setFormData({
-                  title: '',
-                  content: '',
-                  category: 'announcement',
-                  priority: 'normal',
-                  isPinned: false,
-                  expiresAt: ''
-                });
-              }}
-            >
-              {showCreateForm ? 'Cancel' : '+ Create News'}
-            </button>
-          </div>
+    <div className="min-h-screen bg-background p-4">
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Header */}
+        <Card>
+          <CardHeader>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <CardTitle className="text-2xl">News & Announcements</CardTitle>
+                <CardDescription>
+                  Manage game updates, events, and announcements
+                </CardDescription>
+              </div>
+              <Button 
+                onClick={() => {
+                  if (showCreateForm) {
+                    resetForm();
+                  } else {
+                    setShowCreateForm(true);
+                  }
+                }}
+                className="w-full sm:w-auto"
+              >
+                {showCreateForm ? (
+                  <>
+                    <X className="w-4 h-4 mr-2" />
+                    Cancel
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create News
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardHeader>
 
+          {/* Create/Edit Form */}
           {showCreateForm && (
-            <div className="game-card-nested" style={{ marginTop: '1rem' }}>
-              <h3>{editingNews ? 'Edit News Item' : 'Create News Item'}</h3>
-              <form onSubmit={handleSubmit} className="game-flex-col">
-                <div>
-                  <label>Title:</label>
-                  <input
-                    type="text"
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="game-input"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label>Content:</label>
-                  <textarea
-                    value={formData.content}
-                    onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                    className="game-input"
-                    rows={4}
-                    required
-                  />
-                </div>
-
-                <div className="game-grid-2">
+            <CardContent className="border-t">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 gap-4">
                   <div>
-                    <label>Category:</label>
-                    <select
-                      value={formData.category}
-                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                      className="game-input"
-                    >
-                      {categories.map(cat => (
-                        <option key={cat.value} value={cat.value}>{cat.label}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label>Priority:</label>
-                    <select
-                      value={formData.priority}
-                      onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                      className="game-input"
-                    >
-                      {priorities.map(pri => (
-                        <option key={pri.value} value={pri.value}>{pri.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="game-grid-2">
-                  <div>
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={formData.isPinned}
-                        onChange={(e) => setFormData({ ...formData, isPinned: e.target.checked })}
-                      />
-                      Pin to top
-                    </label>
-                  </div>
-
-                  <div>
-                    <label>Expires At (optional):</label>
-                    <input
-                      type="date"
-                      value={formData.expiresAt}
-                      onChange={(e) => setFormData({ ...formData, expiresAt: e.target.value })}
-                      className="game-input"
+                    <Label htmlFor="title">Title</Label>
+                    <Input
+                      id="title"
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      required
+                      placeholder="Enter news title..."
                     />
                   </div>
-                </div>
+                  
+                  <div>
+                    <Label htmlFor="content">Content</Label>
+                    <Textarea
+                      id="content"
+                      value={formData.content}
+                      onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                      required
+                      rows={4}
+                      placeholder="Enter news content..."
+                    />
+                  </div>
 
-                <button type="submit" className="game-btn game-btn-primary">
-                  {editingNews ? 'Update News' : 'Create News'}
-                </button>
-              </form>
-            </div>
-          )}
-        </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Category</Label>
+                      <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map(cat => (
+                            <SelectItem key={cat.value} value={cat.value}>
+                              {cat.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-        <div className="game-card">
-          <h3>Existing News Items ({news.length})</h3>
-          {news.length === 0 ? (
-            <p className="game-muted">No news items found.</p>
-          ) : (
-            <div className="game-flex-col">
-              {news.map(item => {
-                const categoryInfo = getCategoryInfo(item.category);
-                return (
-                  <div key={item.id} className="game-card-nested">
-                    <div className="game-space-between">
-                      <div>
-                        <div className="game-space-between">
-                          <span className={`game-pill game-pill-${categoryInfo.color}`}>
-                            {categoryInfo.label}
-                          </span>
-                          {item.isPinned && <span className="game-pill game-pill-warn">📌 Pinned</span>}
-                          {!item.isActive && <span className="game-pill game-pill-bad">❌ Inactive</span>}
-                          <span className={`game-pill game-pill-${item.priority === 'urgent' ? 'bad' : item.priority === 'high' ? 'warn' : 'good'}`}>
-                            {item.priority.toUpperCase()}
-                          </span>
-                        </div>
-                        <h4 style={{ margin: '0.5rem 0' }}>{item.title}</h4>
-                        <p className="game-small game-muted">{item.content.substring(0, 100)}...</p>
-                        <div className="game-small game-muted">
-                          By {item.author.name} • {new Date(item.publishedAt).toLocaleDateString()}
-                          {item.expiresAt && ` • Expires: ${new Date(item.expiresAt).toLocaleDateString()}`}
-                        </div>
-                      </div>
-                      <div className="game-flex-col">
-                        <button 
-                          className="game-btn game-btn-small"
-                          onClick={() => handleEdit(item)}
-                        >
-                          Edit
-                        </button>
-                        <button 
-                          className={`game-btn game-btn-small ${item.isActive ? 'game-btn-warn' : 'game-btn-good'}`}
-                          onClick={() => handleToggleActive(item)}
-                        >
-                          {item.isActive ? 'Deactivate' : 'Activate'}
-                        </button>
-                        <button 
-                          className="game-btn game-btn-small game-btn-bad"
-                          onClick={() => handleDelete(item.id)}
-                        >
-                          Delete
-                        </button>
-                      </div>
+                    <div>
+                      <Label>Priority</Label>
+                      <Select value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value })}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {priorities.map(pri => (
+                            <SelectItem key={pri.value} value={pri.value}>
+                              {pri.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
-                );
-              })}
-            </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="pinned"
+                        checked={formData.isPinned}
+                        onCheckedChange={(checked) => setFormData({ ...formData, isPinned: !!checked })}
+                      />
+                      <Label htmlFor="pinned">Pin to top</Label>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="expiresAt">Expires At (optional)</Label>
+                      <Input
+                        id="expiresAt"
+                        type="date"
+                        value={formData.expiresAt}
+                        onChange={(e) => setFormData({ ...formData, expiresAt: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Button type="submit" className="w-full sm:w-auto">
+                  {editingNews ? 'Update News' : 'Create News'}
+                </Button>
+              </form>
+            </CardContent>
           )}
-        </div>
+        </Card>
+
+        {/* News List */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Existing News Items ({news.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {news.length === 0 ? (
+              <p className="text-muted-foreground">No news items found.</p>
+            ) : (
+              <div className="space-y-4">
+                {news.map(item => {
+                  const categoryInfo = getCategoryInfo(item.category);
+                  const priorityInfo = getPriorityInfo(item.priority);
+                  
+                  return (
+                    <Card key={item.id} className="relative">
+                      <CardContent className="p-6">
+                        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            {/* Badges */}
+                            <div className="flex flex-wrap gap-2 mb-3">
+                              <Badge variant={categoryInfo.variant}>
+                                {categoryInfo.label}
+                              </Badge>
+                              <Badge variant={priorityInfo.variant}>
+                                {priorityInfo.label.toUpperCase()}
+                              </Badge>
+                              {item.isPinned && (
+                                <Badge variant="outline">📌 Pinned</Badge>
+                              )}
+                              {!item.isActive && (
+                                <Badge variant="destructive">❌ Inactive</Badge>
+                              )}
+                            </div>
+                            
+                            {/* Content */}
+                            <h3 className="font-semibold text-lg mb-2 break-words">{item.title}</h3>
+                            <p className="text-muted-foreground text-sm mb-3 break-words">
+                              {item.content.length > 150 
+                                ? `${item.content.substring(0, 150)}...` 
+                                : item.content
+                              }
+                            </p>
+                            
+                            {/* Meta */}
+                            <div className="text-xs text-muted-foreground">
+                              By {item.author.name} • {new Date(item.publishedAt).toLocaleDateString()}
+                              {item.expiresAt && ` • Expires: ${new Date(item.expiresAt).toLocaleDateString()}`}
+                            </div>
+                          </div>
+                          
+                          {/* Actions */}
+                          <div className="flex lg:flex-col gap-2 lg:ml-4">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEdit(item)}
+                              className="flex-1 lg:flex-none"
+                            >
+                              <Edit className="w-4 h-4 mr-2" />
+                              Edit
+                            </Button>
+                            <Button
+                              variant={item.isActive ? "outline" : "default"}
+                              size="sm"
+                              onClick={() => handleToggleActive(item)}
+                              className="flex-1 lg:flex-none"
+                            >
+                              {item.isActive ? (
+                                <>
+                                  <EyeOff className="w-4 h-4 mr-2" />
+                                  Deactivate
+                                </>
+                              ) : (
+                                <>
+                                  <Eye className="w-4 h-4 mr-2" />
+                                  Activate
+                                </>
+                              )}
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDelete(item.id)}
+                              className="flex-1 lg:flex-none"
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
-    </GameLayout>
+    </div>
   );
 }
