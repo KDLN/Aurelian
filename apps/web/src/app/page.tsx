@@ -266,6 +266,9 @@ export default function Home() {
     setErrorMsg('');
     
     try {
+      console.log('🎮 Starting Discord OAuth flow...');
+      console.log('Redirect URL will be:', `${window.location.origin}/auth/callback`);
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'discord',
         options: {
@@ -273,13 +276,19 @@ export default function Home() {
         }
       });
       
+      console.log('Discord OAuth response:', { data, error });
+      
       if (error) {
         console.error('Discord OAuth error:', error);
         if (error.message.includes('Provider not enabled')) {
-          setErrorMsg('Discord authentication is not yet configured. Please try email/password signup instead.');
+          setErrorMsg('Discord authentication is not configured in Supabase. Please try email/password signup instead.');
+        } else if (error.message.includes('Invalid provider')) {
+          setErrorMsg('Discord provider configuration issue. Please contact support.');
         } else {
-          setErrorMsg('Discord sign in failed: ' + error.message);
+          setErrorMsg(`Discord sign in failed: ${error.message}`);
         }
+      } else {
+        console.log('✅ Discord OAuth initiated successfully, redirecting...');
       }
       // If successful, user will be redirected to Discord and then back to callback
     } catch (error) {
