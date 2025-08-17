@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuthLight, getRequestBody } from '@/lib/auth/middleware';
 import { createSuccessResponse, createErrorResponse } from '@/lib/apiUtils';
+import { ensureUserSynced } from '@/lib/auth/auto-sync';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,11 +55,37 @@ export async function POST(request: NextRequest) {
       });
 
       if (!existingUser) {
-        console.error(`❌ [UserProfile] User ${user.id} not found in database during profile update`);
-        return createErrorResponse('NOT_FOUND', 'User not found in database. Please try logging out and back in.');
+        console.log(`🔄 [UserProfile] User ${user.id} not found in database, attempting auto-sync`);
+        
+        try {
+          // Try to sync the user from Supabase auth to our database
+          await ensureUserSynced(user);
+          
+          // Check again after sync
+          const syncedUser = await prisma.user.findUnique({
+            where: { id: user.id },
+            select: { id: true, email: true }
+          });
+          
+          if (!syncedUser) {
+            console.error(`❌ [UserProfile] Auto-sync failed for user ${user.id}`);
+            return createErrorResponse('SYNC_FAILED', 'Failed to sync user to database. Please try logging out and back in.');
+          }
+          
+          console.log(`✅ [UserProfile] Auto-sync successful for user ${user.id}`);
+        } catch (syncError) {
+          console.error(`❌ [UserProfile] Auto-sync error for user ${user.id}:`, syncError);
+          return createErrorResponse('SYNC_ERROR', 'Database sync error. Please try logging out and back in.');
+        }
       }
 
-      console.log(`✅ [UserProfile] User ${user.id} exists in database with email: ${existingUser.email}`);
+      // Get user info after potential sync
+      const userInfo = existingUser || await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { id: true, email: true }
+      });
+
+      console.log(`✅ [UserProfile] User ${user.id} exists in database with email: ${userInfo?.email}`);
 
       // Also check if a profile already exists
       const currentProfile = await prisma.profile.findUnique({
