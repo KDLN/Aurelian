@@ -1,12 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import GameLayout from '@/components/GameLayout';
+import ResponsiveGameLayout from '@/components/ResponsiveGameLayout';
+import MobileCard from '@/components/ui/MobileCard';
+import { MobileListItem, MobileDataRow } from '@/components/ui/MobileTable';
 import { useUserDataQuery } from '@/hooks/useUserDataQuery';
 import { useAgents } from '@/hooks/useAgents';
 import { useMissions } from '@/hooks/useMissionsQuery';
 import { supabase } from '@/lib/supabaseClient';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 interface RecentActivity {
   id: string;
@@ -141,251 +145,234 @@ export default function TradingHub() {
     return 'Just now';
   };
 
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'update': return '🆕';
+      case 'event': return '🎉';
+      case 'maintenance': return '🚧';
+      case 'market': return '📈';
+      case 'announcement': return '📢';
+      default: return '📝';
+    }
+  };
+  
+  const getCategoryColor = (category: string, priority: string) => {
+    if (priority === 'urgent') return 'destructive';
+    if (priority === 'high') return 'default';
+    switch (category) {
+      case 'update': return 'secondary';
+      case 'event': return 'default';
+      case 'maintenance': return 'destructive';
+      case 'market': return 'outline';
+      default: return 'secondary';
+    }
+  };
+
   const sidebar = (
-    <div>
-      <h3>Account Status</h3>
-      <div className="game-flex-col">
-        <div className="game-space-between">
-          <span className="game-small">Gold:</span>
-          <span className="game-good game-small">{wallet?.gold?.toLocaleString() || 0}g</span>
+    <div className="space-y-4">
+      <div>
+        <h3 className="font-bold text-sm mb-2">Account Status</h3>
+        <div className="space-y-2 text-sm">
+          <MobileDataRow label="Gold" value={`${wallet?.gold?.toLocaleString() || 0}g`} />
+          <MobileDataRow label="Agents" value={`${agents.length}/4`} />
+          <MobileDataRow label="Active Missions" value={activeMissions.length} />
+          <MobileDataRow label="Crafting Jobs" value={craftingInfo?.activeJobs?.length || 0} />
+          {guildInfo && (
+            <MobileDataRow label="Guild" value={`[${guildInfo.tag}] ${guildInfo.name}`} />
+          )}
         </div>
-        <div className="game-space-between">
-          <span className="game-small">Agents:</span>
-          <span className="game-good game-small">{agents.length}/4</span>
-        </div>
-        <div className="game-space-between">
-          <span className="game-small">Active Missions:</span>
-          <span className="game-warn game-small">{activeMissions.length}</span>
-        </div>
-        <div className="game-space-between">
-          <span className="game-small">Crafting Jobs:</span>
-          <span className="game-good game-small">{craftingInfo?.activeJobs?.length || 0}</span>
-        </div>
-        {guildInfo && (
-          <div className="game-space-between">
-            <span className="game-small">Guild:</span>
-            <span className="game-good game-small">[{guildInfo.tag}] {guildInfo.name}</span>
-          </div>
-        )}
       </div>
 
-      <div style={{ marginTop: '1rem' }}>
-        <Link href="/profile" className="game-btn game-btn-secondary" style={{ width: '100%', textAlign: 'center', display: 'block', marginBottom: '0.5rem' }}>
-          👤 Profile
+      <div className="space-y-2">
+        <Link href="/profile" className="block">
+          <Button variant="outline" className="w-full justify-start">
+            👤 Profile
+          </Button>
         </Link>
         {guildInfo ? (
-          <Link href="/guild" className="game-btn game-btn-secondary" style={{ width: '100%', textAlign: 'center', display: 'block', marginBottom: '0.5rem' }}>
-            🏰 {guildInfo.tag}
+          <Link href="/guild" className="block">
+            <Button variant="outline" className="w-full justify-start">
+              🏰 {guildInfo.tag}
+            </Button>
           </Link>
         ) : (
-          <Link href="/guild" className="game-btn game-btn-secondary" style={{ width: '100%', textAlign: 'center', display: 'block', marginBottom: '0.5rem' }}>
-            🏰 Join Guild
+          <Link href="/guild" className="block">
+            <Button variant="outline" className="w-full justify-start">
+              🏰 Join Guild
+            </Button>
           </Link>
         )}
-        <Link href="/crafting" className="game-btn game-btn-secondary" style={{ width: '100%', textAlign: 'center', display: 'block', marginBottom: '0.5rem' }}>
-          ⚒️ Crafting {craftingInfo?.activeJobs?.length > 0 ? `(${craftingInfo.activeJobs.length})` : ''}
+        <Link href="/crafting" className="block">
+          <Button variant="outline" className="w-full justify-start">
+            ⚒️ Crafting {craftingInfo?.activeJobs?.length > 0 ? `(${craftingInfo.activeJobs.length})` : ''}
+          </Button>
         </Link>
       </div>
     </div>
   );
 
   return (
-    <GameLayout 
+    <ResponsiveGameLayout 
       title="Trading Hub" 
       characterActivity="planning" 
       characterLocation="Trading Hub"
       sidebar={sidebar}
     >
-      <div className="game-flex-col">
-        <div className="game-card">
-          <div className="game-grid-2">
-            <div>
-              <h2>Welcome back, {profile?.display || user?.email?.split('@')[0] || 'Trader'}!</h2>
-              <p className="game-muted">
-                Manage your trading empire from the central hub. Check your progress, 
-                review recent activity, and plan your next moves.
-              </p>
-            </div>
-            <div className="game-card-nested">
-              <h4>Today's Summary</h4>
-              <div className="game-grid-2 game-small">
-                <div className="game-space-between">
-                  <span>Gold Earned:</span>
-                  <span className="game-good">+{dailyStats?.todaysStats?.goldEarned || 0}g</span>
-                </div>
-                <div className="game-space-between">
-                  <span>Missions Done:</span>
-                  <span className="game-good">{dailyStats?.todaysStats?.missionsCompleted || 0}</span>
-                </div>
-                <div className="game-space-between">
-                  <span>Items Traded:</span>
-                  <span className="game-good">{dailyStats?.todaysStats?.itemsTraded || 0}</span>
-                </div>
-                <div className="game-space-between">
-                  <span>Items Crafted:</span>
-                  <span className="game-good">{dailyStats?.todaysStats?.itemsCrafted || 0}</span>
-                </div>
-                <div className="game-space-between">
-                  <span>Net Gold:</span>
-                  <span className={dailyStats?.performance?.netGoldWeek >= 0 ? 'game-good' : 'game-bad'}>
-                    {dailyStats?.performance?.netGoldWeek >= 0 ? '+' : ''}{dailyStats?.performance?.netGoldWeek || 0}g
-                  </span>
-                </div>
-                <div className="game-space-between">
-                  <span>Success Rate:</span>
-                  <span className="game-good">{dailyStats?.performance?.missionSuccessRate || 0}%</span>
-                </div>
-              </div>
+      <div className="space-y-4">
+        {/* Welcome Card */}
+        <MobileCard title={`Welcome back, ${profile?.display || user?.email?.split('@')[0] || 'Trader'}!`}>
+          <p className="text-sm text-[#c7b38a] mb-4">
+            Manage your trading empire from the central hub. Check your progress, 
+            review recent activity, and plan your next moves.
+          </p>
+          
+          {/* Today's Summary */}
+          <div className="bg-[#1a1511] border border-[#533b2c] rounded p-3 space-y-2">
+            <h4 className="font-bold text-sm mb-2">Today's Summary</h4>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <MobileDataRow label="Gold Earned" value={`+${dailyStats?.todaysStats?.goldEarned || 0}g`} />
+              <MobileDataRow label="Missions Done" value={dailyStats?.todaysStats?.missionsCompleted || 0} />
+              <MobileDataRow label="Items Traded" value={dailyStats?.todaysStats?.itemsTraded || 0} />
+              <MobileDataRow label="Items Crafted" value={dailyStats?.todaysStats?.itemsCrafted || 0} />
+              <MobileDataRow label="Net Gold" value={`${dailyStats?.performance?.netGoldWeek >= 0 ? '+' : ''}${dailyStats?.performance?.netGoldWeek || 0}g`} />
+              <MobileDataRow label="Success Rate" value={`${dailyStats?.performance?.missionSuccessRate || 0}%`} />
             </div>
           </div>
-        </div>
+        </MobileCard>
 
-        <div className="game-grid-2">
-          <div className="game-card">
-            <h3>Recent Activity</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Recent Activity */}
+          <MobileCard title="Recent Activity" collapsible={true} defaultOpen={true}>
             {recentActivity.length > 0 ? (
-              <div className="game-flex-col">
+              <div className="space-y-2">
                 {recentActivity.map(activity => (
-                  <div key={activity.id} className="game-space-between">
-                    <div>
-                      <span>{getActivityIcon(activity.type)} {activity.message}</span>
-                      <div className="game-muted game-small">{formatTimeAgo(activity.timestamp)}</div>
+                  <div key={activity.id} className="flex items-start justify-between gap-2 py-2 border-b border-[#533b2c] last:border-0">
+                    <div className="flex-1">
+                      <div className="text-sm">
+                        <span className="mr-2">{getActivityIcon(activity.type)}</span>
+                        {activity.message}
+                      </div>
+                      <div className="text-xs text-[#c7b38a] mt-1">
+                        {formatTimeAgo(activity.timestamp)}
+                      </div>
                     </div>
                     {activity.reward && (
-                      <span className="game-good game-small">+{activity.reward}g</span>
+                      <Badge variant="secondary" className="text-xs">
+                        +{activity.reward}g
+                      </Badge>
                     )}
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="game-muted">No recent activity</p>
+              <p className="text-sm text-[#c7b38a]">No recent activity</p>
             )}
-          </div>
+          </MobileCard>
 
-          <div className="game-card">
-            <h3>Top Warehouse Items</h3>
+          {/* Top Warehouse Items */}
+          <MobileCard title="Top Warehouse Items" collapsible={true} defaultOpen={true}>
             {warehouseItems.length > 0 ? (
-              <div className="game-flex-col">
+              <div className="space-y-2">
                 {warehouseItems.map(item => (
-                  <div key={item.id} className="game-space-between">
-                    <span>{item.itemName || item.itemKey.replace(/_/g, ' ')}</span>
-                    <span className="game-pill game-pill-good">{item.quantity}</span>
+                  <div key={item.id} className="flex justify-between items-center py-1">
+                    <span className="text-sm">{item.itemName || item.itemKey.replace(/_/g, ' ')}</span>
+                    <Badge variant="secondary">{item.quantity}</Badge>
                   </div>
                 ))}
-                <Link href="/warehouse" className="game-btn game-btn-small" style={{ marginTop: '0.5rem' }}>
-                  View All Items
+                <Link href="/warehouse" className="block mt-3">
+                  <Button size="sm" variant="outline" className="w-full">
+                    View All Items
+                  </Button>
                 </Link>
               </div>
             ) : (
               <div>
-                <p className="game-muted">No items in warehouse</p>
-                <Link href="/market" className="game-btn game-btn-primary" style={{ marginTop: '0.5rem' }}>
-                  Browse Market
+                <p className="text-sm text-[#c7b38a] mb-3">No items in warehouse</p>
+                <Link href="/market" className="block">
+                  <Button size="sm" className="w-full">
+                    Browse Market
+                  </Button>
                 </Link>
               </div>
             )}
-          </div>
+          </MobileCard>
         </div>
 
+        {/* Active Missions */}
         {activeMissions.length > 0 && (
-          <div className="game-card">
-            <h3>Active Missions ({activeMissions.length})</h3>
-            <div className="game-grid-3">
+          <MobileCard 
+            title={`Active Missions (${activeMissions.length})`} 
+            collapsible={true} 
+            defaultOpen={false}
+          >
+            <div className="space-y-2">
               {activeMissions.slice(0, 3).map(mission => (
-                <div key={mission.id} className="game-card-sm">
-                  <div className="game-space-between">
-                    <span className="game-small">{mission.mission?.name || 'Unknown Mission'}</span>
-                    <span className={`game-pill game-pill-${
-                      mission.mission?.riskLevel === 'LOW' ? 'good' : 
-                      mission.mission?.riskLevel === 'MEDIUM' ? 'warn' : 'bad'
-                    }`}>
-                      {mission.mission?.riskLevel || 'UNKNOWN'}
-                    </span>
-                  </div>
-                  <div className="game-muted game-small">
-                    Agent: {agents.find(a => a.id === mission.agentId)?.name || 'Unknown'}
-                  </div>
-                </div>
+                <MobileListItem
+                  key={mission.id}
+                  title={mission.mission?.name || 'Unknown Mission'}
+                  subtitle={`Agent: ${agents.find(a => a.id === mission.agentId)?.name || 'Unknown'}`}
+                  badges={[
+                    { 
+                      label: mission.mission?.riskLevel || 'UNKNOWN',
+                      variant: mission.mission?.riskLevel === 'LOW' ? 'secondary' : 
+                               mission.mission?.riskLevel === 'MEDIUM' ? 'default' : 'destructive'
+                    }
+                  ]}
+                />
               ))}
+              {activeMissions.length > 3 && (
+                <Link href="/missions" className="block mt-3">
+                  <Button size="sm" variant="outline" className="w-full">
+                    View All Missions ({activeMissions.length})
+                  </Button>
+                </Link>
+              )}
             </div>
-            {activeMissions.length > 3 && (
-              <Link href="/missions" className="game-btn game-btn-small" style={{ marginTop: '0.5rem' }}>
-                View All Missions ({activeMissions.length})
-              </Link>
-            )}
-          </div>
+          </MobileCard>
         )}
 
         {/* Game News/Updates */}
-        <div className="game-card">
-          <div className="game-space-between">
-            <h3>📢 Game Updates & News</h3>
-            <Link href="/admin/news" className="game-btn game-btn-small">
-              ⚙️ Manage
+        <MobileCard 
+          title="📢 Game Updates & News" 
+          collapsible={true} 
+          defaultOpen={false}
+          actions={
+            <Link href="/admin/news">
+              <Button size="sm" variant="ghost">
+                ⚙️
+              </Button>
             </Link>
-          </div>
-          <div 
-            className="game-flex-col" 
-            style={{ 
-              maxHeight: '300px', 
-              overflow: 'auto',
-              paddingRight: '4px'
-            }}
-          >
+          }
+        >
+          <div className="space-y-3 max-h-96 overflow-y-auto">
             {gameNews.length > 0 ? (
-              gameNews.map(news => {
-                const getCategoryIcon = (category: string) => {
-                  switch (category) {
-                    case 'update': return '🆕';
-                    case 'event': return '🎉';
-                    case 'maintenance': return '🚧';
-                    case 'market': return '📈';
-                    case 'announcement': return '📢';
-                    default: return '📝';
-                  }
-                };
-                
-                const getCategoryColor = (category: string, priority: string) => {
-                  if (priority === 'urgent') return 'game-bad';
-                  if (priority === 'high') return 'game-warn';
-                  switch (category) {
-                    case 'update': return 'game-good';
-                    case 'event': return 'game-warn';
-                    case 'maintenance': return 'game-bad';
-                    case 'market': return 'game-warn';
-                    default: return '';
-                  }
-                };
-
-                return (
-                  <div key={news.id} className="game-card-nested">
-                    <div className="game-space-between" style={{ marginBottom: '0.5rem' }}>
-                      <h4 className={getCategoryColor(news.category, news.priority)}>
-                        {getCategoryIcon(news.category)} {news.title}
-                      </h4>
-                      {news.isPinned && <span className="game-pill game-pill-warn">📌</span>}
-                    </div>
-                    <p>{news.content}</p>
-                    <div className="game-muted game-small" style={{ marginTop: '0.5rem' }}>
-                      By {news.author.name} • {new Date(news.publishedAt).toLocaleDateString()}
-                    </div>
+              gameNews.map(news => (
+                <div key={news.id} className="bg-[#1a1511] border border-[#533b2c] rounded p-3">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <h4 className="font-semibold text-sm">
+                      {getCategoryIcon(news.category)} {news.title}
+                    </h4>
+                    {news.isPinned && <Badge variant="outline" className="text-xs">📌</Badge>}
                   </div>
-                );
-              })
+                  <p className="text-xs text-[#c7b38a] mb-2">{news.content}</p>
+                  <div className="text-xs text-[#9b8c70]">
+                    By {news.author.name} • {new Date(news.publishedAt).toLocaleDateString()}
+                  </div>
+                </div>
+              ))
             ) : (
-              <div className="game-card-nested">
-                <h4>📝 No News Available</h4>
-                <p className="game-muted">
-                  Check back later for game updates and announcements.
-                </p>
-                <Link href="/admin/news" className="game-btn game-btn-small">
-                  Create First News Item
+              <div className="text-center py-4">
+                <p className="text-sm text-[#c7b38a] mb-3">No news available</p>
+                <Link href="/admin/news">
+                  <Button size="sm" variant="outline">
+                    Create First News Item
+                  </Button>
                 </Link>
               </div>
             )}
           </div>
-        </div>
+        </MobileCard>
       </div>
-    </GameLayout>
+    </ResponsiveGameLayout>
   );
 }
