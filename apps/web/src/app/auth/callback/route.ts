@@ -9,6 +9,11 @@ export async function GET(request: NextRequest) {
   const error_description = searchParams.get('error_description')
   const error = searchParams.get('error')
   
+  // Check for implicit flow tokens (these come as URL fragments, which we handle client-side)
+  // If there's no code and no error, this might be an implicit flow redirect
+  const access_token = searchParams.get('access_token')
+  const refresh_token = searchParams.get('refresh_token')
+  
   // if "next" is in param, use it as the redirect URL
   const next = searchParams.get('next') ?? '/'
 
@@ -16,15 +21,22 @@ export async function GET(request: NextRequest) {
   console.log(`🔄 Auth callback received:`)
   console.log(`   Full URL: ${request.url}`)
   console.log(`   Code present: ${!!code}`)
+  console.log(`   Access token present: ${!!access_token}`)
   console.log(`   Error: ${error}`)
   console.log(`   Error description: ${error_description}`)
   console.log(`   All search params:`, Object.fromEntries(searchParams.entries()))
-  console.log(`   Headers:`, Object.fromEntries(request.headers.entries()))
 
   // Handle OAuth errors
   if (error) {
     console.error(`❌ OAuth error: ${error} - ${error_description}`)
     return NextResponse.redirect(`${origin}/auth/auth-code-error?error=${encodeURIComponent(error_description || error)}`)
+  }
+
+  // For implicit flow, tokens are in URL fragment (not accessible server-side)
+  // If we have no code and no error, assume it's implicit flow and redirect to homepage
+  if (!code && !error) {
+    console.log(`🔄 No code parameter - likely implicit flow, redirecting to homepage`)
+    return NextResponse.redirect(`${origin}/`)
   }
 
   if (code) {

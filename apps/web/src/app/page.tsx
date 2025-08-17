@@ -19,6 +19,34 @@ export default function Home() {
   const [debugLogs, setDebugLogs] = useState<string[]>([]);
 
   useEffect(() => {
+    // Handle OAuth implicit flow tokens from URL fragment
+    const handleImplicitAuth = async () => {
+      const hash = window.location.hash;
+      if (hash && hash.includes('access_token')) {
+        console.log('🔄 Handling implicit OAuth flow tokens...');
+        addDebugLog('Detected OAuth tokens in URL fragment');
+        
+        try {
+          // Let Supabase handle the session from the URL
+          const { data, error } = await supabase.auth.getSession();
+          if (error) {
+            console.error('Error getting session from URL:', error);
+            addDebugLog(`Session error: ${error.message}`);
+          } else if (data.session) {
+            console.log('✅ Session established from OAuth tokens');
+            addDebugLog('✅ Session established successfully');
+            // Clear the URL hash
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
+        } catch (error) {
+          console.error('Error handling implicit auth:', error);
+          addDebugLog(`Implicit auth error: ${error}`);
+        }
+      }
+    };
+
+    handleImplicitAuth();
+
     supabase.auth.getUser().then(async ({ data }) => {
       setUser(data.user);
       
