@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { prisma } from '@/lib/prisma';
+import { ActivityLogger } from '@/lib/services/activityLogger';
 
 export const dynamic = 'force-dynamic';
 
@@ -136,6 +137,9 @@ export async function POST(request: NextRequest) {
           }
         }
       });
+
+      // Log the guild join activity
+      await ActivityLogger.logGuildJoined(user.id, invitation.guild.name);
 
       return NextResponse.json({
         success: true,

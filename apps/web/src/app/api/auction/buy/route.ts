@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, getRequestBody } from '@/lib/auth/middleware';
 import { createSuccessResponse, createErrorResponse } from '@/lib/apiUtils';
+import { ActivityLogger } from '@/lib/services/activityLogger';
 
 export async function POST(request: NextRequest) {
   return withAuth(request, async (user) => {
@@ -126,6 +127,22 @@ export async function POST(request: NextRequest) {
         totalCost
       };
     });
+
+    // Log activities for both buyer and seller
+    await ActivityLogger.logTradeCompleted(
+      user.id, 
+      result.listing.item.name, 
+      result.listing.qty, 
+      result.totalCost, 
+      true // isBuy = true
+    );
+    
+    await ActivityLogger.logAuctionSold(
+      result.listing.sellerId, 
+      result.listing.item.name, 
+      result.listing.qty, 
+      result.totalCost
+    );
 
     return createSuccessResponse({
       message: `Purchased ${result.listing.qty} ${result.listing.item.name} for ${result.totalCost} gold`,

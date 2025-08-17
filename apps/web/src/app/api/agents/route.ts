@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { PrismaClient } from '@prisma/client';
 import { generateRandomAgent, getHiringCost } from '@/lib/agents/generator';
+import { ActivityLogger } from '@/lib/services/activityLogger';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -127,6 +128,9 @@ export async function POST(request: NextRequest) {
 
       return agent;
     });
+
+    // Log the agent hiring activity
+    await ActivityLogger.logAgentHired(user.id, newAgentData.name, newAgentData.class);
 
     return NextResponse.json({ 
       agent: result,
