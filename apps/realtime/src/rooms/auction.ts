@@ -190,6 +190,20 @@ export class AuctionRoom extends Room {
           return;
         }
         
+        // Validate UUIDs
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(userId)) {
+          console.error('Invalid buyer userId:', userId);
+          client.send('error', { message: `Invalid user ID format: ${userId}` });
+          return;
+        }
+        
+        if (!uuidRegex.test(listingId)) {
+          console.error('Invalid listingId:', listingId);
+          client.send('error', { message: `Invalid listing ID format: ${listingId}` });
+          return;
+        }
+        
         // Process purchase in database
         const result = await prisma.$transaction(async (tx) => {
           // Get the listing with lock
@@ -200,6 +214,12 @@ export class AuctionRoom extends Room {
           
           if (!dbListing || dbListing.status !== 'active') {
             throw new Error('Listing no longer available');
+          }
+          
+          // Validate seller UUID
+          if (!uuidRegex.test(dbListing.sellerId)) {
+            console.error('Invalid sellerId in listing:', dbListing.sellerId);
+            throw new Error(`Invalid seller ID in listing: ${dbListing.sellerId}`);
           }
           
           // Check buyer's wallet
