@@ -5,6 +5,65 @@ const syncedUsers = new Set<string>();
 const SYNC_CACHE_TTL = 300000; // 5 minutes
 
 /**
+ * Add starter items to new user's inventory
+ * - 5 herbs
+ * - 2 iron ore
+ */
+async function addStarterItems(userId: string) {
+  try {
+    // Ensure required items exist in database
+    const requiredItems = [
+      { key: 'herb', name: 'Herb', rarity: 'COMMON' },
+      { key: 'iron_ore', name: 'Iron Ore', rarity: 'COMMON' }
+    ];
+
+    // Upsert item definitions (create if not exists)
+    for (const itemDef of requiredItems) {
+      await prisma.itemDef.upsert({
+        where: { key: itemDef.key },
+        update: {}, // Don't update existing items
+        create: {
+          key: itemDef.key,
+          name: itemDef.name,
+          rarity: itemDef.rarity as any
+        }
+      });
+    }
+
+    // Get the item IDs
+    const herbItem = await prisma.itemDef.findUnique({ where: { key: 'herb' } });
+    const ironItem = await prisma.itemDef.findUnique({ where: { key: 'iron_ore' } });
+
+    if (!herbItem || !ironItem) {
+      console.error('Could not find required starter items');
+      return;
+    }
+
+    // Add starter inventory
+    const starterItems = [
+      { itemId: herbItem.id, qty: 5, location: 'warehouse' },
+      { itemId: ironItem.id, qty: 2, location: 'warehouse' }
+    ];
+
+    for (const item of starterItems) {
+      await prisma.inventory.create({
+        data: {
+          userId: userId,
+          itemId: item.itemId,
+          qty: item.qty,
+          location: item.location
+        }
+      });
+    }
+
+    console.log(`✅ Added starter items to user ${userId}: 5 herbs, 2 iron ore`);
+  } catch (error) {
+    console.error('Error adding starter items:', error);
+    // Don't throw - we want signup to succeed even if starter items fail
+  }
+}
+
+/**
  * Automatically sync Supabase auth user with our database User table
  * This ensures users always have proper records with all required fields
  * Only syncs if user hasn't been synced recently (5 min cache)
@@ -73,23 +132,12 @@ export async function ensureUserSynced(authUser: any) {
       await prisma.wallet.create({
         data: {
           userId: userId,
-          gold: 2000  // Extra gold due to DB reset
+          gold: 500  // Starter gold
         }
       });
 
-      // Add starting inventory for new users only
-      const items = await prisma.itemDef.findMany();
-      
-      for (const item of items) {
-        await prisma.inventory.create({
-          data: {
-            userId: userId,
-            itemId: item.id,
-            qty: 100,  // Extra items due to DB reset
-            location: 'warehouse'
-          }
-        });
-      }
+      // Add starter items for new users only
+      await addStarterItems(userId);
     }
 
     // Cache user as synced for 5 minutes
