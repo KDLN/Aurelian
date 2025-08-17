@@ -5,6 +5,9 @@ import { Suspense } from 'react';
 function ErrorContent() {
   const searchParams = useSearchParams();
   const error = searchParams?.get('error');
+  
+  // Get all URL parameters for debugging
+  const allParams = searchParams ? Array.from(searchParams.entries()) : [];
 
   return (
     <>
@@ -18,6 +21,23 @@ function ErrorContent() {
           Sorry, we couldn't sign you in. This could be because:
         </p>
       )}
+      
+      {/* Debug info */}
+      {allParams.length > 0 && (
+        <div className="mb-4 p-3 bg-blue-900/20 border border-blue-500/30 rounded text-xs">
+          <p className="text-blue-300 font-bold mb-2">🔍 Debug Info - URL Parameters:</p>
+          {allParams.map(([key, value]) => (
+            <div key={key} className="text-blue-200">
+              <strong>{key}:</strong> {value}
+            </div>
+          ))}
+        </div>
+      )}
+      
+      <div className="mb-4 p-3 bg-yellow-900/20 border border-yellow-500/30 rounded text-xs">
+        <p className="text-yellow-300 font-bold mb-2">🔍 Current URL:</p>
+        <p className="text-yellow-200 break-all">{typeof window !== 'undefined' ? window.location.href : 'Loading...'}</p>
+      </div>
       {!error && (
         <ul className="list-disc list-inside text-left mb-6 space-y-1">
           <li>The magic link has expired</li>

@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url)
+  const url = new URL(request.url)
+  const { searchParams, origin } = url
   const code = searchParams.get('code')
   const error_description = searchParams.get('error_description')
   const error = searchParams.get('error')
@@ -11,7 +12,14 @@ export async function GET(request: NextRequest) {
   // if "next" is in param, use it as the redirect URL
   const next = searchParams.get('next') ?? '/'
 
-  console.log(`🔄 Auth callback received:`, { code: !!code, error, error_description })
+  // Enhanced logging for debugging
+  console.log(`🔄 Auth callback received:`)
+  console.log(`   Full URL: ${request.url}`)
+  console.log(`   Code present: ${!!code}`)
+  console.log(`   Error: ${error}`)
+  console.log(`   Error description: ${error_description}`)
+  console.log(`   All search params:`, Object.fromEntries(searchParams.entries()))
+  console.log(`   Headers:`, Object.fromEntries(request.headers.entries()))
 
   // Handle OAuth errors
   if (error) {
