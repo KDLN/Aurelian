@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { api, APIError } from '@/lib/api/client';
 
 export interface MissionDef {
   id: string;
@@ -48,25 +48,7 @@ export function useMissions(): UseMissionsReturn {
     try {
       setError(null);
       
-      // Get auth token
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        setError('Not authenticated');
-        return;
-      }
-
-      const response = await fetch('/api/missions', {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch missions: ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      const data = await api.missions.list();
       console.log('🔍 Missions API response:', data);
       setMissionDefs(data.missionDefs || []);
       setActiveMissions(data.activeMissions || []);
@@ -74,7 +56,11 @@ export function useMissions(): UseMissionsReturn {
       
     } catch (err) {
       console.error('Error fetching missions:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch missions');
+      if (err instanceof APIError) {
+        setError(`${err.message} (${err.status})`);
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to fetch missions');
+      }
     } finally {
       setLoading(false);
     }
@@ -84,29 +70,9 @@ export function useMissions(): UseMissionsReturn {
     try {
       setError(null);
       
-      // Get auth token
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        setError('Not authenticated');
-        return false;
-      }
-
-      const response = await fetch('/api/missions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ missionId, agentId }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to start mission');
-      }
-
-      const data = await response.json();
+      const data = await api.missions.start(missionId, agentId);
       console.log('🚀 Mission start response:', data);
+      
       if (data.success) {
         // Refresh missions to get updated state
         console.log('🔄 Refreshing missions after successful start');
@@ -117,7 +83,11 @@ export function useMissions(): UseMissionsReturn {
       return false;
     } catch (err) {
       console.error('Error starting mission:', err);
-      setError(err instanceof Error ? err.message : 'Failed to start mission');
+      if (err instanceof APIError) {
+        setError(`${err.message} (${err.status})`);
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to start mission');
+      }
       return false;
     }
   };
@@ -126,28 +96,8 @@ export function useMissions(): UseMissionsReturn {
     try {
       setError(null);
       
-      // Get auth token
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        setError('Not authenticated');
-        return { success: false };
-      }
-
-      const response = await fetch('/api/missions/complete', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ missionInstanceId }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to complete mission');
-      }
-
-      const data = await response.json();
+      const data = await api.missions.complete(missionInstanceId);
+      
       if (data.success) {
         // Refresh missions to get updated state
         await fetchMissions();
@@ -160,7 +110,11 @@ export function useMissions(): UseMissionsReturn {
       return { success: false };
     } catch (err) {
       console.error('Error completing mission:', err);
-      setError(err instanceof Error ? err.message : 'Failed to complete mission');
+      if (err instanceof APIError) {
+        setError(`${err.message} (${err.status})`);
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to complete mission');
+      }
       return { success: false };
     }
   };

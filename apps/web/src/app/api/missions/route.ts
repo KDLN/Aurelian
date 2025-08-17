@@ -1,15 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { prisma } from '@/lib/prisma';
-import { ensureUserExistsOptimized } from '@/lib/auth/auto-sync';
+import { withAuth, getRequestBody } from '@/lib/auth/middleware';
+import { createSuccessResponse, createErrorResponse } from '@/lib/apiUtils';
 
 export const dynamic = 'force-dynamic';
-
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 // Simple in-memory cache for mission definitions (30 second TTL)
 let missionDefsCache: { data: any[], timestamp: number } | null = null;
@@ -17,42 +11,9 @@ const MISSION_DEFS_CACHE_TTL = 30000; // 30 seconds
 
 // GET - Fetch all mission definitions and user's active missions
 export async function GET(request: NextRequest) {
-  const startTime = performance.now();
-  
-  try {
-    console.log('🚀 [Missions GET] Starting request at:', new Date().toISOString());
-    
-    // Get JWT token from headers
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    
-    if (!token) {
-      console.log('❌ [Missions GET] No token provided');
-      return NextResponse.json({ error: 'No token provided' }, { status: 401 });
-    }
-
-    const authStartTime = performance.now();
-    console.log('🔐 [Missions GET] Verifying token...');
-    
-    // Verify token with Supabase
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    const authEndTime = performance.now();
-    console.log(`⚡ [Missions GET] Auth completed in ${(authEndTime - authStartTime).toFixed(2)}ms`);
-    
-    if (authError) {
-      console.error('❌ [Missions GET] Auth error:', authError);
-      return NextResponse.json({ error: `Auth error: ${authError.message}` }, { status: 401 });
-    }
-    
-    if (!user) {
-      console.log('❌ [Missions GET] No user found for token');
-      return NextResponse.json({ error: 'Invalid token - no user' }, { status: 401 });
-    }
-
-    // Auto-sync user only if they don't exist (optimized)
-    await ensureUserExistsOptimized(user);
-    
-    console.log('✅ [Missions GET] User authenticated:', user.id);
+  return withAuth(request, async (user) => {
+    const startTime = performance.now();
+    console.log('🚀 [Missions GET] Starting request for user:', user.id);
 
     try {
       const dbStartTime = performance.now();
@@ -222,46 +183,23 @@ export async function GET(request: NextRequest) {
         activeMissions: mockActiveMissions
       });
     }
-
-  } catch (error) {
-    console.error('[Missions GET] Unexpected error:', error);
-    return NextResponse.json(
-      { 
-        error: 'Failed to fetch missions',
-        details: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined
-      },
-      { status: 500 }
-    );
-  }
+  });
 }
 
 // POST - Start a new mission
 export async function POST(request: NextRequest) {
-  try {
-    // Get JWT token from headers
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
+  return withAuth(request, async (user) => {
+    const body = await getRequestBody<{ missionId: string; agentId: string }>(request);
     
-    if (!token) {
-      return NextResponse.json({ error: 'No token provided' }, { status: 401 });
+    if (!body || !body.missionId) {
+      return createErrorResponse('MISSING_FIELDS', 'Mission ID required');
     }
 
-    // Verify token with Supabase
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (!body.agentId) {
+      return createErrorResponse('MISSING_FIELDS', 'Agent ID required');
+    }
     
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
-
-    const { missionId, agentId } = await request.json();
-
-    if (!missionId) {
-      return NextResponse.json({ error: 'Mission ID required' }, { status: 400 });
-    }
-
-    if (!agentId) {
-      return NextResponse.json({ error: 'Agent ID required' }, { status: 400 });
-    }
+    const { missionId, agentId } = body;
 
     try {
       // Optimize by doing checks in parallel
@@ -422,12 +360,5 @@ export async function POST(request: NextRequest) {
         }
       });
     }
-
-  } catch (error) {
-    console.error('Error starting mission:', error);
-    return NextResponse.json(
-      { error: 'Failed to start mission' },
-      { status: 500 }
-    );
-  }
+  });
 }
