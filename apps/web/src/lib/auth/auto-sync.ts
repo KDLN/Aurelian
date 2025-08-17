@@ -166,10 +166,15 @@ export async function ensureUserSynced(authUser: any) {
 
     return userRecord;
     
-  } catch (error) {
-    console.error('Auto-sync error for user:', userId, error);
-    // Don't throw - we want the API to still work even if sync fails
-    return null;
+  } catch (error: any) {
+    console.error('Auto-sync error for user:', userId, {
+      error,
+      message: error?.message,
+      code: error?.code,
+      stack: error?.stack
+    });
+    // Throw the error so calling code can handle it appropriately
+    throw new Error(`Database sync failed: ${error?.message || 'Unknown database error'}`);
   }
 }
 

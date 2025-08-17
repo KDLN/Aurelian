@@ -59,7 +59,13 @@ export async function POST(request: NextRequest) {
         
         try {
           // Try to sync the user from Supabase auth to our database
-          await ensureUserSynced(user);
+          console.log(`🔄 [UserProfile] Attempting sync for user ${user.id} with email: ${user.email}`);
+          const syncResult = await ensureUserSynced(user);
+          
+          if (!syncResult) {
+            console.error(`❌ [UserProfile] ensureUserSynced returned null for user ${user.id}`);
+            return createErrorResponse('SYNC_FAILED', 'User sync returned null. Database may be unavailable.');
+          }
           
           // Check again after sync
           const syncedUser = await prisma.user.findUnique({
@@ -68,14 +74,18 @@ export async function POST(request: NextRequest) {
           });
           
           if (!syncedUser) {
-            console.error(`❌ [UserProfile] Auto-sync failed for user ${user.id}`);
-            return createErrorResponse('SYNC_FAILED', 'Failed to sync user to database. Please try logging out and back in.');
+            console.error(`❌ [UserProfile] User ${user.id} still not found after sync attempt`);
+            return createErrorResponse('SYNC_FAILED', 'User not found in database after sync. Database connection issue.');
           }
           
           console.log(`✅ [UserProfile] Auto-sync successful for user ${user.id}`);
-        } catch (syncError) {
-          console.error(`❌ [UserProfile] Auto-sync error for user ${user.id}:`, syncError);
-          return createErrorResponse('SYNC_ERROR', 'Database sync error. Please try logging out and back in.');
+        } catch (syncError: any) {
+          console.error(`❌ [UserProfile] Auto-sync error for user ${user.id}:`, {
+            error: syncError,
+            message: syncError?.message,
+            stack: syncError?.stack
+          });
+          return createErrorResponse('SYNC_ERROR', `Database sync error: ${syncError?.message || 'Unknown error'}`);
         }
       }
 
