@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { verifyJWT } from '@/lib/auth/jwt';
 
+export const dynamic = 'force-dynamic';
+
 const prisma = new PrismaClient();
 
 export async function GET(request: NextRequest) {
