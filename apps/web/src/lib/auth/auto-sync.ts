@@ -104,28 +104,58 @@ export async function ensureUserSynced(authUser: any) {
     
     const email = authUser.email;
     
-    // Upsert user with all current system defaults
-    const userRecord = await prisma.user.upsert({
-      where: { id: userId },
-      update: {
-        email: email,
-        updatedAt: new Date()
-        // Don't override existing caravan/crafting values for existing users
-      },
-      create: {
-        id: userId,
-        email: email || 'unknown@example.com',
-        // Caravan system defaults
-        caravanSlotsUnlocked: 3,
-        caravanSlotsPremium: 0,
-        // Crafting system defaults  
-        craftingLevel: 1,
-        craftingXP: 0,
-        craftingXPNext: 100,
-        createdAt: new Date(),
-        updatedAt: new Date()
+    // Check if email is already taken by another user
+    let userRecord;
+    try {
+      userRecord = await prisma.user.upsert({
+        where: { id: userId },
+        update: {
+          email: email,
+          updatedAt: new Date()
+          // Don't override existing caravan/crafting values for existing users
+        },
+        create: {
+          id: userId,
+          email: email || 'unknown@example.com',
+          // Caravan system defaults
+          caravanSlotsUnlocked: 3,
+          caravanSlotsPremium: 0,
+          // Crafting system defaults  
+          craftingLevel: 1,
+          craftingXP: 0,
+          craftingXPNext: 100,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      });
+    } catch (error: any) {
+      // Handle unique constraint error on email
+      if (error.code === 'P2002' && error.meta?.target?.includes('email')) {
+        console.log(`Email ${email} already exists, creating user without email constraint`);
+        
+        // Create user with a unique email to avoid constraint issues
+        const uniqueEmail = `${userId}@oauth.local`;
+        userRecord = await prisma.user.upsert({
+          where: { id: userId },
+          update: {
+            updatedAt: new Date()
+          },
+          create: {
+            id: userId,
+            email: uniqueEmail,
+            caravanSlotsUnlocked: 3,
+            caravanSlotsPremium: 0,
+            craftingLevel: 1,
+            craftingXP: 0,
+            craftingXPNext: 100,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }
+        });
+      } else {
+        throw error;
       }
-    });
+    }
 
     // Only create profile if it doesn't exist (don't override existing)
     const existingProfile = await prisma.profile.findUnique({
