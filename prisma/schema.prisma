@@ -43,6 +43,7 @@ model User {
   allianceMissions     AllianceMissionParticipant[]
   activityLogs         ActivityLog[]
   dailyStats           DailyStats[]
+  gameNews             GameNews[]
 }
 
 model Profile {
@@ -89,6 +90,28 @@ model DailyStats {
   @@unique([userId, date])
   @@index([date])
   @@index([userId, date])
+}
+
+model GameNews {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title       String
+  content     String
+  category    String   // 'update', 'event', 'maintenance', 'market', 'announcement'
+  priority    String   @default("normal") // 'low', 'normal', 'high', 'urgent'
+  isActive    Boolean  @default(true)
+  isPinned    Boolean  @default(false)
+  authorId    String   @db.Uuid
+  publishedAt DateTime @default(now())
+  expiresAt   DateTime?
+  metadata    Json?    // Additional data like links, images, etc.
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([isActive, publishedAt])
+  @@index([category])
+  @@index([priority])
+  @@index([isPinned])
 }
 
 model Character {

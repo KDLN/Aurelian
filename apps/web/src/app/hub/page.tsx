@@ -26,6 +26,7 @@ export default function TradingHub() {
   const [guildInfo, setGuildInfo] = useState<any>(null);
   const [craftingInfo, setCraftingInfo] = useState<any>(null);
   const [dailyStats, setDailyStats] = useState<any>(null);
+  const [gameNews, setGameNews] = useState<any[]>([]);
 
   useEffect(() => {
     const initializeHubData = async () => {
@@ -60,10 +61,12 @@ export default function TradingHub() {
         fetch('/api/user/stats?period=summary', {
           headers: { 'Authorization': `Bearer ${session.access_token}` },
         }).catch(() => null), // Stats is optional
+        // Game news (public endpoint, no auth needed)
+        fetch('/api/news?limit=6').catch(() => null),
       ];
 
       try {
-        const [activitiesRes, profileRes, guildRes, craftingRes, statsRes] = await Promise.all(fetchPromises);
+        const [activitiesRes, profileRes, guildRes, craftingRes, statsRes, newsRes] = await Promise.all(fetchPromises);
 
         // Handle activities
         if (activitiesRes?.ok) {
@@ -93,6 +96,12 @@ export default function TradingHub() {
         if (statsRes?.ok) {
           const result = await statsRes.json();
           setDailyStats(result.summary);
+        }
+
+        // Handle news (optional)
+        if (newsRes?.ok) {
+          const result = await newsRes.json();
+          setGameNews(result.news || []);
         }
       } catch (error) {
         console.error('Error fetching hub data:', error);
@@ -309,7 +318,12 @@ export default function TradingHub() {
 
         {/* Game News/Updates */}
         <div className="game-card">
-          <h3>📢 Game Updates & News</h3>
+          <div className="game-space-between">
+            <h3>📢 Game Updates & News</h3>
+            <Link href="/admin/news" className="game-btn game-btn-small">
+              ⚙️ Manage
+            </Link>
+          </div>
           <div 
             className="game-flex-col" 
             style={{ 
@@ -318,55 +332,57 @@ export default function TradingHub() {
               paddingRight: '4px'
             }}
           >
-            <div className="game-card-nested">
-              <h4 className="game-good">✨ New Feature: Guild System</h4>
-              <p>
-                Join or create guilds to collaborate with other traders. Share resources, 
-                coordinate missions, and compete in guild challenges!
-              </p>
-              <Link href="/guild" className="game-btn game-btn-small">Explore Guilds</Link>
-            </div>
-            
-            <div className="game-card-nested">
-              <h4 className="game-warn">⚡ Market Volatility Alert</h4>
-              <p>
-                Increased demand for Iron Ore and Herbs in northern cities. 
-                Consider redirecting caravans for higher profits.
-              </p>
-              <Link href="/market" className="game-btn game-btn-small">Check Prices</Link>
-            </div>
+            {gameNews.length > 0 ? (
+              gameNews.map(news => {
+                const getCategoryIcon = (category: string) => {
+                  switch (category) {
+                    case 'update': return '🆕';
+                    case 'event': return '🎉';
+                    case 'maintenance': return '🚧';
+                    case 'market': return '📈';
+                    case 'announcement': return '📢';
+                    default: return '📝';
+                  }
+                };
+                
+                const getCategoryColor = (category: string, priority: string) => {
+                  if (priority === 'urgent') return 'game-bad';
+                  if (priority === 'high') return 'game-warn';
+                  switch (category) {
+                    case 'update': return 'game-good';
+                    case 'event': return 'game-warn';
+                    case 'maintenance': return 'game-bad';
+                    case 'market': return 'game-warn';
+                    default: return '';
+                  }
+                };
 
-            <div className="game-card-nested">
-              <h4>🔧 System Improvements</h4>
-              <p>
-                Recent updates include improved UI scaling for high-resolution displays, 
-                better inventory management, and enhanced mission tracking.
-              </p>
-            </div>
-
-            <div className="game-card-nested">
-              <h4 className="game-good">🎉 Celebration Event</h4>
-              <p>
-                Special rewards for completing missions during the harvest festival! 
-                Double experience and bonus gold until the end of the month.
-              </p>
-            </div>
-
-            <div className="game-card-nested">
-              <h4>📊 Economy Report</h4>
-              <p>
-                Trading volume has increased 25% this quarter. Popular trade routes 
-                include Beacon to Ironclad and Pearl Harbor to Silk Road settlements.
-              </p>
-            </div>
-
-            <div className="game-card-nested">
-              <h4 className="game-warn">🚧 Maintenance Notice</h4>
-              <p>
-                Server maintenance scheduled for tomorrow at 3 AM UTC. Expected downtime: 30 minutes.
-                All progress will be saved automatically.
-              </p>
-            </div>
+                return (
+                  <div key={news.id} className="game-card-nested">
+                    <div className="game-space-between" style={{ marginBottom: '0.5rem' }}>
+                      <h4 className={getCategoryColor(news.category, news.priority)}>
+                        {getCategoryIcon(news.category)} {news.title}
+                      </h4>
+                      {news.isPinned && <span className="game-pill game-pill-warn">📌</span>}
+                    </div>
+                    <p>{news.content}</p>
+                    <div className="game-muted game-small" style={{ marginTop: '0.5rem' }}>
+                      By {news.author.name} • {new Date(news.publishedAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="game-card-nested">
+                <h4>📝 No News Available</h4>
+                <p className="game-muted">
+                  Check back later for game updates and announcements.
+                </p>
+                <Link href="/admin/news" className="game-btn game-btn-small">
+                  Create First News Item
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </div>

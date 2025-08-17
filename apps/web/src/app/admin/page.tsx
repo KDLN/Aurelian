@@ -5,6 +5,13 @@ import Link from 'next/link';
 
 const adminSections = [
   {
+    id: 'news',
+    title: 'News & Announcements',
+    description: 'Manage game updates, events, and announcements',
+    href: '/admin/news',
+    icon: '📢',
+  },
+  {
     id: 'items',
     title: 'Items',
     description: 'Manage game items, materials, and crafted goods',
