@@ -2,6 +2,63 @@ import { supabase } from '@/lib/supabaseClient'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+/**
+ * Add starter items for new users (consistent with auto-sync)
+ * - 5 herbs
+ * - 2 iron ore
+ */
+async function addStarterItemsForNewUser(userId: string) {
+  try {
+    // Get existing item definitions (they should already exist)
+    const [herbItem, ironItem] = await Promise.all([
+      prisma.itemDef.findUnique({ where: { key: 'herb' } }),
+      prisma.itemDef.findUnique({ where: { key: 'iron_ore' } })
+    ]);
+
+    if (!herbItem || !ironItem) {
+      console.error('Required starter items not found in database for OAuth signup');
+      return;
+    }
+
+    // Check if user already has these items to avoid duplicates
+    const existingInventory = await prisma.inventory.findMany({
+      where: {
+        userId: userId,
+        itemId: { in: [herbItem.id, ironItem.id] },
+        location: 'warehouse'
+      }
+    });
+
+    if (existingInventory.length > 0) {
+      console.log(`OAuth user ${userId} already has starter items, skipping`);
+      return;
+    }
+
+    // Add starter inventory
+    await prisma.inventory.createMany({
+      data: [
+        {
+          userId: userId,
+          itemId: herbItem.id,
+          qty: 5,
+          location: 'warehouse'
+        },
+        {
+          userId: userId,
+          itemId: ironItem.id,
+          qty: 2,
+          location: 'warehouse'
+        }
+      ]
+    });
+
+    console.log(`✅ Added OAuth starter items to user ${userId}: 5 herbs, 2 iron ore`);
+  } catch (error) {
+    console.error('Error adding OAuth starter items:', error);
+    // Don't throw - we want signup to succeed even if starter items fail
+  }
+}
+
 export async function GET(request: NextRequest) {
   const url = new URL(request.url)
   const { searchParams, origin } = url
@@ -116,16 +173,28 @@ async function syncUserToDatabase(user: any) {
     console.log(`🔤 User metadata: ${JSON.stringify(user.user_metadata)}`);
     
     if (isOAuthProvider) {
-      // For OAuth users, create profile without display name (null)
-      // This will trigger the username selection flow in the frontend
+      // For Discord OAuth, try to use Discord username, otherwise trigger selection flow
+      const discordUsername = user.user_metadata?.full_name || 
+                             user.user_metadata?.name || 
+                             user.user_metadata?.username ||
+                             user.user_metadata?.preferred_username;
+      
+      console.log(`🎮 Discord username candidates:`, {
+        full_name: user.user_metadata?.full_name,
+        name: user.user_metadata?.name,
+        username: user.user_metadata?.username,
+        preferred_username: user.user_metadata?.preferred_username,
+        selected: discordUsername
+      });
+      
       await prisma.profile.upsert({
         where: { userId: user.id },
         update: {
-          // Don't update display name for existing OAuth users
+          // Don't update display name for existing OAuth users to preserve their choice
         },
         create: {
           userId: user.id,
-          display: null // This will trigger username selection
+          display: discordUsername || null // Use Discord username or trigger selection
         }
       });
     } else {
@@ -149,37 +218,18 @@ async function syncUserToDatabase(user: any) {
       });
     }
 
-    // Create/update wallet with starting gold
+    // Create/update wallet with starter gold
     await prisma.wallet.upsert({
       where: { userId: user.id },
       update: {}, // Don't update existing gold
       create: {
         userId: user.id,
-        gold: 2000  // Extra gold due to DB reset
+        gold: 500  // Consistent starter gold
       }
     });
 
-    // Get available items and add starting inventory
-    const items = await prisma.itemDef.findMany();
-    
-    for (const item of items) {
-      await prisma.inventory.upsert({
-        where: {
-          userId_itemId_location: {
-            userId: user.id,
-            itemId: item.id,
-            location: 'warehouse'
-          }
-        },
-        update: {}, // Don't update existing inventory
-        create: {
-          userId: user.id,
-          itemId: item.id,
-          qty: 100, // Extra items due to DB reset
-          location: 'warehouse'
-        }
-      });
-    }
+    // Add starter items (consistent with auto-sync)
+    await addStarterItemsForNewUser(user.id);
     
     console.log(`✅ Successfully synced user ${user.id} with database`);
     return userRecord;
