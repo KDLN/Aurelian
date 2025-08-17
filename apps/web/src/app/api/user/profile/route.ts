@@ -1,34 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { withAuthLight, getRequestBody } from '@/lib/auth/middleware';
+import { createSuccessResponse, createErrorResponse } from '@/lib/apiUtils';
 
 export const dynamic = 'force-dynamic';
 
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
 // GET - Fetch user profile
 export async function GET(request: NextRequest) {
-  try {
-    console.log('🔄 [UserProfile] GET API called at:', new Date().toISOString());
-    
-    // Get JWT token from headers
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    
-    if (!token) {
-      return NextResponse.json({ error: 'No token provided' }, { status: 401 });
-    }
-
-    // Verify token with Supabase
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
-
+  return withAuthLight(request, async (user) => {
     console.log('✅ [UserProfile] Fetching profile for user:', user.id);
 
     try {
@@ -40,99 +19,70 @@ export async function GET(request: NextRequest) {
 
       console.log('✅ [UserProfile] Profile fetched:', profile);
 
-      return NextResponse.json({
-        success: true,
-        profile: profile
-      });
+      return createSuccessResponse({ profile });
 
     } catch (dbError) {
       console.error('[UserProfile] Database error:', dbError);
-      
-      return NextResponse.json({
-        error: 'Failed to fetch profile',
-        details: dbError instanceof Error ? dbError.message : 'Unknown database error'
-      }, { status: 500 });
+      return createErrorResponse('INTERNAL_ERROR', 'Failed to fetch profile');
     }
-
-  } catch (error) {
-    console.error('Error fetching profile:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch profile' },
-      { status: 500 }
-    );
-  }
+  });
 }
 
 // POST - Update user profile
 export async function POST(request: NextRequest) {
-  try {
-    console.log('🔄 [UserProfile] API called at:', new Date().toISOString());
+  return withAuthLight(request, async (user) => {
+    const body = await getRequestBody<{ userId: string; display: string }>(request);
     
-    // Get JWT token from headers
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    
-    if (!token) {
-      return NextResponse.json({ error: 'No token provided' }, { status: 401 });
+    if (!body || !body.display) {
+      return createErrorResponse('MISSING_FIELDS', 'Display name is required');
     }
 
-    // Verify token with Supabase
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
-
-    const { userId, display } = await request.json();
+    const { userId, display } = body;
 
     // Verify the user is updating their own profile
     if (userId !== user.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      return createErrorResponse('INSUFFICIENT_PERMISSIONS', 'Cannot update another user\'s profile');
     }
 
     console.log('✅ [UserProfile] Updating profile for user:', user.id, 'display:', display);
 
     try {
-      // First ensure the user exists in our database
-      await prisma.user.upsert({
+      // Check if user exists in our database (they should exist from OAuth callback)
+      const existingUser = await prisma.user.findUnique({
         where: { id: user.id },
-        update: {
-          email: user.email,
-          updatedAt: new Date()
-        },
-        create: {
-          id: user.id,
-          email: user.email || 'unknown@example.com',
-          caravanSlotsUnlocked: 3,
-          caravanSlotsPremium: 0,
-          craftingLevel: 1,
-          craftingXP: 0,
-          craftingXPNext: 100,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }
+        select: { id: true, email: true }
+      });
+
+      if (!existingUser) {
+        console.error(`❌ [UserProfile] User ${user.id} not found in database during profile update`);
+        return createErrorResponse('NOT_FOUND', 'User not found in database. Please try logging out and back in.');
+      }
+
+      console.log(`✅ [UserProfile] User ${user.id} exists in database with email: ${existingUser.email}`);
+
+      // Also check if a profile already exists
+      const currentProfile = await prisma.profile.findUnique({
+        where: { userId: user.id }
+      });
+
+      console.log(`🔍 [UserProfile] Existing profile check:`, {
+        exists: !!currentProfile,
+        currentDisplay: currentProfile?.display
       });
 
       // Check if display name is already taken by another user
-      const existingProfile = await prisma.profile.findFirst({
+      const duplicateProfile = await prisma.profile.findFirst({
         where: {
           display: display,
           userId: { not: user.id }
         }
       });
 
-      if (existingProfile) {
-        return NextResponse.json({ error: 'Username already taken' }, { status: 400 });
+      if (duplicateProfile) {
+        return createErrorResponse('CONFLICT', 'Username already taken');
       }
 
-      // Ensure wallet exists
-      await prisma.wallet.upsert({
-        where: { userId: user.id },
-        update: {},
-        create: {
-          userId: user.id,
-          gold: 2000
-        }
-      });
+      // Note: Wallet and starter items should have been created during OAuth signup
 
       // Update the profile (now that user exists)
       const updatedProfile = await prisma.profile.upsert({
@@ -146,30 +96,17 @@ export async function POST(request: NextRequest) {
 
       console.log('✅ [UserProfile] Profile updated successfully');
 
-      return NextResponse.json({
-        success: true,
-        profile: updatedProfile
-      });
+      return createSuccessResponse({ profile: updatedProfile });
 
     } catch (dbError) {
       console.error('[UserProfile] Database error:', dbError);
       
       // Handle specific database errors
       if (dbError instanceof Error && dbError.message.includes('23505')) {
-        return NextResponse.json({ error: 'Username already taken' }, { status: 400 });
+        return createErrorResponse('CONFLICT', 'Username already taken');
       }
       
-      return NextResponse.json({
-        error: 'Failed to update profile',
-        details: dbError instanceof Error ? dbError.message : 'Unknown database error'
-      }, { status: 500 });
+      return createErrorResponse('INTERNAL_ERROR', 'Failed to update profile');
     }
-
-  } catch (error) {
-    console.error('Error updating profile:', error);
-    return NextResponse.json(
-      { error: 'Failed to update profile' },
-      { status: 500 }
-    );
-  }
+  });
 }
