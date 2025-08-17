@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { prisma } from '@/lib/prisma';
+import { ActivityLogger } from '@/lib/services/activityLogger';
 
 export const dynamic = 'force-dynamic';
 
@@ -453,6 +454,12 @@ export async function POST(request: NextRequest) {
         itemsReceived
       }
     });
+
+    // Log activity for successful missions
+    if (success && actualReward > 0) {
+      const missionDestination = missionDef.toHub || missionDef.fromHub || 'Unknown';
+      await ActivityLogger.logMissionCompleted(user.id, missionDestination, actualReward);
+    }
 
     // Calculate gold lost for reporting
     const expectedGold = missionDef.riskLevel === 'HIGH' ? Math.floor(missionDef.baseReward * 1.25) : missionDef.baseReward;

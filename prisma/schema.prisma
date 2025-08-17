@@ -41,6 +41,7 @@ model User {
   trailSegs            TrailSeg[]
   wallets              Wallet?
   allianceMissions     AllianceMissionParticipant[]
+  activityLogs         ActivityLog[]
 }
 
 model Profile {
@@ -52,6 +53,19 @@ model Profile {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ActivityLog {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @db.Uuid
+  type      String   // 'mission_completed', 'auction_sold', 'agent_hired', 'item_crafted', etc.
+  message   String
+  metadata  Json?    // Additional data like reward amount, item details, etc.
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([type])
 }
 
 model Character {

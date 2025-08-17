@@ -29,29 +29,33 @@ export default function TradingHub() {
       setUser(data.user);
     });
 
-    // Mock recent activity for now
-    setRecentActivity([
-      {
-        id: '1',
-        type: 'mission_completed',
-        message: 'Mission to Ironclad completed successfully',
-        timestamp: new Date(Date.now() - 15 * 60 * 1000),
-        reward: 450
-      },
-      {
-        id: '2',
-        type: 'auction_sold',
-        message: 'Sold 5 Iron Ore for 200g',
-        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-        reward: 200
-      },
-      {
-        id: '3',
-        type: 'agent_hired',
-        message: 'Hired new Scout agent: Marcus',
-        timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000)
+    // Fetch real user activities
+    const fetchActivities = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          const response = await fetch('/api/user/activities?limit=5', {
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`,
+            },
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            setRecentActivity(result.activities || []);
+          } else {
+            console.error('Failed to fetch activities:', response.status);
+            // Keep empty array if fetch fails
+            setRecentActivity([]);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching activities:', error);
+        setRecentActivity([]);
       }
-    ]);
+    };
+
+    fetchActivities();
   }, []);
 
   const activeMissions = missionData?.activeMissions || [];
