@@ -11,12 +11,27 @@ export const ApiErrors = {
   MISSING_FIELDS: { error: 'Missing required fields', status: 400 },
   INTERNAL_ERROR: { error: 'Internal server error', status: 500 },
   NOT_FOUND: { error: 'Resource not found', status: 404 },
-  CONFLICT: { error: 'Resource conflict', status: 409 }
+  CONFLICT: { error: 'Resource conflict', status: 409 },
+  SYNC_FAILED: { error: 'Database sync failed', status: 500 },
+  SYNC_ERROR: { error: 'Database sync error', status: 500 }
 } as const;
 
 // Create standard error response
-export function createErrorResponse(error: keyof typeof ApiErrors, details?: string) {
-  const errorConfig = ApiErrors[error];
+export function createErrorResponse(error: keyof typeof ApiErrors | string, details?: string) {
+  const errorConfig = ApiErrors[error as keyof typeof ApiErrors];
+  
+  if (!errorConfig) {
+    // Fallback for unknown error keys
+    console.error(`Unknown error key: ${error}`);
+    return NextResponse.json(
+      { 
+        error: 'Internal server error',
+        details: details || `Unknown error: ${error}`
+      },
+      { status: 500 }
+    );
+  }
+  
   return NextResponse.json(
     { 
       error: errorConfig.error,
