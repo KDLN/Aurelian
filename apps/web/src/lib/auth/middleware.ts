@@ -61,19 +61,25 @@ export async function withAuthLight<T = any>(
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
     
     if (!token) {
-      return createErrorResponse('NO_TOKEN');
+      console.error('[Auth Middleware Light] No token provided');
+      return createErrorResponse('NO_TOKEN', 'No authorization token provided');
     }
 
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !user) {
-      return createErrorResponse('INVALID_TOKEN', authError?.message);
+      console.error('[Auth Middleware Light] Auth error:', authError);
+      return createErrorResponse('INVALID_TOKEN', authError?.message || 'Invalid or expired token');
     }
 
     return await handler(user, request);
-  } catch (error) {
-    console.error('[Auth Middleware Light] Error:', error);
-    return createErrorResponse('INTERNAL_ERROR');
+  } catch (error: any) {
+    console.error('[Auth Middleware Light] Unexpected error:', {
+      error,
+      message: error?.message,
+      stack: error?.stack
+    });
+    return createErrorResponse('INTERNAL_ERROR', `Auth middleware error: ${error?.message || 'Unknown error'}`);
   }
 }
 
@@ -122,14 +128,19 @@ export async function getRequestBody<T>(
 ): Promise<T | null> {
   try {
     const body = await request.json();
+    console.log('[Request Body] Parsed body:', body);
     
     if (validator) {
       return validator(body);
     }
     
     return body as T;
-  } catch (error) {
-    console.error('[Request Body] Parse error:', error);
+  } catch (error: any) {
+    console.error('[Request Body] Parse error:', {
+      error,
+      message: error?.message,
+      type: error?.constructor?.name
+    });
     return null;
   }
 }

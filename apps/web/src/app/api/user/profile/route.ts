@@ -125,15 +125,27 @@ export async function POST(request: NextRequest) {
 
       return createSuccessResponse({ profile: updatedProfile });
 
-    } catch (dbError) {
-      console.error('[UserProfile] Database error:', dbError);
+    } catch (dbError: any) {
+      console.error('[UserProfile] Database error:', {
+        error: dbError,
+        message: dbError?.message,
+        code: dbError?.code,
+        meta: dbError?.meta,
+        stack: dbError?.stack
+      });
       
       // Handle specific database errors
-      if (dbError instanceof Error && dbError.message.includes('23505')) {
+      if (dbError?.code === 'P2002' || dbError?.message?.includes('23505')) {
         return createErrorResponse('CONFLICT', 'Username already taken');
       }
       
-      return createErrorResponse('INTERNAL_ERROR', 'Failed to update profile');
+      if (dbError?.code === 'P2025') {
+        return createErrorResponse('NOT_FOUND', 'User record not found');
+      }
+      
+      // Return more detailed error for debugging
+      const errorMessage = dbError?.message || 'Unknown database error';
+      return createErrorResponse('INTERNAL_ERROR', `Database error: ${errorMessage}`);
     }
   });
 }
