@@ -264,15 +264,27 @@ export default function Home() {
 
   async function signInWithDiscord() {
     setErrorMsg('');
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'discord',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`
-      }
-    });
     
-    if (error) {
-      setErrorMsg('Discord sign in failed: ' + error.message);
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'discord',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
+      });
+      
+      if (error) {
+        console.error('Discord OAuth error:', error);
+        if (error.message.includes('Provider not enabled')) {
+          setErrorMsg('Discord authentication is not yet configured. Please try email/password signup instead.');
+        } else {
+          setErrorMsg('Discord sign in failed: ' + error.message);
+        }
+      }
+      // If successful, user will be redirected to Discord and then back to callback
+    } catch (error) {
+      console.error('Discord sign in error:', error);
+      setErrorMsg('Unable to connect to Discord. Please try again or use email signup.');
     }
   }
 

@@ -1,22 +1,45 @@
+'use client';
+import { useSearchParams } from 'next/navigation';
+
 export default function AuthCodeError() {
+  const searchParams = useSearchParams();
+  const error = searchParams?.get('error');
+
   return (
     <div className="min-h-screen bg-[#231913] text-[#f1e5c8] flex items-center justify-center">
       <div className="max-w-md mx-auto text-center">
         <h1 className="text-2xl font-bold mb-4">Authentication Error</h1>
-        <p className="mb-4">
-          Sorry, we couldn't sign you in. This could be because:
-        </p>
-        <ul className="list-disc list-inside text-left mb-6 space-y-1">
-          <li>The magic link has expired</li>
-          <li>The magic link has already been used</li>
-          <li>There was a technical issue</li>
-        </ul>
-        <a 
-          href="/lobby" 
-          className="inline-block bg-[#8B4513] hover:bg-[#A0522D] px-6 py-2 rounded transition-colors"
-        >
-          Try Again
-        </a>
+        {error ? (
+          <div className="mb-4 p-3 bg-red-900/20 border border-red-500/30 rounded">
+            <p className="text-red-300">{error}</p>
+          </div>
+        ) : (
+          <p className="mb-4">
+            Sorry, we couldn't sign you in. This could be because:
+          </p>
+        )}
+        {!error && (
+          <ul className="list-disc list-inside text-left mb-6 space-y-1">
+            <li>The magic link has expired</li>
+            <li>The magic link has already been used</li>
+            <li>There was a technical issue</li>
+          </ul>
+        )}
+        <div className="space-y-2">
+          <a 
+            href="/" 
+            className="inline-block bg-[#8B4513] hover:bg-[#A0522D] px-6 py-2 rounded transition-colors"
+          >
+            Back to Home
+          </a>
+          <br />
+          <a 
+            href="/lobby" 
+            className="inline-block text-[#f1e5c8] hover:text-white underline"
+          >
+            Try Lobby Instead
+          </a>
+        </div>
       </div>
     </div>
   )
