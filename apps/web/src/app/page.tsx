@@ -16,6 +16,7 @@ export default function Home() {
   const [successMsg, setSuccessMsg] = useState('');
   const [needsUsername, setNeedsUsername] = useState(false);
   const [newUsername, setNewUsername] = useState('');
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
@@ -262,12 +263,19 @@ export default function Home() {
     }
   }
 
+  const addDebugLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    setDebugLogs(prev => [...prev, `[${timestamp}] ${message}`]);
+  };
+
   async function signInWithDiscord() {
     setErrorMsg('');
+    setDebugLogs([]);
     
     try {
-      console.log('🎮 Starting Discord OAuth flow...');
-      console.log('Redirect URL will be:', `${window.location.origin}/auth/callback`);
+      addDebugLog('🎮 Starting Discord OAuth flow...');
+      addDebugLog(`Redirect URL: ${window.location.origin}/auth/callback`);
+      addDebugLog('Calling supabase.auth.signInWithOAuth...');
       
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'discord',
@@ -275,6 +283,14 @@ export default function Home() {
           redirectTo: `${window.location.origin}/auth/callback`
         }
       });
+      
+      addDebugLog(`OAuth response received - Error: ${error ? 'YES' : 'NO'}`);
+      if (error) {
+        addDebugLog(`Error details: ${JSON.stringify(error)}`);
+      }
+      if (data) {
+        addDebugLog(`Data received: ${JSON.stringify(data)}`);
+      }
       
       console.log('Discord OAuth response:', { data, error });
       
@@ -287,11 +303,15 @@ export default function Home() {
         } else {
           setErrorMsg(`Discord sign in failed: ${error.message}`);
         }
+        addDebugLog(`Setting error message: ${error.message}`);
       } else {
+        addDebugLog('✅ Discord OAuth initiated successfully, should redirect soon...');
         console.log('✅ Discord OAuth initiated successfully, redirecting...');
       }
       // If successful, user will be redirected to Discord and then back to callback
-    } catch (error) {
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Unknown error';
+      addDebugLog(`❌ Exception caught: ${errorMessage}`);
       console.error('Discord sign in error:', error);
       setErrorMsg('Unable to connect to Discord. Please try again or use email signup.');
     }
@@ -692,6 +712,43 @@ export default function Home() {
             {successMsg && (
               <div className="auth-success">
                 <span>✅ {successMsg}</span>
+              </div>
+            )}
+
+            {debugLogs.length > 0 && (
+              <div className="debug-panel" style={{
+                marginTop: '1rem',
+                padding: '1rem',
+                backgroundColor: '#1a1a1a',
+                border: '1px solid #333',
+                borderRadius: '4px',
+                fontFamily: 'monospace',
+                fontSize: '0.8rem',
+                maxHeight: '200px',
+                overflowY: 'auto'
+              }}>
+                <div style={{ marginBottom: '0.5rem', fontWeight: 'bold', color: '#f1e5c8', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>🔍 Debug Logs:</span>
+                  <button 
+                    onClick={() => setDebugLogs([])}
+                    style={{
+                      background: '#333',
+                      border: '1px solid #555',
+                      color: '#ccc',
+                      padding: '2px 6px',
+                      borderRadius: '2px',
+                      fontSize: '0.7rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Clear
+                  </button>
+                </div>
+                {debugLogs.map((log, index) => (
+                  <div key={index} style={{ color: '#ccc', marginBottom: '0.25rem' }}>
+                    {log}
+                  </div>
+                ))}
               </div>
             )}
           </div>
