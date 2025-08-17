@@ -109,13 +109,8 @@ export async function ensureUserSynced(authUser: any) {
       where: { id: userId },
       update: {
         email: email,
-        updatedAt: new Date(),
-        // Ensure fields exist with defaults if they were somehow missing
-        caravanSlotsUnlocked: { set: undefined }, // Don't override existing values
-        caravanSlotsPremium: { set: undefined },
-        craftingLevel: { set: undefined },
-        craftingXP: { set: undefined },
-        craftingXPNext: { set: undefined }
+        updatedAt: new Date()
+        // Don't override existing caravan/crafting values for existing users
       },
       create: {
         id: userId,
