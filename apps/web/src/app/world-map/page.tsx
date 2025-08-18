@@ -149,8 +149,6 @@ export default function WorldMapPage() {
   return (
     <GameLayout 
       title="World Map" 
-      characterActivity="idle" 
-      characterLocation="Map Room"
       sidebar={sidebar}
     >
       <div className="game-flex-col">

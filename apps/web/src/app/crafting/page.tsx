@@ -290,8 +290,6 @@ export default function CraftingPage() {
   return (
     <GameLayout 
       title="Crafting Workshop" 
-      characterActivity="crafting" 
-      characterLocation="Workshop"
       sidebar={sidebar}
     >
       <div className="game-flex-col">

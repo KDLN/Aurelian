@@ -153,8 +153,6 @@ export default function ContractsPage() {
   return (
     <GameLayout 
       title="Trading Contracts" 
-      characterActivity="trading" 
-      characterLocation="Trade Office"
       sidebar={sidebar}
     >
       <div className="game-flex-col">

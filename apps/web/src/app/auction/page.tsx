@@ -295,8 +295,6 @@ export default function AuctionPage() {
   return (
     <GameLayout 
       title="Auction House" 
-      characterActivity="trading" 
-      characterLocation="Auction House"
       sidebar={sidebar}
     >
       <div className="game-flex-col">

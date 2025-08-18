@@ -287,8 +287,6 @@ export default function HelpPage() {
   return (
     <GameLayout 
       title="Help & Guide" 
-      characterActivity="reading" 
-      characterLocation="Library"
       sidebar={sidebar}
     >
       <div className="game-flex-col">

@@ -235,8 +235,6 @@ export default function InventoryPage() {
   return (
     <GameLayout 
       title="Item Inventory" 
-      characterActivity="idle" 
-      characterLocation="Storage"
       sidebar={sidebar}
     >
       {!authLoaded ? (

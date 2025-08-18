@@ -180,8 +180,6 @@ export default function LeaderboardPage() {
   return (
     <GameLayout 
       title="Mission Leaderboards" 
-      characterActivity="idle"
-      characterLocation="Hall of Fame"
       sidebar={sidebar}
     >
       <div className="game-flex-col">

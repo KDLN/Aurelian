@@ -63,8 +63,6 @@ export default function MarketDashboard() {
   return (
     <GameLayout 
       title="Market Dashboard" 
-      characterActivity="trading" 
-      characterLocation="Trading Floor"
       sidebar={sidebar}
     >
       <div className="game-flex-col">

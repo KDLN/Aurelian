@@ -121,8 +121,6 @@ export default function AgentsPage() {
   return (
     <GameLayout 
       title="Agent Management" 
-      characterActivity="hiring" 
-      characterLocation="Guild Hall"
       sidebar={sidebar}
     >
       {isLoading ? (

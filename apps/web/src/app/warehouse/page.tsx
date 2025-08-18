@@ -148,8 +148,6 @@ export default function WarehousePage() {
   return (
     <GameLayout 
       title="Warehouse Management" 
-      characterActivity="idle" 
-      characterLocation="Warehouse"
       sidebar={sidebar}
     >
       {!authLoaded ? (
@@ -326,14 +324,6 @@ export default function WarehousePage() {
             </div>
           </div>
 
-          <div className="game-card">
-            <h3>Quick Actions</h3>
-            <div className="game-grid-3">
-              <GameButton href="/missions">Send Mission</GameButton>
-              <GameButton href="/auction">List Items</GameButton>
-              <GameButton href="/crafting">Start Crafting</GameButton>
-            </div>
-          </div>
         </div>
       )}
     </GameLayout>

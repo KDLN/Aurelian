@@ -319,8 +319,6 @@ export default function MissionsPage() {
   return (
     <GameLayout 
       title="Mission Control" 
-      characterActivity="mission" 
-      characterLocation="Mission Hall"
       sidebar={sidebar}
     >
       <div className="game-flex-col">

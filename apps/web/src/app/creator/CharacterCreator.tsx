@@ -245,10 +245,12 @@ export default function CharacterCreator() {
       // Save character appearance
       await saveCharacterAppearance(appearance);
       
-      setSaveMessage('✅ Character appearance saved!');
+      setSaveMessage('✅ Character saved! Redirecting to hub...');
       
-      // Clear success message after 3 seconds
-      setTimeout(() => setSaveMessage(''), 3000);
+      // Redirect to hub after successful save
+      setTimeout(() => {
+        window.location.href = '/hub';
+      }, 1500);
       
     } catch (error) {
       console.error('Failed to save character:', error);

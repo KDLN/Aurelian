@@ -6,9 +6,6 @@ import GamePanel from '@/components/ui/GamePanel';
 import { useGameWorld } from '@/lib/game/world';
 import { useUserDataQuery } from '@/hooks/useUserDataQuery';
 import { useMissions } from '@/hooks/useMissionsQuery';
-import { loadCharacterAppearance } from '@/lib/sprites/characterOptions';
-import { CharacterAppearance } from '@/lib/sprites/characterSprites';
-import CharacterViewer from './CharacterViewer';
 import { ChatSystem } from '@/components/chat';
 import HelpTooltip from '@/components/HelpTooltip';
 import OnboardingTips from '@/components/OnboardingTips';
@@ -18,9 +15,6 @@ interface GameLayoutProps {
   title: string;
   children: ReactNode;
   sidebar?: ReactNode;
-  showCharacterViewer?: boolean;
-  characterActivity?: 'idle' | 'walking' | 'trading' | 'crafting' | 'combat' | 'mission';
-  characterLocation?: string;
   showChat?: boolean;
   chatInitialChannel?: 'general' | 'trade' | 'guild';
   guildChannels?: Array<{
@@ -35,9 +29,6 @@ export default function GameLayout({
   title,
   children,
   sidebar,
-  showCharacterViewer = true,
-  characterActivity = 'idle',
-  characterLocation = 'Hub',
   showChat = true,
   chatInitialChannel = 'general',
   guildChannels = []
@@ -47,7 +38,6 @@ export default function GameLayout({
   const { data: missionsData } = useMissions();
   const [, forceUpdate] = useState(0);
   const [currentPath, setCurrentPath] = useState('');
-  const [characterAppearance, setCharacterAppearance] = useState<CharacterAppearance | null>(null);
   const [username, setUsername] = useState<string>('Anonymous Trader');
   const [userGuildChannels, setUserGuildChannels] = useState<Array<{
     id: string;
@@ -155,33 +145,6 @@ export default function GameLayout({
     <div className="game">
       <div className="game-container">
         <GamePanel side="left" style={{ height: 'calc(100vh - 24px)', overflow: 'auto' }}>
-          {/* Character Viewer at the top */}
-          {showCharacterViewer && characterAppearance && (
-            <div style={{ marginBottom: '16px' }}>
-              <div style={{ 
-                background: '#1a1511',
-                border: '2px solid #533b2c',
-                borderRadius: '4px',
-                overflow: 'hidden',
-                height: '108px',
-                position: 'relative'
-              }}>
-                <CharacterViewer
-                  position="inline"
-                  activity={characterActivity}
-                  location={characterLocation}
-                  skinTone={characterAppearance.base}
-                  outfit={characterAppearance.outfit}
-                  hair={characterAppearance.hair}
-                  hat={characterAppearance.hat || ''}
-                  size={100}
-                  autoWalk={true}
-                  walkAreaWidth={300}
-                  showBorder={false}
-                />
-              </div>
-            </div>
-          )}
 
           {/* Player Stats Section */}
           <div style={{ 

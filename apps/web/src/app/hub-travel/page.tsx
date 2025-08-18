@@ -231,7 +231,7 @@ export default function HubTravelPage() {
   };
 
   return (
-    <GameLayout title="Hub & Path Travel" characterActivity="trading" characterLocation="Hub: Planning Route">
+    <GameLayout title="Hub & Path Travel">
       <div className="game-flex-col">
         <div className="game-space-between" style={{ marginBottom: '1rem' }}>
           <div>

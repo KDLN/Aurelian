@@ -192,8 +192,6 @@ export default function TradingHub() {
   return (
     <GameLayout 
       title="Trading Hub" 
-      characterActivity="planning" 
-      characterLocation="Trading Hub"
       sidebar={sidebar}
     >
       <div className="game-flex-col">
