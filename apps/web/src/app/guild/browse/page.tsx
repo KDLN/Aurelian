@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import GameLayout from '@/components/GameLayout';
+import GameButton from '@/components/ui/GameButton';
 import { supabase } from '@/lib/supabaseClient';
+import { useGuildRequests } from '@/hooks/useGuild';
 
 type Guild = {
   id: string;
@@ -50,6 +52,11 @@ export default function GuildBrowsePage() {
   const [userInGuild, setUserInGuild] = useState(false);
   const [currentGuild, setCurrentGuild] = useState<any>(null);
   const [isClient, setIsClient] = useState(false);
+  const [requestMessage, setRequestMessage] = useState('');
+  const [showRequestForm, setShowRequestForm] = useState<string | null>(null);
+  
+  // Guild request hooks
+  const { sendRequest, isLoading: requestLoading, error: requestError, clearError } = useGuildRequests();
 
   useEffect(() => {
     setIsClient(true);
@@ -111,9 +118,26 @@ export default function GuildBrowsePage() {
   };
 
   const handleJoinRequest = async (guildId: string) => {
-    // This would typically send a join request or application
-    // For now, we'll show a placeholder message
-    alert('Guild join requests are not implemented yet. Contact the guild leader directly or look for an invite.');
+    if (userInGuild) {
+      alert('You are already in a guild. Leave your current guild before joining another.');
+      return;
+    }
+    
+    setShowRequestForm(guildId);
+    setRequestMessage('');
+    clearError();
+  };
+
+  const submitJoinRequest = async (guildId: string) => {
+    const success = await sendRequest(guildId, requestMessage);
+    
+    if (success) {
+      alert('Guild join request sent successfully! Guild leaders will review your request.');
+      setShowRequestForm(null);
+      setRequestMessage('');
+    } else if (requestError) {
+      alert(requestError);
+    }
   };
 
   const formatTimeAgo = (dateString: string) => {
@@ -348,12 +372,14 @@ export default function GuildBrowsePage() {
                     </button>
                     
                     {!userInGuild && !guild.membershipFull && (
-                      <button
-                        className="game-btn game-btn-small game-btn-primary"
+                      <GameButton
+                        variant="primary"
+                        size="small"
                         onClick={() => handleJoinRequest(guild.id)}
+                        disabled={requestLoading}
                       >
                         Request to Join
-                      </button>
+                      </GameButton>
                     )}
                   </div>
                 </div>
@@ -406,6 +432,58 @@ export default function GuildBrowsePage() {
                         </div>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* Guild Join Request Form */}
+                {showRequestForm === guild.id && (
+                  <div className="game-card" style={{ margin: '12px 0 0 0', background: '#1a1511' }}>
+                    <h4>Request to Join [{guild.tag}] {guild.name}</h4>
+                    
+                    <div className="game-flex-col" style={{ gap: '12px' }}>
+                      <div>
+                        <label className="game-small">Message (Optional)</label>
+                        <textarea
+                          value={requestMessage}
+                          onChange={(e) => setRequestMessage(e.target.value)}
+                          placeholder="Tell the guild leaders why you'd like to join..."
+                          rows={3}
+                          style={{ width: '100%' }}
+                          maxLength={500}
+                          disabled={requestLoading}
+                        />
+                        <div className="game-small game-muted" style={{ marginTop: '4px' }}>
+                          {requestMessage.length}/500 characters
+                        </div>
+                      </div>
+
+                      <div className="game-flex" style={{ gap: '8px' }}>
+                        <GameButton
+                          variant="primary"
+                          onClick={() => submitJoinRequest(guild.id)}
+                          disabled={requestLoading}
+                        >
+                          {requestLoading ? 'Sending...' : 'Send Request'}
+                        </GameButton>
+                        
+                        <GameButton
+                          onClick={() => {
+                            setShowRequestForm(null);
+                            setRequestMessage('');
+                            clearError();
+                          }}
+                          disabled={requestLoading}
+                        >
+                          Cancel
+                        </GameButton>
+                      </div>
+
+                      {requestError && (
+                        <div className="game-small game-bad">
+                          ❌ {requestError}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

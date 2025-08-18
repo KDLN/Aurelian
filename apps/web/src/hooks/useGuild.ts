@@ -337,3 +337,169 @@ export function useUserSearch() {
     clearError: () => setError(null)
   };
 }
+
+// Hook for guild requests
+export function useGuildRequests() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const sendRequest = useCallback(async (
+    guildId: string,
+    message?: string
+  ): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch('/api/guild/request', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          guildId, 
+          message: message?.trim() || undefined 
+        })
+      });
+
+      const result: ApiResponse = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || result.details || 'Failed to send guild request');
+      }
+
+      return true;
+
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to send guild request';
+      setError(errorMessage);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const getUserRequests = useCallback(async (): Promise<any[]> => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch('/api/guild/request', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch guild requests');
+      }
+
+      const result: ApiResponse<{ requests: any[] }> = await response.json();
+      return result.data?.requests || [];
+
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch guild requests';
+      setError(errorMessage);
+      return [];
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const manageRequest = useCallback(async (
+    requestId: string,
+    action: 'approve' | 'reject',
+    reason?: string
+  ): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch('/api/guild/request/manage', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          requestId, 
+          action,
+          reason: reason?.trim() || undefined 
+        })
+      });
+
+      const result: ApiResponse = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || result.details || 'Failed to manage guild request');
+      }
+
+      return true;
+
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to manage guild request';
+      setError(errorMessage);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const getGuildRequests = useCallback(async (): Promise<any[]> => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch('/api/guild/request/manage', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch guild requests');
+      }
+
+      const result: ApiResponse<{ requests: any[] }> = await response.json();
+      return result.data?.requests || [];
+
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch guild requests';
+      setError(errorMessage);
+      return [];
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  return {
+    sendRequest,
+    getUserRequests,
+    manageRequest,
+    getGuildRequests,
+    isLoading,
+    error,
+    clearError: () => setError(null)
+  };
+}

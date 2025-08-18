@@ -118,9 +118,14 @@ export default function GuildPage() {
           👥 Manage Members
         </a>
         {['LEADER', 'OFFICER'].includes(guild.userRole) && (
-          <a href="/guild/manage" className="game-btn game-btn-small">
-            ⚙️ Manage Guild
-          </a>
+          <>
+            <a href="/guild/requests" className="game-btn game-btn-small">
+              📋 Guild Requests
+            </a>
+            <a href="/guild/manage" className="game-btn game-btn-small">
+              ⚙️ Manage Guild
+            </a>
+          </>
         )}
       </div>
     </div>

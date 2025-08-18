@@ -28,6 +28,7 @@ model User {
   craftJobs            CraftJob[]
   guildInvitesSent     GuildInvite[]     @relation("GuildInviteSent")
   guildInvitesReceived GuildInvite[]     @relation("GuildInviteReceived")
+  guildRequestsSent    GuildRequest[]    @relation("GuildRequestSent")
   guildLogs            GuildLog[]
   guildMembership      GuildMember?
   inventories          Inventory[]
@@ -423,6 +424,7 @@ model Guild {
   alliancesTo   GuildAlliance[]    @relation("AllianceTo")
   channels      GuildChannel[]
   invites       GuildInvite[]
+  requests      GuildRequest[]
   logs          GuildLog[]
   members       GuildMember[]
   warehouse     GuildWarehouse[]
@@ -500,6 +502,26 @@ model GuildInvite {
   @@index([expiresAt])
   @@index([guildId])
   @@index([invitedBy])
+  @@index([createdAt])
+}
+
+model GuildRequest {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  guildId   String   @db.Uuid
+  userId    String   @db.Uuid
+  message   String?
+  status    GuildRequestStatus @default(PENDING)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  guild     Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  user      User     @relation("GuildRequestSent", fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([guildId, userId])
+  @@index([userId])
+  @@index([guildId])
+  @@index([status])
+  @@index([expiresAt])
   @@index([createdAt])
 }
 
@@ -816,6 +838,13 @@ enum GuildRole {
   OFFICER
   TRADER
   MEMBER
+}
+
+enum GuildRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
 }
 
 enum AllianceType {
