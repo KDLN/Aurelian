@@ -6,6 +6,7 @@ import GamePanel from '@/components/ui/GamePanel';
 import { useGameWorld } from '@/lib/game/world';
 import { useUserDataQuery } from '@/hooks/useUserDataQuery';
 import { useMissions } from '@/hooks/useMissionsQuery';
+import { useMobile } from '@/hooks/useMobile';
 import { ChatSystem } from '@/components/chat';
 import HelpTooltip from '@/components/HelpTooltip';
 import OnboardingTips from '@/components/OnboardingTips';
@@ -36,9 +37,12 @@ export default function GameLayout({
   const { world, subscribe } = useGameWorld();
   const { wallet, inventory, user } = useUserDataQuery();
   const { data: missionsData } = useMissions();
+  const { isMobile, isLoaded } = useMobile();
   const [, forceUpdate] = useState(0);
   const [currentPath, setCurrentPath] = useState('');
   const [username, setUsername] = useState<string>('Anonymous Trader');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [chatCollapsed, setChatCollapsed] = useState(isMobile);
   const [userGuildChannels, setUserGuildChannels] = useState<Array<{
     id: string;
     name: string;
@@ -138,10 +142,57 @@ export default function GameLayout({
     { href: '/help', label: '❓ Help' },
   ];
 
+  // Don't render until mobile detection is complete
+  if (!isLoaded) {
+    return (
+      <div className="game">
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          height: '100vh',
+          color: '#f1e5c8'
+        }}>
+          Loading...
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="game">
+      {/* Mobile Header with Menu Toggle */}
+      {isMobile && (
+        <div style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 1000,
+          background: '#2a1f1a',
+          border: '2px solid #533b2c',
+          padding: '8px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <h1 style={{ margin: 0, fontSize: '16px', color: '#f1e5c8' }}>{title}</h1>
+          <GameButton
+            size="small"
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+          >
+            {sidebarCollapsed ? '☰' : '✕'}
+          </GameButton>
+        </div>
+      )}
+      
       <div className="game-container">
-        <GamePanel side="left" style={{ height: 'calc(100vh - 24px)', overflow: 'auto' }}>
+        <GamePanel 
+          side="left" 
+          style={{ 
+            height: isMobile ? 'auto' : 'calc(100vh - 24px)', 
+            overflow: 'auto',
+            display: isMobile && sidebarCollapsed ? 'none' : 'block'
+          }}
+        >
 
           {/* Player Stats Section */}
           <div style={{ 
@@ -160,7 +211,12 @@ export default function GameLayout({
               </div>
             </div>
             
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '12px' }}>
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', 
+              gap: isMobile ? '4px' : '8px', 
+              fontSize: isMobile ? '11px' : '12px' 
+            }}>
               <div className="game-space-between">
                 <span style={{ color: '#9b8c70' }}>Level:</span>
                 <span style={{ color: '#f1e5c8' }}>1</span>
@@ -229,10 +285,18 @@ export default function GameLayout({
             </div>
           </div>
 
-          <div>
-            <h1>{title}</h1>
-            <div className="game-muted">{world.getTimeString()}</div>
-          </div>
+          {!isMobile && (
+            <div>
+              <h1>{title}</h1>
+              <div className="game-muted">{world.getTimeString()}</div>
+            </div>
+          )}
+          
+          {isMobile && (
+            <div>
+              <div className="game-muted">{world.getTimeString()}</div>
+            </div>
+          )}
 
           <div>
             <h3>Navigation</h3>
@@ -304,7 +368,15 @@ export default function GameLayout({
           </div>
         </GamePanel>
 
-        <GamePanel side="right" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 24px)' }}>
+        <GamePanel 
+          side="right" 
+          style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            height: isMobile ? 'auto' : 'calc(100vh - 24px)',
+            minHeight: isMobile ? '50vh' : 'auto'
+          }}
+        >
           {/* Main Content Area */}
           <div style={{ flex: '1', overflow: 'hidden', paddingBottom: '16px', minHeight: 0 }}>
             {children}
@@ -350,21 +422,40 @@ export default function GameLayout({
           
           {/* Chat Area - Fixed at Bottom */}
           {showChat && (
-            <div style={{ 
-              height: '350px', 
-              minHeight: '350px',
-              maxHeight: '350px',
-              borderTop: '2px solid #533b2c',
-              paddingTop: '8px',
-              flexShrink: 0
-            }}>
-              <ChatSystem
-                initialChannel={chatInitialChannel}
-                guildChannels={userGuildChannels.length > 0 ? userGuildChannels : guildChannels}
-                isCompact={true}
-                className=""
-              />
-            </div>
+            <>
+              {isMobile && (
+                <div style={{ 
+                  borderTop: '2px solid #533b2c',
+                  padding: '4px 0',
+                  textAlign: 'center'
+                }}>
+                  <GameButton
+                    size="small"
+                    onClick={() => setChatCollapsed(!chatCollapsed)}
+                  >
+                    {chatCollapsed ? '💬 Show Chat' : '💬 Hide Chat'}
+                  </GameButton>
+                </div>
+              )}
+              
+              {!chatCollapsed && (
+                <div style={{ 
+                  height: isMobile ? '250px' : '350px', 
+                  minHeight: isMobile ? '250px' : '350px',
+                  maxHeight: isMobile ? '250px' : '350px',
+                  borderTop: isMobile ? 'none' : '2px solid #533b2c',
+                  paddingTop: '8px',
+                  flexShrink: 0
+                }}>
+                  <ChatSystem
+                    initialChannel={chatInitialChannel}
+                    guildChannels={userGuildChannels.length > 0 ? userGuildChannels : guildChannels}
+                    isCompact={true}
+                    className=""
+                  />
+                </div>
+              )}
+            </>
           )}
         </GamePanel>
       </div>

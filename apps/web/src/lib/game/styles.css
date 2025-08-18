@@ -610,41 +610,211 @@
   .game-container {
     grid-template-columns: 1fr;
     height: auto;
+    gap: 8px;
+    padding: 8px;
+  }
+  
+  .game-panel {
+    border-width: 2px;
+    box-shadow: 
+      0 2px 0 rgba(0, 0, 0, 0.4),
+      inset 0 0 0 1px #1d1410;
   }
   
   .game-panel-left {
     order: 2;
+    padding: 8px;
+    gap: 8px;
+    height: auto !important;
+    max-height: 60vh;
+    overflow-y: auto;
   }
   
   .game-panel-right {
     order: 1;
+    padding: 8px;
+    min-height: 60vh;
   }
 
+  /* Grid layouts */
   .game-grid-2,
   .game-grid-3 {
     grid-template-columns: 1fr;
+    gap: 6px;
   }
 
+  /* Navigation */
+  .game-nav {
+    gap: 2px;
+    margin-bottom: 8px;
+  }
+  
+  .game-nav a {
+    padding: 4px 8px;
+    font-size: 11px;
+    min-width: auto;
+    flex: 1;
+    text-align: center;
+  }
+
+  /* Tables */
   .game-table-container {
     font-size: var(--font-size-xs);
+    margin: 4px -2px;
   }
 
   .game table {
-    font-size: var(--font-size-xs);
+    font-size: 10px;
     table-layout: fixed;
   }
 
   .game th,
   .game td {
-    padding: var(--space-xs) 1px;
+    padding: 4px 2px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
   
+  /* Buttons */
+  .game-btn {
+    padding: 6px 8px;
+    font-size: 12px;
+    min-height: var(--touch-target-md);
+  }
+  
   .game-btn-small {
-    padding: 2px var(--space-xs);
-    font-size: 0.65rem;
+    padding: 4px 6px;
+    font-size: 10px;
     min-width: auto;
+    min-height: var(--touch-target-sm);
+  }
+  
+  /* Cards */
+  .game-card {
+    padding: 8px;
+    margin-bottom: 8px;
+  }
+  
+  /* Typography */
+  .game h1 {
+    font-size: 16px;
+    margin-bottom: 4px;
+  }
+  
+  .game h2 {
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+  
+  .game h3 {
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+  
+  /* Forms */
+  .game input,
+  .game select,
+  .game textarea {
+    padding: 6px;
+    font-size: 14px;
+    min-height: var(--touch-target-md);
+  }
+  
+  /* Flexbox adjustments */
+  .game-flex {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  
+  .game-flex-col {
+    gap: 6px;
+  }
+  
+  /* Pills */
+  .game-pill {
+    padding: 2px 6px;
+    font-size: 10px;
+  }
+  
+  .game-pill-small {
+    padding: 1px 4px;
+    font-size: 9px;
+  }
+  
+  /* Progress bars */
+  .game-progress {
+    height: 16px;
+    font-size: 10px;
+  }
+  
+  /* Player stats grid - force single column */
+  .game-panel-left div[style*="gridTemplateColumns"] {
+    grid-template-columns: 1fr !important;
+    gap: 4px !important;
+  }
+  
+  /* Compact space-between on mobile */
+  .game-space-between {
+    gap: 4px;
+  }
+  
+  /* Mobile-specific table optimizations */
+  .game table th:nth-child(n+4),
+  .game table td:nth-child(n+4) {
+    display: none;
+  }
+  
+  /* Show first 3 columns only on mobile */
+  .game table th:nth-child(1),
+  .game table th:nth-child(2),
+  .game table th:nth-child(3),
+  .game table td:nth-child(1),
+  .game table td:nth-child(2),
+  .game table td:nth-child(3) {
+    display: table-cell;
+  }
+  
+  /* Mobile navigation improvements */
+  .game-nav {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 2px;
+  }
+  
+  /* Fixed positioning improvements */
+  .game-container {
+    position: relative;
+  }
+  
+  /* Scrollable content areas */
+  .game-panel-right > div:first-child {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Touch improvements */
+  .game-btn,
+  .game input,
+  .game select,
+  .game textarea {
+    -webkit-appearance: none;
+    -webkit-tap-highlight-color: rgba(0,0,0,0);
+  }
+  
+  /* Modal and overlay adjustments */
+  .game-card {
+    position: relative;
+    z-index: 1;
+  }
+  
+  /* Prevent zoom on input focus */
+  .game input[type="text"],
+  .game input[type="email"],
+  .game input[type="number"],
+  .game input[type="password"],
+  .game select,
+  .game textarea {
+    font-size: 16px !important;
   }
 }

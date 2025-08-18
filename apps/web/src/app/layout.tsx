@@ -2,17 +2,43 @@
 import './globals.css';
 import QueryProvider from '@/components/QueryProvider';
 
-export const metadata = { title: 'Aurelian' };
+export const metadata = { 
+  title: 'Aurelian'
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
 export default function RootLayout({ children }: { children: React.ReactNode }){
   return (
     <html lang="en">
       <body style={{fontFamily:'ui-monospace,Menlo,Consolas,monospace',margin:0}} className="bg-white text-slate-900">
         <QueryProvider>
-          <div style={{display:'flex',gap:12,alignItems:'center',padding:12,borderBottom:'4px solid #533b2c',background:'#2a1f1a'}}>
-            <div style={{background:'#6e462b',border:'4px solid #986540',borderRadius:8,padding:'6px 12px',letterSpacing:2,textTransform:'uppercase',color:'#f1e5c8'}}>Aurelian</div>
-            <a href="/" style={{color:'#f1e5c8'}}>Home</a>
-            <a href="/creator" style={{color:'#f1e5c8'}}>Creator</a>
-            <a href="/play" style={{color:'#f1e5c8'}}>Play</a>
+          <div style={{
+            display:'flex',
+            gap:12,
+            alignItems:'center',
+            padding:12,
+            borderBottom:'4px solid #533b2c',
+            background:'#2a1f1a',
+            flexWrap: 'wrap'
+          }}>
+            <div style={{
+              background:'#6e462b',
+              border:'4px solid #986540',
+              borderRadius:8,
+              padding:'6px 12px',
+              letterSpacing:2,
+              textTransform:'uppercase',
+              color:'#f1e5c8',
+              fontSize: 'clamp(12px, 2.5vw, 16px)'
+            }}>Aurelian</div>
+            <a href="/" style={{color:'#f1e5c8',fontSize:'clamp(12px, 2.5vw, 14px)'}}>Home</a>
+            <a href="/creator" style={{color:'#f1e5c8',fontSize:'clamp(12px, 2.5vw, 14px)'}}>Creator</a>
+            <a href="/play" style={{color:'#f1e5c8',fontSize:'clamp(12px, 2.5vw, 14px)'}}>Play</a>
           </div>
           {children}
         </QueryProvider>
