@@ -13,14 +13,7 @@ export default function WarehousePage() {
   const [selectedItem, setSelectedItem] = useState('');
   const [transferQty, setTransferQty] = useState(1);
   const [transferTo, setTransferTo] = useState<'caravan' | 'escrow'>('caravan');
-  const [populatingStarter, setPopulatingStarter] = useState(false);
 
-  // Debug logging
-  console.log('Warehouse: inventory data:', inventory);
-  console.log('Warehouse: inventory.inventory array:', inventory?.inventory);
-  console.log('Warehouse: inventory.inventory length:', inventory?.inventory?.length);
-  console.log('Warehouse: user authenticated:', !!user);
-  console.log('Warehouse: authLoaded:', authLoaded);
 
   // Use real inventory data when available, fallback to mock data
   const warehouseItems = inventory?.inventory || [];
@@ -69,42 +62,6 @@ export default function WarehousePage() {
     setSelectedItem('');
   };
 
-  const handlePopulateStarter = async () => {
-    if (!user) return;
-    
-    setPopulatingStarter(true);
-    try {
-      const session = await supabase.auth.getSession();
-      const token = session.data.session?.access_token;
-      
-      if (!token) {
-        alert('Authentication failed');
-        return;
-      }
-
-      const response = await fetch('/api/user/inventory/populate-starter', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      const result = await response.json();
-      
-      if (response.ok) {
-        alert(`✅ ${result.message}`);
-        // Refresh inventory data
-        window.location.reload();
-      } else {
-        alert(`❌ ${result.error || result.message}`);
-      }
-    } catch (err) {
-      console.error('Failed to populate starter inventory:', err);
-      alert('❌ Failed to populate starter inventory');
-    } finally {
-      setPopulatingStarter(false);
-    }
-  };
 
   const sidebar = (
     <div>
@@ -280,16 +237,8 @@ export default function WarehousePage() {
             ) : (
               <div className="game-flex-col" style={{ gap: '12px' }}>
                 <p className="game-muted">Warehouse is empty</p>
-                <GameButton 
-                  onClick={handlePopulateStarter}
-                  disabled={populatingStarter}
-                  variant="primary"
-                  style={{ fontSize: '12px', padding: '8px 12px' }}
-                >
-                  {populatingStarter ? '🔄 Adding Items...' : '🎁 Add Starter Items (Debug)'}
-                </GameButton>
                 <p className="game-small game-muted" style={{ textAlign: 'center' }}>
-                  This will give you starter items to test the warehouse functionality
+                  Complete missions or purchase items to fill your warehouse
                 </p>
               </div>
             )}

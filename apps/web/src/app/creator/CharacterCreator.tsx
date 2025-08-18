@@ -269,23 +269,6 @@ export default function CharacterCreator() {
           <div style={{ fontSize: 14, color: '#9b8c70' }}>
             {loading ? 'Loading user data...' : 'Setting up character...'}
           </div>
-          {/* Fallback button if loading takes too long */}
-          <GameButton 
-            onClick={() => {
-              setLoading(false);
-              setAppearance({
-                name: '',
-                base: 'v01',
-                outfit: 'fstr_v01',
-                hair: 'bob1_v01',
-                hat: ''
-              });
-            }}
-            size="small"
-            style={{ marginTop: 20 }}
-          >
-            Skip Loading (Use Defaults)
-          </GameButton>
         </div>
       </div>
     );
