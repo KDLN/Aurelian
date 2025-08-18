@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import GameLayout from '@/components/GameLayout';
-import MarketOverview from '@/components/MarketOverview';
 import GameButton from '@/components/ui/GameButton';
 import GamePanel from '@/components/ui/GamePanel';
 import { GameTable, GameTableHeader, GameTableBody, GameTableRow, GameTableCell } from '@/components/ui/GameTable';
@@ -298,8 +297,6 @@ export default function AuctionPage() {
       sidebar={sidebar}
     >
       <div className="game-flex-col">
-        {/* Market Overview - Shows real market data */}
-        <MarketOverview showDetailedStats={false} />
         <div className="game-card">
           <h3>List New Item</h3>
           <div className="game-grid-2" style={{ marginBottom: '12px' }}>
