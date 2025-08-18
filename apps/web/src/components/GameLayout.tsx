@@ -133,8 +133,7 @@ export default function GameLayout({
     { href: '/agents', label: 'Agents' },
     { href: '/crafting', label: 'Crafting' },
     { href: '/contracts', label: 'Contracts' },
-    { href: '/warehouse', label: 'Warehouse' },
-    { href: '/inventory', label: 'Inventory' },
+    { href: '/storage', label: 'Storage' },
     { href: '/guild', label: 'Guild' },
     { href: '/help', label: '❓ Help' },
   ];

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import GameLayout from '@/components/GameLayout';
 import { supabase } from '@/lib/supabaseClient';
+import { useGuildInvitations, useUserSearch } from '@/hooks/useGuild';
 
 type GuildMember = {
   id: string;
@@ -28,9 +29,15 @@ export default function GuildMembersPage() {
   const [error, setError] = useState('');
   const [selectedMember, setSelectedMember] = useState<GuildMember | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteQuery, setInviteQuery] = useState('');
   const [inviteMessage, setInviteMessage] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
   const [isClient, setIsClient] = useState(false);
+  
+  // Use guild invitation hooks
+  const { sendInvitation, isLoading: inviteLoading, error: inviteError, clearError } = useGuildInvitations();
+  const { searchUsers, isLoading: searchLoading } = useUserSearch();
 
   useEffect(() => {
     setIsClient(true);
@@ -120,28 +127,35 @@ export default function GuildMembersPage() {
     }
   };
 
-  const handleSendInvite = async () => {
-    if (!inviteEmail.trim()) {
-      alert('Please enter an email address');
+  const handleUserSearch = async (query: string) => {
+    if (query.trim().length < 2) {
+      setSearchResults([]);
       return;
     }
 
-    try {
-      setActionLoading(true);
+    const results = await searchUsers(query);
+    setSearchResults(results);
+  };
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+  const handleSendInvite = async () => {
+    if (!selectedUser) {
+      alert('Please select a user to invite');
+      return;
+    }
 
-      // First, we need to find the user by email
-      // In a real implementation, you'd have a user search endpoint
-      // For now, we'll use a placeholder
-      alert('Invitation system requires user ID. Use the browse guilds feature for now.');
-
-    } catch (err) {
-      console.error('Error sending invite:', err);
-      alert('Failed to send invitation');
-    } finally {
-      setActionLoading(false);
+    clearError(); // Clear any previous errors
+    const success = await sendInvitation(selectedUser.id, inviteMessage);
+    
+    if (success) {
+      alert(`Invitation sent to ${selectedUser.displayName}!`);
+      // Reset form
+      setSelectedUser(null);
+      setInviteQuery('');
+      setInviteMessage('');
+      setSearchResults([]);
+      setSelectedMember(null);
+    } else if (inviteError) {
+      alert(inviteError);
     }
   };
 
@@ -415,15 +429,87 @@ export default function GuildMembersPage() {
             
             <div className="game-flex-col" style={{ gap: '12px' }}>
               <div>
-                <label className="game-small">Player Email or Username</label>
+                <label className="game-small">Search Player</label>
                 <input
                   type="text"
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
+                  value={inviteQuery}
+                  onChange={(e) => {
+                    setInviteQuery(e.target.value);
+                    handleUserSearch(e.target.value);
+                  }}
                   placeholder="Enter email or username..."
                   style={{ width: '100%' }}
-                  disabled={actionLoading}
+                  disabled={inviteLoading}
                 />
+                {searchLoading && (
+                  <div className="game-small game-muted" style={{ marginTop: '4px' }}>
+                    Searching...
+                  </div>
+                )}
+                
+                {/* Search Results */}
+                {searchResults.length > 0 && !selectedUser && (
+                  <div style={{ 
+                    border: '1px solid #533b2c', 
+                    borderRadius: '4px', 
+                    marginTop: '8px', 
+                    maxHeight: '200px', 
+                    overflowY: 'auto'
+                  }}>
+                    {searchResults.map(user => (
+                      <div 
+                        key={user.id} 
+                        className="game-space-between" 
+                        style={{ 
+                          padding: '8px', 
+                          borderBottom: '1px solid #533b2c',
+                          cursor: 'pointer',
+                          background: 'rgba(83, 59, 44, 0.1)'
+                        }}
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setInviteQuery(user.displayName);
+                          setSearchResults([]);
+                        }}
+                      >
+                        <div>
+                          <strong>{user.displayName}</strong>
+                          <div className="game-small game-muted">{user.email}</div>
+                        </div>
+                        <div className="game-small game-muted">
+                          Joined {new Date(user.joinedAt).toLocaleDateString()}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {/* Selected User */}
+                {selectedUser && (
+                  <div style={{ 
+                    border: '1px solid #6eb5ff', 
+                    borderRadius: '4px', 
+                    padding: '8px', 
+                    marginTop: '8px', 
+                    background: 'rgba(110, 181, 255, 0.1)'
+                  }}>
+                    <div className="game-space-between">
+                      <div>
+                        <strong>{selectedUser.displayName}</strong>
+                        <div className="game-small game-muted">{selectedUser.email}</div>
+                      </div>
+                      <button 
+                        className="game-btn game-btn-small"
+                        onClick={() => {
+                          setSelectedUser(null);
+                          setInviteQuery('');
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
               
               <div>
@@ -434,7 +520,7 @@ export default function GuildMembersPage() {
                   placeholder="Add a personal message to your invitation..."
                   rows={3}
                   style={{ width: '100%' }}
-                  disabled={actionLoading}
+                  disabled={inviteLoading}
                 />
               </div>
 
@@ -442,7 +528,7 @@ export default function GuildMembersPage() {
                 <button
                   className="game-btn game-btn-primary"
                   onClick={handleSendInvite}
-                  disabled={actionLoading || !inviteEmail.trim()}
+                  disabled={inviteLoading || !selectedUser}
                 >
                   📧 Send Invitation
                 </button>
@@ -451,13 +537,22 @@ export default function GuildMembersPage() {
                   className="game-btn"
                   onClick={() => {
                     setSelectedMember(null);
-                    setInviteEmail('');
+                    setInviteQuery('');
                     setInviteMessage('');
+                    setSelectedUser(null);
+                    setSearchResults([]);
+                    clearError();
                   }}
                 >
                   Cancel
                 </button>
               </div>
+              
+              {inviteError && (
+                <div className="game-small game-bad" style={{ marginTop: '8px' }}>
+                  ❌ {inviteError}
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -114,6 +114,9 @@ export default function GuildPage() {
         <a href="/guild/achievements" className="game-btn game-btn-small">
           🏆 Achievements
         </a>
+        <a href="/guild/members" className="game-btn game-btn-small">
+          👥 Manage Members
+        </a>
         {['LEADER', 'OFFICER'].includes(guild.userRole) && (
           <a href="/guild/manage" className="game-btn game-btn-small">
             ⚙️ Manage Guild
@@ -135,6 +138,9 @@ export default function GuildPage() {
             <span>Received:</span>
             <span className="game-good">{invitations.length}</span>
           </div>
+          <a href="/guild/invitations" className="game-btn game-btn-small game-btn-primary">
+            📧 Manage Invitations
+          </a>
         </>
       )}
     </div>

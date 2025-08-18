@@ -238,8 +238,100 @@ export function useGuildInvitations() {
     }
   }, []);
 
+  const sendInvitation = useCallback(async (
+    targetUserId: string,
+    message?: string
+  ): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch('/api/guild/invite', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          targetUserId, 
+          message: message?.trim() || undefined 
+        })
+      });
+
+      const result: ApiResponse = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || result.details || 'Failed to send invitation');
+      }
+
+      return true;
+
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to send invitation';
+      setError(errorMessage);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   return {
     respondToInvitation,
+    sendInvitation,
+    isLoading,
+    error,
+    clearError: () => setError(null)
+  };
+}
+
+// Hook for user search
+export function useUserSearch() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const searchUsers = useCallback(async (query: string): Promise<any[]> => {
+    if (query.trim().length < 2) {
+      return [];
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch(`/api/user/search?q=${encodeURIComponent(query)}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to search users');
+      }
+
+      const result: ApiResponse<{ users: any[] }> = await response.json();
+      return result.data?.users || [];
+
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to search users';
+      setError(errorMessage);
+      return [];
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  return {
+    searchUsers,
     isLoading,
     error,
     clearError: () => setError(null)
