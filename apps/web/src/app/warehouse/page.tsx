@@ -12,7 +12,7 @@ export default function WarehousePage() {
   const { user, authLoaded, inventory, isLoading, error } = useUserData();
   const [selectedItem, setSelectedItem] = useState('');
   const [transferQty, setTransferQty] = useState(1);
-  const [transferTo, setTransferTo] = useState<'caravan' | 'escrow'>('caravan');
+  const [transferTo, setTransferTo] = useState<'caravan'>('caravan');
 
 
   // Use real inventory data when available, fallback to mock data
@@ -54,7 +54,7 @@ export default function WarehousePage() {
     }
 
     // For now, just simulate the transfer with an alert
-    // In a real implementation, this would update caravan/escrow inventories
+    // In a real implementation, this would update caravan inventories
     alert(`Transferred ${transferQty} ${selectedItem} to ${transferTo}`);
     
     // Reset form
@@ -68,7 +68,7 @@ export default function WarehousePage() {
       <h3>Storage Guide</h3>
       <p className="game-muted game-small">
         Your warehouse stores all items safely. Transfer items to caravans for missions 
-        or to escrow for secure trading.
+        and trading expeditions.
       </p>
       
       <h3>Storage Limits</h3>
@@ -80,10 +80,6 @@ export default function WarehousePage() {
         <div className="game-space-between">
           <span className="game-small">Caravan:</span>
           <span className="game-warn game-small">100 items</span>
-        </div>
-        <div className="game-space-between">
-          <span className="game-small">Escrow:</span>
-          <span className="game-good game-small">Unlimited</span>
         </div>
       </div>
 
@@ -180,11 +176,10 @@ export default function WarehousePage() {
               <label className="game-small">Transfer To</label>
               <select 
                 value={transferTo}
-                onChange={(e) => setTransferTo(e.target.value as 'caravan' | 'escrow')}
+                onChange={(e) => setTransferTo(e.target.value as 'caravan')}
                 style={{ width: '100%' }}
               >
                 <option value="caravan">Caravan (for missions)</option>
-                <option value="escrow">Escrow (for trading)</option>
               </select>
             </div>
           </div>

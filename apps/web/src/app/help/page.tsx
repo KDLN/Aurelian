@@ -178,7 +178,6 @@ export default function HelpPage() {
           <ul>
             <li><strong>Warehouse:</strong> Main storage, accessible for trading and crafting</li>
             <li><strong>Caravan:</strong> Items in transit during missions</li>
-            <li><strong>Escrow:</strong> Items locked in pending trades</li>
             <li><strong>Guild Warehouse:</strong> Shared storage for guild members</li>
           </ul>
 

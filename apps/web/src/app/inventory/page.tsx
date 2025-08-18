@@ -28,26 +28,25 @@ export default function InventoryPage() {
   const [inventoryData, setInventoryData] = useState<Record<string, LocationInventory>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedLocation, setSelectedLocation] = useState<'all' | 'warehouse' | 'caravan' | 'escrow'>('all');
+  const [selectedLocation, setSelectedLocation] = useState<'all' | 'warehouse' | 'caravan'>('all');
   const [selectedItem, setSelectedItem] = useState('');
   const [transferQty, setTransferQty] = useState(1);
-  const [transferFrom, setTransferFrom] = useState<'warehouse' | 'caravan' | 'escrow'>('warehouse');
-  const [transferTo, setTransferTo] = useState<'warehouse' | 'caravan' | 'escrow'>('caravan');
+  const [transferFrom, setTransferFrom] = useState<'warehouse' | 'caravan'>('warehouse');
+  const [transferTo, setTransferTo] = useState<'warehouse' | 'caravan'>('caravan');
 
   // Auto-set transfer from location when view changes
-  const handleLocationChange = (newLocation: 'all' | 'warehouse' | 'caravan' | 'escrow') => {
+  const handleLocationChange = (newLocation: 'all' | 'warehouse' | 'caravan') => {
     setSelectedLocation(newLocation);
     // If a specific location is selected, set it as the transfer from location
     if (newLocation !== 'all') {
-      setTransferFrom(newLocation as 'warehouse' | 'caravan' | 'escrow');
+      setTransferFrom(newLocation as 'warehouse' | 'caravan');
       // Auto-set transfer to location to something different
       if (newLocation === 'warehouse') setTransferTo('caravan');
       else if (newLocation === 'caravan') setTransferTo('warehouse');
-      else if (newLocation === 'escrow') setTransferTo('warehouse');
     }
   };
 
-  const locations = ['warehouse', 'caravan', 'escrow'];
+  const locations = ['warehouse', 'caravan'];
 
   useEffect(() => {
     if (authLoaded && user) {
@@ -177,7 +176,6 @@ export default function InventoryPage() {
     switch (location) {
       case 'warehouse': return '🏭';
       case 'caravan': return '🐎';
-      case 'escrow': return '🔒';
       default: return '📦';
     }
   };
@@ -191,7 +189,7 @@ export default function InventoryPage() {
       <h3>Inventory Guide</h3>
       <p className="game-muted game-small">
         View and manage all your items across different locations. Transfer items between 
-        warehouse, caravan, and escrow as needed.
+        warehouse and caravan as needed.
       </p>
       
       <h3>Storage Locations</h3>
@@ -203,10 +201,6 @@ export default function InventoryPage() {
         <div className="game-space-between">
           <span className="game-small">🐎 Caravan:</span>
           <span className="game-warn game-small">For missions</span>
-        </div>
-        <div className="game-space-between">
-          <span className="game-small">🔒 Escrow:</span>
-          <span className="game-good game-small">For trading</span>
         </div>
       </div>
 
@@ -260,7 +254,6 @@ export default function InventoryPage() {
                   <option value="all">All Locations</option>
                   <option value="warehouse">🏭 Warehouse</option>
                   <option value="caravan">🐎 Caravan</option>
-                  <option value="escrow">🔒 Escrow</option>
                 </select>
               </div>
               <div className="game-grid-3">
@@ -319,7 +312,6 @@ export default function InventoryPage() {
                 >
                   <option value="warehouse">🏭 Warehouse</option>
                   <option value="caravan">🐎 Caravan</option>
-                  <option value="escrow">🔒 Escrow</option>
                 </select>
               </div>
               
@@ -332,7 +324,6 @@ export default function InventoryPage() {
                 >
                   <option value="warehouse">🏭 Warehouse</option>
                   <option value="caravan">🐎 Caravan</option>
-                  <option value="escrow">🔒 Escrow</option>
                 </select>
               </div>
               
