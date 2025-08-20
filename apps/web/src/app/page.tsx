@@ -904,7 +904,6 @@ export default function Home() {
           <div>
             <h4>🎮 Game Systems</h4>
             <ul>
-              <li><a href="/creator">Character Design</a></li>
               <li><a href="/profile">Trading Reputation</a></li>
               <li><a href="/hub">Central Exchange</a></li>
               <li><a href="/lobby">Game Access</a></li>
