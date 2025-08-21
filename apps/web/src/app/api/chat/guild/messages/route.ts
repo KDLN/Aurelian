@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       return createErrorResponse('MISSING_FIELDS', 'Maximum limit is 100 messages');
     }
 
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
+    const token = request.headers.get('authorization')?.replace('Bearer ', '') || null;
     
     // Authenticate user
     const authResult = await authenticateUser(token);

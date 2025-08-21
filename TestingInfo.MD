@@ -2,19 +2,19 @@
 
 2 Button and pill color is off
 
-3 Build guild invite system
+✓ 3 Build guild invite system
 
-4 Remove quick actions from game-panel game-panel-left all are solved by using navigationm 
+✓ 4 Remove quick actions from game-panel game-panel-left all are solved by using navigationm 
 
-5 Remove Market overview from /auciton in facvor of market dashboard
+✓ 5 Remove Market overview from /auciton in facvor of market dashboard
 
 6 move active jobs to main right side vs left bar
 
 6 drop quick actoins from warehouse
 
-7 Escro is going away
+✓ 7 Escro is going away
 
-8 Blend/combind warehouse
+✓ 8 Blend/combind warehouse
 
 9 drop world map
 
@@ -22,7 +22,7 @@
 
 11 tut system re-do
 
-12 Hide hub travel page till things go
+✓ 12 Hide hub travel page till things go
 
 13 remove all debug buttons and flows
 

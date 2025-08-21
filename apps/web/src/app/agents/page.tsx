@@ -46,7 +46,7 @@ export default function AgentsPage() {
     const success = await equipItem(equipmentMode.agentId, itemKey, equipmentMode.slot);
     if (success) {
       // Show success feedback
-      const equipmentName = equipment?.find(e => e.itemKey === itemKey)?.displayName || itemKey;
+      const equipmentName = equipment?.find(e => e.itemKey === itemKey)?.name || itemKey;
       alert(`✅ Successfully equipped ${equipmentName}!\n\n💡 Agent stats have been updated with equipment bonuses.`);
       setEquipmentMode(null);
       refetch();

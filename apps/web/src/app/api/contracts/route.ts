@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch user's contracts
     const contracts = await prisma.contract.findMany({
-      where: { userId: user.id },
+      where: { ownerId: user.id },
       include: {
         item: {
           select: {
@@ -53,10 +53,8 @@ export async function GET(request: NextRequest) {
       item: contract.item.name,
       itemKey: contract.item.key,
       qty: contract.qty,
-      filled: contract.filled,
-      limit: contract.priceLimit,
-      expires: contract.expiresAt,
-      status: getContractStatus(contract),
+      price: contract.price,
+      status: contract.status,
       createdAt: contract.createdAt
     }));
 
@@ -155,12 +153,10 @@ export async function POST(request: NextRequest) {
       // Create contract
       const contract = await tx.contract.create({
         data: {
-          userId: user.id,
+          ownerId: user.id,
           itemId: itemDef.id,
           qty: quantity,
-          filled: 0,
-          priceLimit: priceLimit,
-          expiresAt: new Date(Date.now() + duration * 60 * 1000), // duration in minutes
+          price: priceLimit,
         },
         include: {
           item: {

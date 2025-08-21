@@ -15,6 +15,11 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { agentId: string } }
 ) {
+  const { agentId } = params;
+  let user: any = null;
+  let itemKey: string = '';
+  let slot: string = '';
+
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
@@ -22,14 +27,16 @@ export async function POST(
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
 
-    if (authError || !user) {
+    if (authError || !authUser) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    const { agentId } = params;
-    const { itemKey, slot } = await request.json();
+    user = authUser;
+    const requestBody = await request.json();
+    itemKey = requestBody.itemKey;
+    slot = requestBody.slot;
 
     if (!itemKey || !slot) {
       return NextResponse.json({ error: 'Item key and slot are required' }, { status: 400 });

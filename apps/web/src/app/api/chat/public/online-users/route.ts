@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       return createErrorResponse('MISSING_FIELDS', 'Valid channel parameter is required (GENERAL or TRADE)');
     }
 
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
+    const token = request.headers.get('authorization')?.replace('Bearer ', '') || null;
     
     // Authenticate user
     const authResult = await authenticateUser(token);

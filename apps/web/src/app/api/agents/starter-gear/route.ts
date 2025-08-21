@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
       for (const itemKey of starterGear) {
         // Find the item definition
         const itemDef = await tx.itemDef.findFirst({
-          where: { itemKey }
+          where: { key: itemKey }
         });
         
         if (!itemDef) continue;
@@ -50,22 +50,20 @@ export async function POST(request: NextRequest) {
         // Add to inventory
         const inventoryItem = await tx.inventory.upsert({
           where: {
-            userId_itemKey_location: {
+            userId_itemId_location: {
               userId: user.id,
-              itemKey,
+              itemId: itemDef.id,
               location: 'warehouse'
             }
           },
           update: {
-            quantity: { increment: 1 }
+            qty: { increment: 1 }
           },
           create: {
             userId: user.id,
             itemId: itemDef.id,
-            itemKey,
             location: 'warehouse',
-            quantity: 1,
-            rarity: 'COMMON'
+            qty: 1
           }
         });
         

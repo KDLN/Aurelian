@@ -72,7 +72,7 @@ async function generateGuildHealthReport(guildId: string) {
       warehouse: {
         include: {
           item: {
-            select: { name: true, type: true }
+            select: { name: true, key: true }
           }
         }
       }

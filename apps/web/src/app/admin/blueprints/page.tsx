@@ -223,8 +223,8 @@ function BlueprintForm({
     category: blueprint?.category || 'general',
     requiredLevel: blueprint?.requiredLevel || 1,
     xpReward: blueprint?.xpReward || 10,
-    starterRecipe: blueprint?.starterRecipe || false,
-    discoverable: blueprint?.discoverable || true,
+    starterRecipe: blueprint?.starterRecipe ?? false,
+    discoverable: blueprint?.discoverable ?? true,
     description: blueprint?.description || '',
   });
 

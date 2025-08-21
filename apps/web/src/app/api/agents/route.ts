@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Log the agent hiring activity and track stats
-    await ActivityLogger.logAgentHired(user.id, newAgentData.name, newAgentData.class);
+    await ActivityLogger.logAgentHired(user.id, newAgentData.name, newAgentData.specialty);
     await DailyStatsTracker.trackAgentHired(user.id);
     await DailyStatsTracker.trackGoldSpent(user.id, hiringCost);
 

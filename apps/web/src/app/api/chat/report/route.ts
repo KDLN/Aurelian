@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 // POST - Report a chat message for inappropriate content
 export async function POST(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
+    const token = request.headers.get('authorization')?.replace('Bearer ', '') || null;
     
     // Authenticate user
     const authResult = await authenticateUser(token);
