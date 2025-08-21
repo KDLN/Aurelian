@@ -15,6 +15,18 @@ import { NextResponse } from 'next/server';
 jest.mock('@/lib/supabaseClient');
 jest.mock('@/lib/prisma');
 
+// Mock Supabase client creation
+jest.mock('@supabase/supabase-js', () => ({
+  createClient: jest.fn(() => ({
+    auth: {
+      getUser: jest.fn().mockResolvedValue({
+        data: { user: null },
+        error: { message: 'Mock error' }
+      })
+    }
+  }))
+}));
+
 describe('API Utility Functions', () => {
   beforeEach(() => {
     jest.clearAllMocks();

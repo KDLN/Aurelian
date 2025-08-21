@@ -95,3 +95,29 @@ global.ResizeObserver = jest.fn().mockImplementation(() => ({
   unobserve: jest.fn(),
   disconnect: jest.fn(),
 }))
+
+// Mock Supabase client to prevent network calls
+jest.mock('@supabase/supabase-js', () => ({
+  createClient: jest.fn(() => ({
+    auth: {
+      getUser: jest.fn().mockResolvedValue({ 
+        data: { user: null }, 
+        error: { message: 'Mock auth error' } 
+      })
+    }
+  }))
+}));
+
+// Setup test cleanup to prevent async leaks
+beforeEach(() => {
+  jest.clearAllTimers();
+});
+
+afterEach(() => {
+  jest.clearAllMocks();
+  jest.clearAllTimers();
+  jest.useRealTimers();
+});
+
+// Global test timeout
+jest.setTimeout(10000);
