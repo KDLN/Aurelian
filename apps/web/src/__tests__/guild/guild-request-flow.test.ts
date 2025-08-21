@@ -537,8 +537,8 @@ describe('Guild Request Flow Tests', () => {
         return { canSend: true };
       };
 
-      await expect(checkRequestRateLimit())
-        .rejects.toThrow('Too many requests sent. Try again in 60 minutes.');
+      expect(() => checkRequestRateLimit())
+        .toThrow('Too many requests sent. Try again in 60 minutes.');
 
       expect(checkRateLimit).toHaveBeenCalledWith(`guild_request:user-123`, 3600000, 5);
     });
