@@ -61,7 +61,6 @@ describe('Mission Completion Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.spyOn(Math, 'random').mockReturnValue(0.5); // Fixed random for predictable tests
-    jest.spyOn(Math, 'floor').mockImplementation((x) => Math.floor(x));
     jest.spyOn(Date, 'now').mockReturnValue(new Date('2023-01-01T12:00:00Z').getTime());
   });
 
@@ -285,7 +284,8 @@ describe('Mission Completion Tests', () => {
           include: { mission: true }
         });
 
-        const now = new Date();
+        // Use fixed current time from our mock
+        const now = new Date('2023-01-01T12:00:00Z'); // Current mocked time
         if (now < missionInstance!.endTime) {
           throw new Error('Mission not yet complete');
         }
