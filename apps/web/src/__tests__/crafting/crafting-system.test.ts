@@ -31,11 +31,11 @@ const mockPrisma = prisma as jest.Mocked<typeof prisma>;
 describe('Crafting System Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.useFakeTimers();
+    // Fake timers are already enabled globally
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    // Timers are cleared globally
   });
 
   describe('Crafting Job Creation', () => {

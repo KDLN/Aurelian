@@ -108,6 +108,9 @@ jest.mock('@supabase/supabase-js', () => ({
   }))
 }));
 
+// Mock timers globally to prevent real setInterval/setTimeout from running
+jest.useFakeTimers();
+
 // Setup test cleanup to prevent async leaks
 beforeEach(() => {
   jest.clearAllTimers();
@@ -116,8 +119,13 @@ beforeEach(() => {
 afterEach(() => {
   jest.clearAllMocks();
   jest.clearAllTimers();
-  jest.useRealTimers();
 });
 
 // Global test timeout
 jest.setTimeout(10000);
+
+// Clear all timers on exit
+afterAll(() => {
+  jest.clearAllTimers();
+  jest.useRealTimers();
+});
