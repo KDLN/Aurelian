@@ -35,7 +35,7 @@ async function getAllianceBenefits(userGuildId: string, roadOwnerGuildId: string
     isAllied: !!alliance,
     travelTaxReduction: alliance?.travelTaxReduction || 0,
     alliedGuild: alliance ? (
-      alliance.fromGuildId === roadOwnerGuildId ? alliance.fromGuild : alliance.toGuild
+      alliance.fromGuild ? alliance.fromGuild : alliance.toGuild
     ) : null
   };
 }
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
 
     let finalToll = baseToll;
     let allianceDiscount = 0;
-    let allianceBenefits = null;
+    let allianceBenefits: any = null;
 
     // Apply alliance benefits if user is in a guild
     if (userData.guildMembership) {
@@ -166,20 +166,17 @@ export async function POST(request: NextRequest) {
       // Deduct travel costs
       await tx.wallet.update({
         where: { userId: user.id },
-        data: { gold: userData.wallets.gold - totalCost }
+        data: { gold: userData.wallets!.gold - totalCost }
       });
 
       // Create route booking record (simplified)
       const booking = await tx.routeBooking.create({
         data: {
           userId: user.id,
-          fromId: fromHubId,
-          toId: toHubId,
-          departureTime: new Date(),
-          arrivalTime: arrivalTime,
-          cost: totalCost,
-          status: 'traveling',
-          metadata: {
+          fromHubId: fromHubId,
+          toHubId: toHubId,
+          tollPaid: finalToll,
+          summary: {
             cargoItems: cargoItems || [],
             escortLevel: escortLevel || 0,
             allianceBenefits,
@@ -227,8 +224,8 @@ export async function POST(request: NextRequest) {
           distance: road.baseDist,
           risk: road.baseRisk
         },
-        departure: result.departureTime,
-        arrival: result.arrivalTime,
+        departure: new Date(),
+        arrival: arrivalTime,
         duration: {
           hours: totalHours,
           formatted: `${totalHours}h`

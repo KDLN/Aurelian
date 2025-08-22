@@ -56,7 +56,7 @@ describe('Auto-sync User', () => {
   describe('userExists', () => {
     it('should return true for existing user', async () => {
       const userId = '12345678-1234-1234-1234-123456789abc';
-      mockPrisma.user.findUnique.mockResolvedValue({ id: userId } as any);
+      (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue({ id: userId } as any);
 
       const result = await userExists(userId);
 
@@ -69,7 +69,7 @@ describe('Auto-sync User', () => {
 
     it('should return false for non-existing user', async () => {
       const userId = '12345678-1234-1234-1234-123456789abc';
-      mockPrisma.user.findUnique.mockResolvedValue(null);
+      (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue(null);
 
       const result = await userExists(userId);
 
@@ -78,7 +78,7 @@ describe('Auto-sync User', () => {
 
     it('should handle database errors gracefully', async () => {
       const userId = '12345678-1234-1234-1234-123456789abc';
-      mockPrisma.user.findUnique.mockRejectedValue(new Error('DB Error'));
+      (mockPrisma.user.findUnique as jest.Mock).mockRejectedValue(new Error('DB Error'));
 
       const result = await userExists(userId);
 
@@ -99,19 +99,19 @@ describe('Auto-sync User', () => {
 
     beforeEach(() => {
       // Setup default mocks for new user creation
-      mockPrisma.user.upsert.mockResolvedValue(mockUser as any);
-      mockPrisma.profile.findUnique.mockResolvedValue(null);
-      mockPrisma.profile.create.mockResolvedValue({} as any);
-      mockPrisma.wallet.findUnique.mockResolvedValue(null);
-      mockPrisma.wallet.create.mockResolvedValue({} as any);
+      (mockPrisma.user.upsert as jest.Mock).mockResolvedValue(mockUser as any);
+      (mockPrisma.profile.findUnique as jest.Mock).mockResolvedValue(null);
+      (mockPrisma.profile.create as jest.Mock).mockResolvedValue({} as any);
+      (mockPrisma.wallet.findUnique as jest.Mock).mockResolvedValue(null);
+      (mockPrisma.wallet.create as jest.Mock).mockResolvedValue({} as any);
       
       // Mock item definitions for starter items
-      mockPrisma.itemDef.findUnique
+      (mockPrisma.itemDef.findUnique as jest.Mock)
         .mockResolvedValueOnce({ id: 'herb-id', key: 'herb' } as any)
         .mockResolvedValueOnce({ id: 'iron-id', key: 'iron_ore' } as any);
       
       // Mock no existing inventory
-      mockPrisma.inventory.findMany.mockResolvedValue([]);
+      (mockPrisma.inventory.findMany as jest.Mock).mockResolvedValue([]);
       
       // Mock transaction
       mockPrisma.$transaction.mockImplementation(async (callback) => {
@@ -157,8 +157,8 @@ describe('Auto-sync User', () => {
     });
 
     it('should not override existing profile or wallet', async () => {
-      mockPrisma.profile.findUnique.mockResolvedValue({ userId: 'auth-123' } as any);
-      mockPrisma.wallet.findUnique.mockResolvedValue({ userId: 'auth-123' } as any);
+      (mockPrisma.profile.findUnique as jest.Mock).mockResolvedValue({ userId: 'auth-123' } as any);
+      (mockPrisma.wallet.findUnique as jest.Mock).mockResolvedValue({ userId: 'auth-123' } as any);
 
       await ensureUserSynced(mockAuthUser);
 
@@ -171,8 +171,8 @@ describe('Auto-sync User', () => {
       (error as any).code = 'P2002';
       (error as any).meta = { target: ['email'] };
 
-      mockPrisma.user.upsert.mockRejectedValueOnce(error);
-      mockPrisma.user.upsert.mockResolvedValueOnce(mockUser as any);
+      (mockPrisma.user.upsert as jest.Mock).mockRejectedValueOnce(error);
+      (mockPrisma.user.upsert as jest.Mock).mockResolvedValueOnce(mockUser as any);
 
       await ensureUserSynced(mockAuthUser);
 
@@ -205,7 +205,7 @@ describe('Auto-sync User', () => {
     });
 
     it('should skip starter items if user already has them', async () => {
-      mockPrisma.inventory.findMany.mockResolvedValue([
+      (mockPrisma.inventory.findMany as jest.Mock).mockResolvedValue([
         { userId: 'auth-123', itemId: 'herb-id' }
       ] as any);
 
@@ -215,7 +215,7 @@ describe('Auto-sync User', () => {
     });
 
     it('should handle missing item definitions gracefully', async () => {
-      mockPrisma.itemDef.findUnique.mockResolvedValue(null);
+      (mockPrisma.itemDef.findUnique as jest.Mock).mockResolvedValue(null);
 
       // Should not throw error
       await expect(ensureUserSynced(mockAuthUser)).resolves.not.toThrow();
@@ -248,7 +248,7 @@ describe('Auto-sync User', () => {
     });
 
     it('should handle database errors', async () => {
-      mockPrisma.user.upsert.mockRejectedValue(new Error('Database connection failed'));
+      (mockPrisma.user.upsert as jest.Mock).mockRejectedValue(new Error('Database connection failed'));
 
       await expect(ensureUserSynced(mockAuthUser)).rejects.toThrow('Database sync failed');
     });
@@ -256,7 +256,7 @@ describe('Auto-sync User', () => {
 
   describe('ensureUserExistsOptimized', () => {
     it('should skip sync if user already exists', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({ id: 'auth-123' } as any);
+      (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue({ id: 'auth-123' } as any);
 
       await ensureUserExistsOptimized(mockAuthUser);
 
@@ -265,12 +265,12 @@ describe('Auto-sync User', () => {
     });
 
     it('should perform full sync if user does not exist', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue(null);
-      mockPrisma.user.upsert.mockResolvedValue({} as any);
-      mockPrisma.profile.findUnique.mockResolvedValue(null);
-      mockPrisma.profile.create.mockResolvedValue({} as any);
-      mockPrisma.wallet.findUnique.mockResolvedValue(null);
-      mockPrisma.wallet.create.mockResolvedValue({} as any);
+      (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue(null);
+      (mockPrisma.user.upsert as jest.Mock).mockResolvedValue({} as any);
+      (mockPrisma.profile.findUnique as jest.Mock).mockResolvedValue(null);
+      (mockPrisma.profile.create as jest.Mock).mockResolvedValue({} as any);
+      (mockPrisma.wallet.findUnique as jest.Mock).mockResolvedValue(null);
+      (mockPrisma.wallet.create as jest.Mock).mockResolvedValue({} as any);
 
       await ensureUserExistsOptimized(mockAuthUser);
 
@@ -303,7 +303,7 @@ describe('Auto-sync User', () => {
         error: null
       });
 
-      mockPrisma.user.findUnique.mockResolvedValue({ id: 'auth-123' } as any);
+      (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue({ id: 'auth-123' } as any);
 
       const result = await verifyAndSyncUser('valid-token', mockSupabase);
 

@@ -14,7 +14,7 @@ export function GuildPanel() {
   if (isLoading) {
     return (
       <div className="bg-[#2d1810] border border-[#8b6f31] rounded-lg p-6">
-        <LoadingSpinner message="Loading guild information..." />
+        <LoadingSpinner />
       </div>
     );
   }
@@ -132,7 +132,7 @@ export function GuildPanel() {
           )}
           
           {activeTab === 'treasury' && (
-            <TreasurySection />
+            <TreasurySection guild={guild} onUpdate={() => {}} />
           )}
           
           {activeTab === 'members' && (

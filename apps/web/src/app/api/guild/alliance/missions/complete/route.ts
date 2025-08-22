@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
 
     // Complete mission if requested and user has permission
     let missionCompleted = false;
-    let rewards = null;
+    let rewards: any = null;
 
     if (completeMission) {
       // Only alliance leaders/officers can complete missions

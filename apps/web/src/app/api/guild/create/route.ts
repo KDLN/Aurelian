@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
         data: {
           name,
           tag: tag.toUpperCase(),
-          emblem: emblem ? JSON.stringify(emblem) : null,
+          emblem: emblem ? JSON.stringify(emblem) : undefined,
           description
         }
       });
@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
         id: guild.id,
         name: guild.name,
         tag: guild.tag,
-        emblem: guild.emblem ? JSON.parse(guild.emblem) : null,
+        emblem: guild.emblem ? JSON.parse(guild.emblem as string) : null,
         description: guild.description,
         level: guild.level,
         treasury: guild.treasury,
@@ -177,7 +177,7 @@ export async function POST(request: NextRequest) {
       }
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Detailed error creating guild:', error);
     console.error('Error name:', error?.name);
     console.error('Error message:', error?.message);

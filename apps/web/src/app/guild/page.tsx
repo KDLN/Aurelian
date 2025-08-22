@@ -7,6 +7,7 @@ import { useGuild, useGuildInvitations } from '@/hooks/useGuild';
 import LoadingSpinner from '@/components/guild/LoadingSpinner';
 import ErrorBoundary from '@/components/guild/ErrorBoundary';
 import TreasurySection from '@/components/guild/TreasurySection';
+import { supabase } from '@/lib/supabaseClient';
 
 export default function GuildPage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'treasury' | 'wars'>('overview');
@@ -273,8 +274,8 @@ export default function GuildPage() {
                       alert('Please log in first');
                     }
                   } catch (err) {
-                    console.error('Sync error:', err);
-                    alert(`Sync failed: ${err.message}`);
+                    console.error('Sync error:', err as Error);
+                    alert(`Sync failed: ${(err as Error).message}`);
                   }
                 }}
               >

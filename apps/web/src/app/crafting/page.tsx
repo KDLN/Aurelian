@@ -128,7 +128,7 @@ export default function CraftingPage() {
     setPopulatingBlueprints(true);
     try {
       const { data: { session } } = await import('@/lib/supabaseClient').then(m => m.supabase.auth.getSession());
-      const token = session.data.session?.access_token;
+      const token = session?.access_token;
       
       if (!token) {
         setMessage('❌ Authentication failed');

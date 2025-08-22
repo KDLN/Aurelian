@@ -301,7 +301,7 @@ export default function TradingHub() {
                     </span>
                   </div>
                   <div className="game-muted game-small">
-                    Agent: {agents.find(a => a.id === mission.agentId)?.name || 'Unknown'}
+                    Agent: {agents.find(a => a.id === (mission as any).agentId)?.name || 'Unknown'}
                   </div>
                 </div>
               ))}

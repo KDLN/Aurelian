@@ -55,7 +55,7 @@ export async function createStarterPackage(userId: string, prisma?: PrismaClient
           await db.inventory.update({
             where: { id: existingInventory.id },
             data: {
-              quantity: existingInventory.quantity + starterItem.qty
+              qty: existingInventory.qty + starterItem.qty
             }
           });
           console.log(`Added ${starterItem.qty} ${starterItem.key} to existing inventory`);
@@ -65,7 +65,7 @@ export async function createStarterPackage(userId: string, prisma?: PrismaClient
             data: {
               userId,
               itemId: itemDef.id,
-              quantity: starterItem.qty,
+              qty: starterItem.qty,
               location: 'warehouse'
             }
           });

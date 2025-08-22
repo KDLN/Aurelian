@@ -18,7 +18,7 @@ export class DailyStatsTracker {
   /**
    * Get or create today's daily stats record
    */
-  private static async getTodaysStats(userId: string) {
+  private static async getOrCreateTodaysStats(userId: string) {
     const today = this.getTodayDate();
     
     return await prisma.dailyStats.upsert({

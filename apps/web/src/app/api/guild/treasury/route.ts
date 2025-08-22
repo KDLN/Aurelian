@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
       recentTransactions: recentTransactions.map(tx => ({
         id: tx.id,
         action: tx.action,
-        amount: tx.details?.amount || 0,
+        amount: (tx.details as any)?.amount || 0,
         user: tx.user?.profile?.display || 'Unknown',
         createdAt: tx.createdAt,
         details: tx.details

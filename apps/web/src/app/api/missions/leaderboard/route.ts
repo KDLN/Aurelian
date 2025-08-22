@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
     const longestStreaks = calculateLongestStreaks(longestStreakLeaders);
 
     // Find current user's rankings if authenticated
-    let userRankings = null;
+    let userRankings: any = null;
     if (currentUser) {
       userRankings = {
         totalGold: findUserRank(totalGoldLeaders as any[], currentUser.id, 'totalGold'),

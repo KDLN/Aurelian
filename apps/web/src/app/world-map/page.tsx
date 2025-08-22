@@ -71,7 +71,7 @@ export default function WorldMapPage() {
     return {
       ...area,
       activeMissions: activeMissions.length,
-      connections: area.connections.length
+      connectionsCount: area.connections.length
     };
   };
 
@@ -217,7 +217,7 @@ export default function WorldMapPage() {
                     <div className="game-grid-2" style={{ gap: '12px', marginBottom: '12px' }}>
                       <div>
                         <div className="game-small">Connected Routes:</div>
-                        <div className="game-good">{areaInfo.connections}</div>
+                        <div className="game-good">{areaInfo.connectionsCount}</div>
                       </div>
                       <div>
                         <div className="game-small">Active Missions:</div>
@@ -228,7 +228,7 @@ export default function WorldMapPage() {
                     <div>
                       <div className="game-small" style={{ marginBottom: '8px' }}>Connected To:</div>
                       <div className="game-flex-col" style={{ gap: '4px' }}>
-                        {areaInfo.connections.map(connId => {
+                        {(areaInfo.connections as string[]).map((connId: string) => {
                           const connectedArea = GAME_AREAS.find(a => a.id === connId);
                           return connectedArea ? (
                             <button
@@ -274,7 +274,7 @@ export default function WorldMapPage() {
                         {mission.mission?.fromHub} → {mission.mission?.toHub}
                       </div>
                       <div style={{ color: '#68b06e', marginTop: '4px' }}>
-                        {mission.agent?.name} (Level {mission.agent?.level})
+                        {(mission as any).agent?.name} (Level {(mission as any).agent?.level})
                       </div>
                     </div>
                   ))}

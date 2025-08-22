@@ -284,7 +284,7 @@ export default function GuildWarehousePage() {
                       <button
                         className="game-btn game-btn-primary game-btn-small"
                         onClick={() => handleDeposit(item.itemId, depositAmounts[item.itemId] || 0)}
-                        disabled={!depositAmounts[item.itemId] || depositAmounts[item.itemId] <= 0 || depositAmounts[item.itemId] > item.qty}
+                        disabled={!depositAmounts[item.itemId] || depositAmounts[item.itemId] <= 0 || depositAmounts[item.itemId] > (item as any).qty}
                       >
                         Deposit
                       </button>

@@ -10,6 +10,8 @@ import { useMobile } from '@/hooks/useMobile';
 import { ChatSystem } from '@/components/chat';
 import HelpTooltip from '@/components/HelpTooltip';
 import OnboardingTips from '@/components/OnboardingTips';
+import { CharacterAppearance } from '@/lib/sprites/characterSprites';
+import { loadCharacterAppearance } from '@/lib/sprites/characterOptions';
 import '@/lib/game/styles.css';
 
 interface GameLayoutProps {
@@ -41,6 +43,7 @@ export default function GameLayout({
   const [, forceUpdate] = useState(0);
   const [currentPath, setCurrentPath] = useState('');
   const [username, setUsername] = useState<string>('Anonymous Trader');
+  const [characterAppearance, setCharacterAppearance] = useState<CharacterAppearance | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [chatCollapsed, setChatCollapsed] = useState(isMobile);
   const [userGuildChannels, setUserGuildChannels] = useState<Array<{

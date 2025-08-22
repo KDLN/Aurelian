@@ -112,7 +112,7 @@ export default function CharacterViewer({
   useEffect(() => {
     const loadSprites = async () => {
       const basePath = '/sprites/FREE Mana Seed Character Base Demo 2.0';
-      const spritesToLoad = [];
+      const spritesToLoad: Array<{ key: string; path: string }> = [];
 
       // Determine which page to use based on activity
       const page = activity === 'combat' || activity === 'mission' ? 'pONE2' : 'p1';

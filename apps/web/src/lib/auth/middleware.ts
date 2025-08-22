@@ -92,7 +92,7 @@ export async function withGuildAuth<T = any>(
   handler: (user: User, guildId: string, request: NextRequest) => Promise<NextResponse<T>>,
   requiredRoles?: string[]
 ): Promise<NextResponse> {
-  return withAuth(request, async (user, req) => {
+  return withAuth(request, async (user, req): Promise<NextResponse<any>> => {
     try {
       const { getUserGuildMembership, checkRolePermissions } = await import('@/lib/apiUtils');
       

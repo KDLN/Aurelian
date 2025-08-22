@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { withAuth, withAuthLight, withGuildAuth, getRequestBody } from '../middleware';
 import { supabase } from '@/lib/supabaseClient';
 import { ensureUserExistsOptimized } from '@/lib/auth/auto-sync';
@@ -23,8 +23,8 @@ describe('Auth Middleware', () => {
     jest.clearAllMocks();
     
     // Setup default mocks
-    mockCreateErrorResponse.mockImplementation((type: string, message?: string) => 
-      new Response(JSON.stringify({ error: type, message }), { status: 401 })
+    mockCreateErrorResponse.mockImplementation((error: string, details?: string) => 
+      NextResponse.json({ error, details: details || error }, { status: 401 })
     );
     
     mockHandler = jest.fn().mockResolvedValue(new Response('success'));
@@ -45,7 +45,7 @@ describe('Auth Middleware', () => {
     };
 
     it('should authenticate valid token and call handler', async () => {
-      mockSupabase.auth.getUser.mockResolvedValue({
+      (mockSupabase.auth.getUser as jest.Mock).mockResolvedValue({
         data: { user: mockUser },
         error: null
       });
@@ -69,7 +69,7 @@ describe('Auth Middleware', () => {
     });
 
     it('should reject invalid token', async () => {
-      mockSupabase.auth.getUser.mockResolvedValue({
+      (mockSupabase.auth.getUser as jest.Mock).mockResolvedValue({
         data: { user: null },
         error: { message: 'Invalid token' } as any
       });
@@ -81,7 +81,7 @@ describe('Auth Middleware', () => {
     });
 
     it('should handle user sync failure', async () => {
-      mockSupabase.auth.getUser.mockResolvedValue({
+      (mockSupabase.auth.getUser as jest.Mock).mockResolvedValue({
         data: { user: mockUser },
         error: null
       });
@@ -94,7 +94,7 @@ describe('Auth Middleware', () => {
     });
 
     it('should handle unexpected errors', async () => {
-      mockSupabase.auth.getUser.mockRejectedValue(new Error('Network error'));
+      (mockSupabase.auth.getUser as jest.Mock).mockRejectedValue(new Error('Network error'));
 
       await withAuth(mockRequest, mockHandler);
 
@@ -110,7 +110,7 @@ describe('Auth Middleware', () => {
     };
 
     it('should authenticate without user sync', async () => {
-      mockSupabase.auth.getUser.mockResolvedValue({
+      (mockSupabase.auth.getUser as jest.Mock).mockResolvedValue({
         data: { user: mockUser },
         error: null
       });
@@ -133,7 +133,7 @@ describe('Auth Middleware', () => {
     });
 
     it('should handle auth errors gracefully', async () => {
-      mockSupabase.auth.getUser.mockResolvedValue({
+      (mockSupabase.auth.getUser as jest.Mock).mockResolvedValue({
         data: { user: null },
         error: { message: 'Token expired' } as any
       });
@@ -154,7 +154,7 @@ describe('Auth Middleware', () => {
     const mockGuildHandler = jest.fn().mockResolvedValue(new Response('guild success'));
 
     beforeEach(() => {
-      mockSupabase.auth.getUser.mockResolvedValue({
+      (mockSupabase.auth.getUser as jest.Mock).mockResolvedValue({
         data: { user: mockUser },
         error: null
       });
@@ -163,14 +163,28 @@ describe('Auth Middleware', () => {
 
     it('should authenticate user with guild membership', async () => {
       const mockMembership = {
+        id: 'membership-123',
+        userId: '12345678-1234-1234-1234-123456789abc',
         guildId: 'guild-123',
-        role: 'MEMBER',
-        userId: '12345678-1234-1234-1234-123456789abc'
+        role: 'MEMBER' as any,
+        joinedAt: new Date(),
+        contributionPoints: 0,
+        permissions: {},
+        lastActive: new Date(),
+        guild: {
+          id: 'guild-123',
+          name: 'Test Guild',
+          tag: 'TEST',
+          level: 1,
+          treasury: 1000,
+          maxMembers: 50,
+          isActive: true
+        }
       };
 
       mockGetUserGuildMembership.mockResolvedValue({
         membership: mockMembership,
-        error: null
+        error: undefined
       });
 
       const result = await withGuildAuth(mockRequest, mockGuildHandler);
@@ -182,8 +196,8 @@ describe('Auth Middleware', () => {
 
     it('should reject user not in guild', async () => {
       mockGetUserGuildMembership.mockResolvedValue({
-        membership: null,
-        error: 'Not in guild'
+        membership: undefined,
+        error: 'INTERNAL_ERROR'
       });
 
       await withGuildAuth(mockRequest, mockGuildHandler);
@@ -194,14 +208,28 @@ describe('Auth Middleware', () => {
 
     it('should check role permissions when required', async () => {
       const mockMembership = {
+        id: 'membership-123',
+        userId: '12345678-1234-1234-1234-123456789abc',
         guildId: 'guild-123',
-        role: 'MEMBER',
-        userId: '12345678-1234-1234-1234-123456789abc'
+        role: 'MEMBER' as any,
+        joinedAt: new Date(),
+        contributionPoints: 0,
+        permissions: {},
+        lastActive: new Date(),
+        guild: {
+          id: 'guild-123',
+          name: 'Test Guild',
+          tag: 'TEST',
+          level: 1,
+          treasury: 1000,
+          maxMembers: 50,
+          isActive: true
+        }
       };
 
       mockGetUserGuildMembership.mockResolvedValue({
         membership: mockMembership,
-        error: null
+        error: undefined
       });
       mockCheckRolePermissions.mockReturnValue(false);
 
@@ -214,14 +242,28 @@ describe('Auth Middleware', () => {
 
     it('should allow access with sufficient permissions', async () => {
       const mockMembership = {
+        id: 'membership-123',
+        userId: '12345678-1234-1234-1234-123456789abc',
         guildId: 'guild-123',
-        role: 'OFFICER',
-        userId: '12345678-1234-1234-1234-123456789abc'
+        role: 'OFFICER' as any,
+        joinedAt: new Date(),
+        contributionPoints: 0,
+        permissions: {},
+        lastActive: new Date(),
+        guild: {
+          id: 'guild-123',
+          name: 'Test Guild',
+          tag: 'TEST',
+          level: 1,
+          treasury: 1000,
+          maxMembers: 50,
+          isActive: true
+        }
       };
 
       mockGetUserGuildMembership.mockResolvedValue({
         membership: mockMembership,
-        error: null
+        error: undefined
       });
       mockCheckRolePermissions.mockReturnValue(true);
 

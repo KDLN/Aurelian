@@ -18,6 +18,7 @@ export default function CharacterCreator() {
   const [direction, setDirection] = useState<'south' | 'west' | 'east' | 'north'>('south');
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [name, setName] = useState<string>('');
   const [saveMessage, setSaveMessage] = useState<string>('');
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | undefined>(undefined);

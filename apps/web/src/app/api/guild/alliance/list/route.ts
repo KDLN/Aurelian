@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
         benefits: alliance.status === 'ACCEPTED' ? {
           travelTaxReduction: alliance.travelTaxReduction,
           auctionFeeReduction: alliance.auctionFeeReduction,
-          safePassage: alliance.terms?.safePassage ?? true,
+          safePassage: (alliance.terms as any)?.safePassage ?? true,
           sharedChat: alliance.channels.length > 0,
           jointMissions: alliance.missions.length > 0
         } : null,

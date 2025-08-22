@@ -11,7 +11,7 @@ const MISSION_DEFS_CACHE_TTL = 30000; // 30 seconds
 
 // GET - Fetch all mission definitions and user's active missions
 export async function GET(request: NextRequest) {
-  return withAuth(request, async (user) => {
+  return withAuth(request, async (user, req): Promise<NextResponse<any>> => {
     const startTime = performance.now();
     console.log('🚀 [Missions GET] Starting request for user:', user.id);
 
@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
       const totalTime = endTime - startTime;
       
       console.log(`🏁 [Missions GET] Request completed in ${totalTime.toFixed(2)}ms`);
-      console.log(`📈 [Missions GET] Performance breakdown: Auth(${(authEndTime - authStartTime).toFixed(2)}ms) + DB(${(dbEndTime - dbStartTime).toFixed(2)}ms) + Processing(${(endTime - dbEndTime).toFixed(2)}ms)`);
+      console.log(`📈 [Missions GET] Performance breakdown: DB(${(dbEndTime - dbStartTime).toFixed(2)}ms) + Processing(${(endTime - dbEndTime).toFixed(2)}ms)`);
       
       const response = NextResponse.json({
         missionDefs,
@@ -118,7 +118,6 @@ export async function GET(request: NextRequest) {
         debugTimestamp: new Date().toISOString(),
         performance: {
           totalMs: Math.round(totalTime),
-          authMs: Math.round(authEndTime - authStartTime),
           dbMs: Math.round(dbEndTime - dbStartTime),
           usedCache,
           cacheAgeSeconds: missionDefsCache ? Math.round(cacheAge/1000) : null
@@ -188,7 +187,7 @@ export async function GET(request: NextRequest) {
 
 // POST - Start a new mission
 export async function POST(request: NextRequest) {
-  return withAuth(request, async (user) => {
+  return withAuth(request, async (user, req): Promise<NextResponse<any>> => {
     const body = await getRequestBody<{ missionId: string; agentId: string }>(request);
     
     if (!body || !body.missionId) {
@@ -269,7 +268,7 @@ export async function POST(request: NextRequest) {
       const occupiedSlots = activeMissions.map(m => m.caravanSlot);
       
       // Find first available slot
-      let availableSlot = null;
+      let availableSlot: number | null = null;
       for (let slot = 1; slot <= totalSlots; slot++) {
         if (!occupiedSlots.includes(slot)) {
           availableSlot = slot;
@@ -297,7 +296,7 @@ export async function POST(request: NextRequest) {
         duration: missionDef.baseDuration,
         adjustedDuration,
         endTime: endTime.toISOString(),
-        caravanSlot: availableSlot,
+        caravanSlot: availableSlot!,
         agentId: agent.id,
         agentName: agent.name,
         agentBonuses: {
@@ -314,7 +313,7 @@ export async function POST(request: NextRequest) {
           agentId: agent.id,
           status: 'active',
           endTime,
-          caravanSlot: availableSlot
+          caravanSlot: availableSlot!
         },
         include: {
           mission: true,

@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
 
     let totalToll = tollCost;
     let allianceDiscount = 0;
-    let allianceInfo = null;
+    let allianceInfo: any = null;
 
     // Check for alliance benefits if user is in a guild
     if (membership && membership.guildId) {

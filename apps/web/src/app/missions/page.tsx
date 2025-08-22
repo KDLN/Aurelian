@@ -430,7 +430,7 @@ export default function MissionsPage() {
                 const agent = agents.find(a => a.id === selectedAgent);
                 if (!mission || !agent) return null;
 
-                const calculations = calculateMissionSuccess(mission, agent);
+                const calculations = calculateMissionSuccess(mission as any, agent);
                 const difficultyInfo = getMissionDifficultyText(mission.riskLevel);
                 const typeInfo = agentTypeInfo[agent.specialty];
 
@@ -529,7 +529,7 @@ export default function MissionsPage() {
           <div className="game-flex-col">
             {activeMissions.length > 0 ? activeMissions.map(missionInstance => {
               const missionDef = missionInstance.mission || missionDefs.find(def => def.id === missionInstance.missionId);
-              const agentOnMission = agents.find(a => a.id === missionInstance.agentId);
+              const agentOnMission = agents.find(a => a.id === (missionInstance as any).agentId);
               
               return (
               <div key={missionInstance.id} className="game-card" style={{ 

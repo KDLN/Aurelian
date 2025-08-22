@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
         type: activity.type,
         message: activity.message,
         timestamp: activity.createdAt,
-        reward: activity.metadata?.reward || undefined,
+        reward: (activity.metadata as any)?.reward || undefined,
         metadata: activity.metadata
       }));
 

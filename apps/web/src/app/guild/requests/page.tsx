@@ -38,11 +38,11 @@ export default function GuildRequestsPage() {
       setLoading(true);
       setError(null);
       
-      const data = await getGuildRequests();
+      const data: any = await getGuildRequests();
       
       if (Array.isArray(data)) {
         setRequests(data);
-      } else if (data.requests) {
+      } else if (data?.requests) {
         setRequests(data.requests);
         setGuild(data.guild);
       }

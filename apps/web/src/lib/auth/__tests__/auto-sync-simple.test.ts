@@ -68,7 +68,7 @@ describe('Auto-sync User - Core Functions', () => {
     it('should handle database errors gracefully', async () => {
       const { userExists } = await import('../auto-sync');
       
-      mockPrisma.user.findUnique.mockRejectedValue(new Error('DB Connection failed'));
+      (mockPrisma.user.findUnique as jest.Mock).mockRejectedValue(new Error('DB Connection failed'));
 
       const result = await userExists(userId);
 
@@ -95,7 +95,7 @@ describe('Auto-sync User - Core Functions', () => {
       (mockPrisma.wallet.create as jest.Mock).mockResolvedValue({} as any);
       
       // Mock item definitions
-      mockPrisma.itemDef.findUnique
+      (mockPrisma.itemDef.findUnique as jest.Mock)
         .mockResolvedValueOnce({ id: 'herb-id', key: 'herb' } as any)
         .mockResolvedValueOnce({ id: 'iron-id', key: 'iron_ore' } as any);
       
@@ -191,7 +191,7 @@ describe('Auto-sync User - Core Functions', () => {
       (uniqueError as any).code = 'P2002';
       (uniqueError as any).meta = { target: ['email'] };
 
-      mockPrisma.user.upsert
+      (mockPrisma.user.upsert as jest.Mock)
         .mockRejectedValueOnce(uniqueError)
         .mockResolvedValueOnce({
           id: userId,
@@ -224,7 +224,7 @@ describe('Auto-sync User - Core Functions', () => {
       jest.resetModules();
       const { ensureUserSynced } = await import('../auto-sync');
       
-      mockPrisma.user.upsert.mockRejectedValue(new Error('Database connection failed'));
+      (mockPrisma.user.upsert as jest.Mock).mockRejectedValue(new Error('Database connection failed'));
 
       await expect(ensureUserSynced(mockAuthUser)).rejects.toThrow('Database sync failed');
     });

@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
 
       await logGuildActivity(
         guild.id,
-        null, // System action
+        user.id, // User action
         'join_request_received',
         { 
           requesterId: user.id,
@@ -186,7 +186,6 @@ export async function GET(request: NextRequest) {
             name: true,
             tag: true,
             level: true,
-            memberCount: true,
             maxMembers: true
           }
         }
@@ -196,7 +195,7 @@ export async function GET(request: NextRequest) {
 
     const formattedRequests = requests.map(req => ({
       id: req.id,
-      guild: req.guild,
+      guild: req.guild || null,
       message: req.message,
       status: req.status,
       createdAt: req.createdAt,

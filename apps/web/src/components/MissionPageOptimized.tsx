@@ -34,6 +34,7 @@ export default function MissionPageOptimized({ initialData }: MissionPageOptimiz
   const { formatDuration, getRiskColor } = useMissionHelpers();
   
   const [selectedMission, setSelectedMission] = useState<string>('');
+  const [selectedAgent, setSelectedAgent] = useState<string>('');
   const [completionMessage, setCompletionMessage] = useState<string>('');
 
   // Use initial data if available, otherwise use query data
@@ -47,7 +48,7 @@ export default function MissionPageOptimized({ initialData }: MissionPageOptimiz
     }
 
     try {
-      const result = await startMissionMutation.mutateAsync(selectedMission);
+      const result = await startMissionMutation.mutateAsync({ missionId: selectedMission, agentId: selectedAgent });
       if (result.success) {
         setSelectedMission('');
         alert('Mission started successfully!');
