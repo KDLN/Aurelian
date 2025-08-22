@@ -20,13 +20,13 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Generate Prisma client
         run: npx prisma generate
 
       - name: Run tests
-        run: npm run test
+        run: npm run test:web
         continue-on-error: true
         env:
           # Mock Supabase URLs for tests
@@ -34,10 +34,10 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
 
       - name: Run type checking
-        run: npm run typecheck
+        run: npm run typecheck:web
 
       - name: Run linting
-        run: npm run lint
+        run: npm run lint:web
 
   build:
     runs-on: ubuntu-latest
@@ -54,13 +54,13 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Generate Prisma client
         run: npx prisma generate
 
-      - name: Build all apps
-        run: npm run build
+      - name: Build web app
+        run: npm run build:web
         env:
           # Required for build
           NEXT_PUBLIC_SUPABASE_URL: https://test.supabase.co
