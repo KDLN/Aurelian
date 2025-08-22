@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     // Authenticate user (public channels are accessible to all authenticated users)
     const authResult = await authenticateUser(token);
     if ('error' in authResult) {
-      return createErrorResponse(authResult.error);
+      return createErrorResponse(authResult.error as string);
     }
 
     // Build where clause

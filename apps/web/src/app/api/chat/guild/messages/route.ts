@@ -30,14 +30,18 @@ export async function GET(request: NextRequest) {
     // Authenticate user
     const authResult = await authenticateUser(token);
     if ('error' in authResult) {
-      return createErrorResponse(authResult.error);
+      return createErrorResponse(authResult.error as string);
     }
     const { user } = authResult;
+
+    if (!user.id) {
+      return createErrorResponse('INVALID_TOKEN', 'User ID missing');
+    }
 
     // Get user's guild membership
     const membershipResult = await getUserGuildMembership(user.id);
     if ('error' in membershipResult) {
-      return createErrorResponse(membershipResult.error);
+      return createErrorResponse(membershipResult.error as string);
     }
     const { membership } = membershipResult;
 

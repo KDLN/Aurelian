@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     // Authenticate user
     const authResult = await authenticateUser(token);
     if ('error' in authResult) {
-      return createErrorResponse(authResult.error);
+      return createErrorResponse(authResult.error as string);
     }
 
     // For now, return default settings
@@ -64,7 +64,7 @@ export async function PUT(request: NextRequest) {
     // Authenticate user
     const authResult = await authenticateUser(token);
     if ('error' in authResult) {
-      return createErrorResponse(authResult.error);
+      return createErrorResponse(authResult.error as string);
     }
 
     const settings = await request.json();

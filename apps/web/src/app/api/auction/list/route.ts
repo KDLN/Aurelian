@@ -36,6 +36,8 @@ async function checkAuctionAlliance(userGuildId: string, hubControllerGuildId: s
     },
     select: {
       auctionFeeReduction: true,
+      fromGuildId: true,
+      toGuildId: true,
       fromGuild: { select: { name: true, tag: true } },
       toGuild: { select: { name: true, tag: true } }
     }

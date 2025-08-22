@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     // Authenticate user
     const authResult = await authenticateUser(token);
     if ('error' in authResult) {
-      return createErrorResponse(authResult.error);
+      return createErrorResponse(authResult.error as string);
     }
     const { user } = authResult;
 

@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     // Authenticate user
     const authResult = await authenticateUser(token);
     if ('error' in authResult) {
-      return createErrorResponse(authResult.error);
+      return createErrorResponse(authResult.error as string);
     }
 
     // Get recent message senders in the last 15 minutes to estimate online users

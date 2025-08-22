@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
 
     // Add these items to user's inventory
     const result = await prisma.$transaction(async (tx) => {
-      const addedItems = [];
+      const addedItems: any[] = [];
       
       for (const itemKey of starterGear) {
         // Find the item definition
