@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { PrismaClient, EquipmentSlot } from '@prisma/client';
+import { EquipmentSlot } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import { calculateAgentStats } from '@/lib/agents/generator';
+
+export const dynamic = 'force-dynamic';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
-
-const prisma = new PrismaClient();
 
 // POST /api/agents/[agentId]/equip - Equip item to agent
 export async function POST(

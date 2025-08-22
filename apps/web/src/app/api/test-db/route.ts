@@ -1,47 +1,34 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  let prisma: PrismaClient | null = null;
   let dbStatus = {
     canConnect: false,
     error: null as string | null,
     missionDefCount: 0,
     missionInstanceCount: 0,
     userCount: 0,
-    prismaInitialized: false,
+    prismaInitialized: true,
     databaseUrl: process.env.DATABASE_URL ? 'SET' : 'NOT SET'
   };
 
   try {
-    // Try to initialize Prisma
-    if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('://')) {
-      prisma = new PrismaClient();
-      dbStatus.prismaInitialized = true;
+    // Try to query the database using the singleton prisma instance
+    const [missionDefs, missionInstances, users] = await Promise.all([
+      prisma.missionDef.count(),
+      prisma.missionInstance.count(),
+      prisma.user.count()
+    ]);
 
-      // Try to query the database
-      const [missionDefs, missionInstances, users] = await Promise.all([
-        prisma.missionDef.count(),
-        prisma.missionInstance.count(),
-        prisma.user.count()
-      ]);
-
-      dbStatus.canConnect = true;
-      dbStatus.missionDefCount = missionDefs;
-      dbStatus.missionInstanceCount = missionInstances;
-      dbStatus.userCount = users;
-    } else {
-      dbStatus.error = 'DATABASE_URL not configured or invalid';
-    }
+    dbStatus.canConnect = true;
+    dbStatus.missionDefCount = missionDefs;
+    dbStatus.missionInstanceCount = missionInstances;
+    dbStatus.userCount = users;
   } catch (error) {
     dbStatus.error = error instanceof Error ? error.message : 'Unknown error';
     dbStatus.canConnect = false;
-  } finally {
-    if (prisma) {
-      await prisma.$disconnect();
-    }
   }
 
   return NextResponse.json(dbStatus);

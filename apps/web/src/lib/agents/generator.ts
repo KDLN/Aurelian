@@ -1,4 +1,4 @@
-import { AgentType } from '@prisma/client';
+import { AgentType } from '@/lib/types';
 
 // Agent name generation
 const firstNames = [

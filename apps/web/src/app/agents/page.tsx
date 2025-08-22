@@ -5,7 +5,7 @@ import GameLayout from '@/components/GameLayout';
 import { useAgents, useHireAgent, useEquipAgent, useStarterGear } from '@/hooks/useAgents';
 import { useUserDataQuery } from '@/hooks/useUserDataQuery';
 import { useEquipment } from '@/hooks/useEquipment';
-import { AgentType, EquipmentSlot } from '@prisma/client';
+import { AgentType, EquipmentSlot } from '@/lib/types';
 import { agentTypeInfo, getHiringCost } from '@/lib/agents/generator';
 import { getAgentLevelProgress } from '@/lib/missions/calculator';
 

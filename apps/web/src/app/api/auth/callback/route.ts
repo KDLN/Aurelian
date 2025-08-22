@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 
-const prisma = new PrismaClient();
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
@@ -99,7 +99,5 @@ async function syncUserToDatabase(user: any) {
     
   } catch (error) {
     console.error('Auto-sync error:', error);
-  } finally {
-    await prisma.$disconnect();
   }
 }

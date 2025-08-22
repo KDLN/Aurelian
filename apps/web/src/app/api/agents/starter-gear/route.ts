@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
+
+export const dynamic = 'force-dynamic';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
-
-const prisma = new PrismaClient();
 
 // POST /api/agents/starter-gear - Give user basic equipment to test with
 export async function POST(request: NextRequest) {

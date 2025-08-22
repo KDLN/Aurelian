@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 
-const prisma = new PrismaClient();
+export const dynamic = 'force-dynamic';
 
 // This is the webhook secret from Supabase dashboard - we'll need to set this
 const WEBHOOK_SECRET = process.env.SUPABASE_WEBHOOK_SECRET;
@@ -54,8 +54,6 @@ export async function POST(request: NextRequest) {
       error: 'Webhook processing failed',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
   }
 }
 

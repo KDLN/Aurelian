@@ -1,4 +1,5 @@
-import { MissionRisk, Agent, MissionDef } from '@prisma/client';
+import { Agent, MissionDef } from '@prisma/client';
+import { MissionRisk } from '@/lib/types';
 
 // Base success rates by risk level
 const BASE_SUCCESS_RATES: Record<MissionRisk, number> = {

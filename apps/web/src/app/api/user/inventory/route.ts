@@ -1,20 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
-
-let prisma: PrismaClient | null = null;
-
-// Only initialize Prisma if DATABASE_URL is properly configured
-if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('://')) {
-  try {
-    prisma = new PrismaClient();
-  } catch (error) {
-    console.warn('Failed to initialize Prisma:', error);
-    prisma = null;
-  }
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -41,28 +29,6 @@ export async function GET(request: NextRequest) {
     // Get query parameters for filtering
     const url = new URL(request.url);
     const location = url.searchParams.get('location') || 'warehouse';
-
-    // Check if database is configured and Prisma is initialized
-    if (!prisma || !process.env.DATABASE_URL || process.env.DATABASE_URL === '') {
-      console.warn('Database not configured, returning default inventory data');
-      // Return mock inventory data
-      const mockInventory = [
-        { id: '1', itemId: '1', itemKey: 'iron_ore', itemName: 'Iron Ore', rarity: 'COMMON', quantity: 100, location },
-        { id: '2', itemId: '2', itemKey: 'herb', itemName: 'Herb', rarity: 'COMMON', quantity: 100, location },
-        { id: '3', itemId: '3', itemKey: 'hide', itemName: 'Hide', rarity: 'COMMON', quantity: 100, location },
-        { id: '4', itemId: '4', itemKey: 'pearl', itemName: 'Pearl', rarity: 'UNCOMMON', quantity: 100, location },
-        { id: '5', itemId: '5', itemKey: 'relic_fragment', itemName: 'Relic Fragment', rarity: 'RARE', quantity: 100, location },
-        { id: '6', itemId: '6', itemKey: 'iron_ingot', itemName: 'Iron Ingot', rarity: 'UNCOMMON', quantity: 100, location },
-        { id: '7', itemId: '7', itemKey: 'leather_roll', itemName: 'Leather Roll', rarity: 'UNCOMMON', quantity: 100, location },
-        { id: '8', itemId: '8', itemKey: 'healing_tonic', itemName: 'Healing Tonic', rarity: 'UNCOMMON', quantity: 100, location },
-      ];
-      
-      return NextResponse.json({
-        inventory: mockInventory,
-        location: location,
-        totalItems: mockInventory.reduce((sum, item) => sum + item.quantity, 0)
-      });
-    }
 
     // Try to get user's inventory from database
     let inventory;
@@ -126,9 +92,5 @@ export async function GET(request: NextRequest) {
       error: 'Failed to fetch inventory data',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
-  } finally {
-    if (prisma) {
-      await prisma.$disconnect();
-    }
   }
 }

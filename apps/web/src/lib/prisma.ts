@@ -19,6 +19,12 @@ class PrismaClientSingleton {
       return this.instance;
     }
 
+    // Don't create Prisma client during build time - return a mock client
+    if (process.env.NODE_ENV === undefined || process.env.NEXT_PHASE === 'phase-production-build') {
+      // Return a mock client that won't cause build failures
+      return {} as PrismaClient;
+    }
+
     // Create new instance with proper configuration for production
     this.instance = new PrismaClient({
       log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
@@ -45,7 +51,13 @@ class PrismaClientSingleton {
   }
 }
 
-export const prisma = PrismaClientSingleton.getInstance();
+// Lazy export to prevent build-time initialization
+export const prisma = new Proxy({} as PrismaClient, {
+  get(target, prop) {
+    const instance = PrismaClientSingleton.getInstance();
+    return instance[prop as keyof PrismaClient];
+  }
+});
 
 // Export the disconnect method for use in serverless cleanup
 export const disconnectPrisma = PrismaClientSingleton.disconnect;

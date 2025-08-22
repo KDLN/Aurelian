@@ -1,20 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
-
-let prisma: PrismaClient | null = null;
-
-// Only initialize Prisma if DATABASE_URL is properly configured
-if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('://')) {
-  try {
-    prisma = new PrismaClient();
-  } catch (error) {
-    console.warn('Failed to initialize Prisma:', error);
-    prisma = null;
-  }
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -36,16 +24,6 @@ export async function GET(request: NextRequest) {
     
     if (authError || !user) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
-
-    // Check if database is configured and Prisma is initialized
-    if (!prisma || !process.env.DATABASE_URL || process.env.DATABASE_URL === '') {
-      console.warn('Database not configured, returning default wallet data');
-      return NextResponse.json({
-        gold: 1000,
-        userId: user.id,
-        source: 'default'
-      });
     }
 
     // Try to get user's wallet from database
@@ -83,9 +61,5 @@ export async function GET(request: NextRequest) {
       error: 'Failed to fetch wallet data',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
-  } finally {
-    if (prisma) {
-      await prisma.$disconnect();
-    }
   }
 }
