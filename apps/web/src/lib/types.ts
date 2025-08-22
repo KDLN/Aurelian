@@ -11,7 +11,8 @@ export enum AgentType {
 export enum EquipmentSlot {
   WEAPON = 'WEAPON',
   ARMOR = 'ARMOR',
-  TOOL = 'TOOL'
+  TOOL = 'TOOL',
+  ACCESSORY = 'ACCESSORY'
 }
 
 export enum MissionRisk {

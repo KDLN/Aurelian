@@ -151,7 +151,7 @@ export async function POST(
       updateData[slot.toLowerCase()] = itemKey;
 
       // Recalculate agent stats
-      const baseStats = calculateAgentStats(agent.specialty, agent.level);
+      const baseStats = calculateAgentStats(agent.specialty as any, agent.level);
       
       // Get all equipment bonuses
       const allEquipment = {

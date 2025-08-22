@@ -53,7 +53,7 @@ export async function POST(
 
     // Calculate new stats after leveling up
     const newLevel = agent.level + 1;
-    const newStats = calculateAgentStats(agent.specialty, newLevel);
+    const newStats = calculateAgentStats(agent.specialty as any, newLevel);
 
     // Get current equipment bonuses to preserve them
     const allEquipment = {

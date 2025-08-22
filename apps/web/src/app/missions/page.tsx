@@ -431,7 +431,7 @@ export default function MissionsPage() {
                 if (!mission || !agent) return null;
 
                 const calculations = calculateMissionSuccess(mission as any, agent);
-                const difficultyInfo = getMissionDifficultyText(mission.riskLevel);
+                const difficultyInfo = getMissionDifficultyText(mission.riskLevel as any);
                 const typeInfo = agentTypeInfo[agent.specialty];
 
                 return (
