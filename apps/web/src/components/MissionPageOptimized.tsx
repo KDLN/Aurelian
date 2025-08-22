@@ -15,7 +15,7 @@ const WalletDisplay = dynamic(() => import('./WalletDisplay'), {
 const MissionTimer = dynamic(() => import('./MissionTimer'), {
   loading: () => <div>Loading timer...</div>,
   ssr: false
-});
+}) as React.ComponentType<any>;
 
 interface MissionPageOptimizedProps {
   initialData?: {

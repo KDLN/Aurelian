@@ -361,42 +361,44 @@ export default function HelpPage() {
         )}
       </div>
 
-      <style jsx>{`
-        .help-content h4 {
-          color: #d4af37;
-          margin-top: 20px;
-          margin-bottom: 8px;
-        }
-        
-        .help-content h5 {
-          color: #f1e5c8;
-          margin-top: 16px;
-          margin-bottom: 6px;
-        }
-        
-        .help-content ul, .help-content ol {
-          margin-left: 20px;
-          margin-bottom: 12px;
-        }
-        
-        .help-content li {
-          margin-bottom: 4px;
-          line-height: 1.4;
-        }
-        
-        .help-content a {
-          color: #68b06e;
-          text-decoration: none;
-        }
-        
-        .help-content a:hover {
-          text-decoration: underline;
-        }
-        
-        .help-content strong {
-          color: #d4af37;
-        }
-      `}</style>
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          .help-content h4 {
+            color: #d4af37;
+            margin-top: 20px;
+            margin-bottom: 8px;
+          }
+          
+          .help-content h5 {
+            color: #f1e5c8;
+            margin-top: 16px;
+            margin-bottom: 6px;
+          }
+          
+          .help-content ul, .help-content ol {
+            margin-left: 20px;
+            margin-bottom: 12px;
+          }
+          
+          .help-content li {
+            margin-bottom: 4px;
+            line-height: 1.4;
+          }
+          
+          .help-content a {
+            color: #68b06e;
+            text-decoration: none;
+          }
+          
+          .help-content a:hover {
+            text-decoration: underline;
+          }
+          
+          .help-content strong {
+            color: #d4af37;
+          }
+        `
+      }} />
     </GameLayout>
   );
 }

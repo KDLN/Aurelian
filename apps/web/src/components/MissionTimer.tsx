@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import React from 'react';
 import { useMissionTimer } from '@/hooks/useMissionTimer';
 
 interface MissionTimerProps {
@@ -10,7 +10,7 @@ interface MissionTimerProps {
   isCompleting?: boolean;
 }
 
-const MissionTimer = memo(function MissionTimer({
+export default function MissionTimer({
   startTime,
   endTime,
   onComplete,
@@ -60,6 +60,4 @@ const MissionTimer = memo(function MissionTimer({
       </div>
     </>
   );
-});
-
-export default MissionTimer;
+}

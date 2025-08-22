@@ -1,4 +1,6 @@
 
+'use client';
+
 import dynamic from 'next/dynamic';
 
 const CharacterCreator = dynamic(() => import('./CharacterCreator'), { 

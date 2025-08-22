@@ -14,7 +14,7 @@ export function useMissionTimer(
   const [timer, setTimer] = useState<MissionTimer>(() => 
     calculateTimer(startTime, endTime)
   );
-  const intervalRef = useRef<NodeJS.Timeout>();
+  const intervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   useEffect(() => {
     const updateTimer = () => {
