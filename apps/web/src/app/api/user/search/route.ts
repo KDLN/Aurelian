@@ -12,12 +12,12 @@ export const dynamic = 'force-dynamic';
 // GET - Search for users by email or display name
 export async function GET(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
+    const token = request.headers.get('authorization')?.replace('Bearer ', '') || null;
     
     // Authenticate user
     const authResult = await authenticateUser(token);
     if ('error' in authResult) {
-      return createErrorResponse(authResult.error);
+      return createErrorResponse(authResult.error as string);
     }
     const { user } = authResult;
 

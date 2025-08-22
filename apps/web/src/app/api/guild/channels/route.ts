@@ -14,19 +14,23 @@ export const dynamic = 'force-dynamic';
 // GET - Get guild channels
 export async function GET(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
+    const token = request.headers.get('authorization')?.replace('Bearer ', '') || null;
     
     // Authenticate user
     const authResult = await authenticateUser(token);
     if ('error' in authResult) {
-      return createErrorResponse(authResult.error);
+      return createErrorResponse(authResult.error as string);
     }
     const { user } = authResult;
+
+    if (!user.id) {
+      return createErrorResponse('INVALID_TOKEN', 'User ID missing');
+    }
 
     // Get user's guild membership
     const membershipResult = await getUserGuildMembership(user.id);
     if ('error' in membershipResult) {
-      return createErrorResponse(membershipResult.error);
+      return createErrorResponse(membershipResult.error as string);
     }
     const { membership } = membershipResult;
 
@@ -79,19 +83,23 @@ export async function GET(request: NextRequest) {
 // POST - Create new guild channel (Leaders/Officers only)
 export async function POST(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
+    const token = request.headers.get('authorization')?.replace('Bearer ', '') || null;
     
     // Authenticate user
     const authResult = await authenticateUser(token);
     if ('error' in authResult) {
-      return createErrorResponse(authResult.error);
+      return createErrorResponse(authResult.error as string);
     }
     const { user } = authResult;
+
+    if (!user.id) {
+      return createErrorResponse('INVALID_TOKEN', 'User ID missing');
+    }
 
     // Get user's guild membership
     const membershipResult = await getUserGuildMembership(user.id);
     if ('error' in membershipResult) {
-      return createErrorResponse(membershipResult.error);
+      return createErrorResponse(membershipResult.error as string);
     }
     const { membership } = membershipResult;
 

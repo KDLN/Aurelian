@@ -141,7 +141,7 @@ export default function GuildAchievementsPage() {
   const getRewardDisplay = (reward: any) => {
     if (!reward) return null;
     
-    const rewards = [];
+    const rewards: string[] = [];
     if (reward.xp) rewards.push(`${reward.xp} XP`);
     if (reward.gold) rewards.push(`${reward.gold}g`);
     if (reward.item) rewards.push(reward.item);

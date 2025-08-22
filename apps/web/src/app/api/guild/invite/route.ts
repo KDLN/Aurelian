@@ -17,14 +17,18 @@ export const dynamic = 'force-dynamic';
 // POST - Send guild invitation
 export async function POST(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
+    const token = request.headers.get('authorization')?.replace('Bearer ', '') || null;
     
     // Authenticate user
     const authResult = await authenticateUser(token);
     if ('error' in authResult) {
-      return createErrorResponse(authResult.error);
+      return createErrorResponse(authResult.error as string);
     }
     const { user } = authResult;
+
+    if (!user.id) {
+      return createErrorResponse('INVALID_TOKEN', 'User ID missing');
+    }
 
     // Rate limiting - 10 invites per hour per user
     const rateLimitCheck = checkRateLimit(`guild_invite:${user.id}`, 3600000, 10);
@@ -55,7 +59,7 @@ export async function POST(request: NextRequest) {
     // Get user's guild membership
     const membershipResult = await getUserGuildMembership(user.id);
     if ('error' in membershipResult) {
-      return createErrorResponse(membershipResult.error);
+      return createErrorResponse(membershipResult.error as string);
     }
     const { membership } = membershipResult;
 
@@ -153,14 +157,18 @@ export async function POST(request: NextRequest) {
 // GET - Get received invitations
 export async function GET(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
+    const token = request.headers.get('authorization')?.replace('Bearer ', '') || null;
     
     // Authenticate user
     const authResult = await authenticateUser(token);
     if ('error' in authResult) {
-      return createErrorResponse(authResult.error);
+      return createErrorResponse(authResult.error as string);
     }
     const { user } = authResult;
+
+    if (!user.id) {
+      return createErrorResponse('INVALID_TOKEN', 'User ID missing');
+    }
 
     // Get all active invitations for the user
     const invitations = await prisma.guildInvite.findMany({

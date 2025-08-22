@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
       { itemKey: 'relic_fragment', qty: 3 }
     ];
 
-    const inventoryEntries = [];
+    const inventoryEntries: any[] = [];
     for (const starter of starterInventory) {
       const item = items.find(i => i.key === starter.itemKey);
       if (item) {

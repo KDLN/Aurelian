@@ -11,14 +11,18 @@ export const dynamic = 'force-dynamic';
 // GET - Get guild wars and alliances
 export async function GET(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
+    const token = request.headers.get('authorization')?.replace('Bearer ', '') || null;
     
     // Authenticate user
     const authResult = await authenticateUser(token);
     if ('error' in authResult) {
-      return createErrorResponse(authResult.error);
+      return createErrorResponse(authResult.error as string);
     }
     const { user } = authResult;
+
+    if (!user.id) {
+      return createErrorResponse('INVALID_TOKEN', 'User ID missing');
+    }
 
     // Get user's guild membership
     const membership = await prisma.guildMember.findUnique({
@@ -154,14 +158,18 @@ export async function GET(request: NextRequest) {
 // POST - Declare war or alliance
 export async function POST(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
+    const token = request.headers.get('authorization')?.replace('Bearer ', '') || null;
     
     // Authenticate user
     const authResult = await authenticateUser(token);
     if ('error' in authResult) {
-      return createErrorResponse(authResult.error);
+      return createErrorResponse(authResult.error as string);
     }
     const { user } = authResult;
+
+    if (!user.id) {
+      return createErrorResponse('INVALID_TOKEN', 'User ID missing');
+    }
 
     const { action, targetGuildId, type } = await request.json();
 

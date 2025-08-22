@@ -12,14 +12,18 @@ export const dynamic = 'force-dynamic';
 // POST - Run guild maintenance tasks
 export async function POST(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
+    const token = request.headers.get('authorization')?.replace('Bearer ', '') || null;
     
     // Authenticate user (admin only in production)
     const authResult = await authenticateUser(token);
     if ('error' in authResult) {
-      return createErrorResponse(authResult.error);
+      return createErrorResponse(authResult.error as string);
     }
     const { user } = authResult;
+
+    if (!user.id) {
+      return createErrorResponse('INVALID_TOKEN', 'User ID missing');
+    }
 
     // Rate limiting - maintenance can only be run once per hour
     const rateLimitCheck = checkRateLimit(`guild_maintenance:${user.id}`, 3600000, 1);

@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
           }
         });
 
-        const rewardResults = [];
+        const rewardResults: any[] = [];
         
         for (const participant of participants) {
           if (participant.user.wallets) {

@@ -205,7 +205,7 @@ export default function AllianceMissions({ className = '' }: AllianceMissionsPro
   const formatRequirements = (requirements: any) => {
     if (!requirements) return 'No requirements specified';
     
-    const parts = [];
+    const parts: string[] = [];
     if (requirements.type) parts.push(`Type: ${requirements.type}`);
     if (requirements.items?.length) {
       parts.push(`Items: ${requirements.items.map((item: any) => `${item.quantity}x ${item.itemKey}`).join(', ')}`);
@@ -219,7 +219,7 @@ export default function AllianceMissions({ className = '' }: AllianceMissionsPro
   const formatRewards = (rewards: any) => {
     if (!rewards) return 'No rewards specified';
     
-    const parts = [];
+    const parts: string[] = [];
     if (rewards.gold) parts.push(`${rewards.gold} gold`);
     if (rewards.xp) parts.push(`${rewards.xp} XP`);
     if (rewards.items?.length) {

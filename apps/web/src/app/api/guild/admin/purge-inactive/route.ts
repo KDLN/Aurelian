@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
 
     // Actually purge the members
     const purgeResults = await prisma.$transaction(async (tx) => {
-      const purgedMembers = [];
+      const purgedMembers: any[] = [];
 
       for (const member of inactiveMembers) {
         // Log the purge action
