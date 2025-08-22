@@ -13,6 +13,10 @@ const nextConfig = {
     // React 19 compatibility settings
     reactCompiler: false,
   },
+  // Disable static optimization to prevent SSG issues with React 19
+  output: 'standalone',
+  // Skip static generation for pages with dynamic content
+  generateStaticParams: false,
   env: {
     DATABASE_URL: process.env.DATABASE_URL,
   },
