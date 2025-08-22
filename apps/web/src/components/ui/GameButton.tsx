@@ -1,4 +1,4 @@
-import { ButtonHTMLAttributes, ReactNode } from 'react';
+import React, { ButtonHTMLAttributes } from 'react';
 import { cn } from '@/lib/utils';
 
 type ButtonVariant = 'default' | 'primary' | 'secondary' | 'danger' | 'warning' | 'link';
@@ -7,7 +7,7 @@ type ButtonSize = 'default' | 'small' | 'mobile';
 interface GameButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: ButtonSize;
-  children: ReactNode;
+  children: React.ReactNode;
   href?: string;
   className?: string;
 }

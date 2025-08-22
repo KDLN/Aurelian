@@ -1,28 +1,28 @@
-import { ReactNode } from 'react';
+import React from 'react';
 import { cn } from '@/lib/utils';
 
 interface GameTableProps {
-  children: ReactNode;
+  children: React.ReactNode;
   variant?: 'default' | 'auction';
   mobile?: boolean;
   className?: string;
 }
 
 interface GameTableHeaderProps {
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
 interface GameTableBodyProps {
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
 interface GameTableRowProps {
-  children: ReactNode;
+  children: React.ReactNode;
   className?: string;
 }
 
 interface GameTableCellProps {
-  children: ReactNode;
+  children: React.ReactNode;
   header?: boolean;
   className?: string;
 }

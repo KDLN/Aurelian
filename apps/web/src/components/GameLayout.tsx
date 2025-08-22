@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import GameButton from '@/components/ui/GameButton';
 import GamePanel from '@/components/ui/GamePanel';
 import { useGameWorld } from '@/lib/game/world';
@@ -16,8 +16,8 @@ import '@/lib/game/styles.css';
 
 interface GameLayoutProps {
   title: string;
-  children: ReactNode;
-  sidebar?: ReactNode;
+  children: React.ReactNode;
+  sidebar?: React.ReactNode;
   showChat?: boolean;
   chatInitialChannel?: 'general' | 'trade' | 'guild';
   guildChannels?: Array<{

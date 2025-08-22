@@ -1,8 +1,8 @@
-import { ReactNode, CSSProperties } from 'react';
+import React, { CSSProperties } from 'react';
 import { cn } from '@/lib/utils';
 
 interface GamePanelProps {
-  children: ReactNode;
+  children: React.ReactNode;
   side?: 'left' | 'right';
   className?: string;
   style?: CSSProperties;

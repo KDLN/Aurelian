@@ -1,10 +1,10 @@
 'use client';
 
-import { Component, ReactNode } from 'react';
+import React, { Component } from 'react';
 
 interface Props {
-  children: ReactNode;
-  fallback?: ReactNode;
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
 }
 
 interface State {
