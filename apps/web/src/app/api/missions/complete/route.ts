@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     const missionDef = missionInstance.mission;
     
     // Get agent if assigned for success bonus calculation
-    let agent = null;
+    let agent: any = null;
     if (missionInstance.agentId) {
       agent = await prisma.agent.findUnique({
         where: { id: missionInstance.agentId }

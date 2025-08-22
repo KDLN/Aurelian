@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
   try {
     // Get JWT token from headers for user ranking context (optional)
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    let currentUser = null;
+    let currentUser: any = null;
     
     if (token) {
       try {

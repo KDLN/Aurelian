@@ -44,7 +44,7 @@ describe('Auto-sync User - Core Functions', () => {
     it('should correctly identify existing user', async () => {
       const { userExists } = await import('../auto-sync');
       
-      mockPrisma.user.findUnique.mockResolvedValue({ id: userId } as any);
+      (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue({ id: userId } as any);
 
       const result = await userExists(userId);
 
@@ -58,7 +58,7 @@ describe('Auto-sync User - Core Functions', () => {
     it('should correctly identify non-existing user', async () => {
       const { userExists } = await import('../auto-sync');
       
-      mockPrisma.user.findUnique.mockResolvedValue(null);
+      (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue(null);
 
       const result = await userExists(userId);
 
@@ -79,7 +79,7 @@ describe('Auto-sync User - Core Functions', () => {
   describe('User sync with valid UUID', () => {
     beforeEach(() => {
       // Setup default successful mocks
-      mockPrisma.user.upsert.mockResolvedValue({
+      (mockPrisma.user.upsert as jest.Mock).mockResolvedValue({
         id: userId,
         email: 'test@example.com',
         caravanSlotsUnlocked: 3,
@@ -89,17 +89,17 @@ describe('Auto-sync User - Core Functions', () => {
         craftingXPNext: 100
       } as any);
       
-      mockPrisma.profile.findUnique.mockResolvedValue(null);
-      mockPrisma.profile.create.mockResolvedValue({} as any);
-      mockPrisma.wallet.findUnique.mockResolvedValue(null);
-      mockPrisma.wallet.create.mockResolvedValue({} as any);
+      (mockPrisma.profile.findUnique as jest.Mock).mockResolvedValue(null);
+      (mockPrisma.profile.create as jest.Mock).mockResolvedValue({} as any);
+      (mockPrisma.wallet.findUnique as jest.Mock).mockResolvedValue(null);
+      (mockPrisma.wallet.create as jest.Mock).mockResolvedValue({} as any);
       
       // Mock item definitions
       mockPrisma.itemDef.findUnique
         .mockResolvedValueOnce({ id: 'herb-id', key: 'herb' } as any)
         .mockResolvedValueOnce({ id: 'iron-id', key: 'iron_ore' } as any);
       
-      mockPrisma.inventory.findMany.mockResolvedValue([]);
+      (mockPrisma.inventory.findMany as jest.Mock).mockResolvedValue([]);
       mockPrisma.$transaction.mockImplementation(async (callback) => {
         return callback(mockPrisma);
       });
@@ -150,8 +150,8 @@ describe('Auto-sync User - Core Functions', () => {
       jest.resetModules();
       const { ensureUserSynced } = await import('../auto-sync');
       
-      mockPrisma.profile.findUnique.mockResolvedValue({ userId } as any);
-      mockPrisma.wallet.findUnique.mockResolvedValue({ userId } as any);
+      (mockPrisma.profile.findUnique as jest.Mock).mockResolvedValue({ userId } as any);
+      (mockPrisma.wallet.findUnique as jest.Mock).mockResolvedValue({ userId } as any);
 
       await ensureUserSynced(mockAuthUser);
 
@@ -174,7 +174,7 @@ describe('Auto-sync User - Core Functions', () => {
       jest.resetModules();
       const { ensureUserSynced } = await import('../auto-sync');
       
-      mockPrisma.inventory.findMany.mockResolvedValue([
+      (mockPrisma.inventory.findMany as jest.Mock).mockResolvedValue([
         { userId, itemId: 'herb-id' }
       ] as any);
 
@@ -244,7 +244,7 @@ describe('Auto-sync User - Core Functions', () => {
         }
       };
 
-      mockPrisma.user.findUnique.mockResolvedValue({ id: userId } as any);
+      (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue({ id: userId } as any);
 
       const result = await verifyAndSyncUser('valid-token', mockSupabase);
 
