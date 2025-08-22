@@ -1,6 +1,7 @@
 'use client';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
+import Link from 'next/link';
 
 function ErrorContent() {
   const searchParams = useSearchParams();
@@ -46,12 +47,12 @@ function ErrorContent() {
         </ul>
       )}
       <div className="space-y-2">
-        <a 
+        <Link 
           href="/" 
           className="inline-block bg-[#8B4513] hover:bg-[#A0522D] px-6 py-2 rounded transition-colors"
         >
           Back to Home
-        </a>
+        </Link>
         <br />
         <a 
           href="/lobby" 

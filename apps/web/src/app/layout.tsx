@@ -2,6 +2,7 @@
 import React from 'react';
 import './globals.css';
 import ClientProviders from '@/components/ClientProviders';
+import Link from 'next/link';
 
 export const metadata = { 
   title: 'Aurelian'
@@ -36,9 +37,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }){
             color:'#f1e5c8',
             fontSize: 'clamp(12px, 2.5vw, 16px)'
           }}>Aurelian</div>
-          <a href="/" style={{color:'#f1e5c8',fontSize:'clamp(12px, 2.5vw, 14px)'}}>Home</a>
-          <a href="/creator" style={{color:'#f1e5c8',fontSize:'clamp(12px, 2.5vw, 14px)'}}>Creator</a>
-          <a href="/play" style={{color:'#f1e5c8',fontSize:'clamp(12px, 2.5vw, 14px)'}}>Play</a>
+          <Link href="/" style={{color:'#f1e5c8',fontSize:'clamp(12px, 2.5vw, 14px)'}}>Home</Link>
+          <Link href="/creator" style={{color:'#f1e5c8',fontSize:'clamp(12px, 2.5vw, 14px)'}}>Creator</Link>
+          <Link href="/play" style={{color:'#f1e5c8',fontSize:'clamp(12px, 2.5vw, 14px)'}}>Play</Link>
         </div>
         <ClientProviders>
           {children}

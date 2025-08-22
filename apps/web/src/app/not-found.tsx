@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +24,7 @@ export default function NotFound() {
       <p style={{ fontSize: '1rem', margin: '16px 0', textAlign: 'center', maxWidth: '600px' }}>
         The page you are looking for does not exist in the Aurelian trading realm.
       </p>
-      <a 
+      <Link 
         href="/" 
         style={{
           display: 'inline-block',
@@ -38,7 +39,7 @@ export default function NotFound() {
         }}
       >
         Return to Hub
-      </a>
+      </Link>
     </div>
   );
 }
