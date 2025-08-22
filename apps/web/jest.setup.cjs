@@ -108,6 +108,107 @@ jest.mock('@supabase/supabase-js', () => ({
   }))
 }));
 
+// Mock Prisma Client with comprehensive functionality
+jest.mock('@/lib/prisma', () => {
+  const mockPrismaClient = {
+    user: {
+      findUnique: jest.fn(),
+      findMany: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    },
+    profile: {
+      findUnique: jest.fn(),
+      findMany: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+    },
+    agent: {
+      findUnique: jest.fn(),
+      findMany: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+    },
+    missionInstance: {
+      findUnique: jest.fn(),
+      findMany: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+    },
+    guildMembership: {
+      findUnique: jest.fn(),
+      findMany: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+    },
+    $transaction: jest.fn(),
+    $disconnect: jest.fn(),
+  };
+
+  return {
+    prisma: mockPrismaClient,
+    disconnectPrisma: jest.fn(),
+  };
+});
+
+// Mock @prisma/client directly
+jest.mock('@prisma/client', () => ({
+  PrismaClient: jest.fn().mockImplementation(() => ({
+    user: {
+      findUnique: jest.fn(),
+      findMany: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    },
+    profile: {
+      findUnique: jest.fn(),
+      findMany: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+    },
+    agent: {
+      findUnique: jest.fn(),
+      findMany: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+    },
+    missionInstance: {
+      findUnique: jest.fn(),
+      findMany: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+    },
+    guildMembership: {
+      findUnique: jest.fn(),
+      findMany: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+    },
+    $transaction: jest.fn(),
+    $disconnect: jest.fn(),
+  })),
+  // Mock Prisma enums
+  AgentType: {
+    SCOUT: 'SCOUT',
+    TRADER: 'TRADER',
+    GUARD: 'GUARD',
+    SPECIALIST: 'SPECIALIST'
+  },
+  EquipmentSlot: {
+    WEAPON: 'WEAPON',
+    ARMOR: 'ARMOR',
+    TOOL: 'TOOL',
+    ACCESSORY: 'ACCESSORY'
+  },
+  MissionRisk: {
+    LOW: 'LOW',
+    MEDIUM: 'MEDIUM',
+    HIGH: 'HIGH'
+  }
+}));
+
 // Mock timers globally to prevent real setInterval/setTimeout from running
 jest.useFakeTimers();
 

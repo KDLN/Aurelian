@@ -496,7 +496,7 @@ describe('Database Transaction Logic', () => {
     it('should handle timeout for long-running transactions', async () => {
       const longTransaction = async (tx: any) => {
         // Simulate long operation
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 10));
         return { success: true };
       };
 

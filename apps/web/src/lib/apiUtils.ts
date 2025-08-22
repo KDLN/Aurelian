@@ -22,7 +22,6 @@ export function createErrorResponse(error: keyof typeof ApiErrors | string, deta
   
   if (!errorConfig) {
     // Fallback for unknown error keys
-    console.error(`Unknown error key: ${error}`);
     return NextResponse.json(
       { 
         error: 'Internal server error',

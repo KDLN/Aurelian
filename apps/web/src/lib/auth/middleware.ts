@@ -42,7 +42,6 @@ export async function withAuth<T = any>(
     // Call the handler with authenticated user
     return await handler(user, request);
   } catch (error) {
-    console.error('[Auth Middleware] Unexpected error:', error);
     return createErrorResponse('INTERNAL_ERROR', 
       error instanceof Error ? error.message : 'Authentication failed'
     );
@@ -61,24 +60,17 @@ export async function withAuthLight<T = any>(
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
     
     if (!token) {
-      console.error('[Auth Middleware Light] No token provided');
       return createErrorResponse('NO_TOKEN', 'No authorization token provided');
     }
 
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !user) {
-      console.error('[Auth Middleware Light] Auth error:', authError);
       return createErrorResponse('INVALID_TOKEN', authError?.message || 'Invalid or expired token');
     }
 
     return await handler(user, request);
   } catch (error: any) {
-    console.error('[Auth Middleware Light] Unexpected error:', {
-      error,
-      message: error?.message,
-      stack: error?.stack
-    });
     return createErrorResponse('INTERNAL_ERROR', `Auth middleware error: ${error?.message || 'Unknown error'}`);
   }
 }
@@ -128,7 +120,6 @@ export async function getRequestBody<T>(
 ): Promise<T | null> {
   try {
     const body = await request.json();
-    console.log('[Request Body] Parsed body:', body);
     
     if (validator) {
       return validator(body);
@@ -136,11 +127,6 @@ export async function getRequestBody<T>(
     
     return body as T;
   } catch (error: any) {
-    console.error('[Request Body] Parse error:', {
-      error,
-      message: error?.message,
-      type: error?.constructor?.name
-    });
     return null;
   }
 }

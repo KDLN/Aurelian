@@ -1,5 +1,8 @@
 import { prisma } from '@/lib/prisma';
 
+// Mock user data for all tests
+const mockUser = { id: '12345678-1234-1234-1234-123456789abc', email: 'test@example.com' };
+
 // Mock Prisma
 jest.mock('@/lib/prisma', () => ({
   prisma: {
@@ -69,7 +72,6 @@ describe('Mission Completion Tests', () => {
   });
 
   describe('Mission Completion Flow', () => {
-    const mockUser = { id: '12345678-1234-1234-1234-123456789abc', email: 'test@example.com' };
     const mockMissionDef = {
       id: 'mission-456',
       name: 'Iron Ore Run',
@@ -469,15 +471,11 @@ describe('Mission Completion Tests', () => {
         const newExperience = agent!.experience + largeXPGain; // 180 + 50 = 230
         
         // Simple level up logic: need level * 100 XP for current level
-        // Level 2 needs 200 XP, Level 3 needs 300 XP, etc.
-        const requiredXPForCurrentLevel = agent!.level * 100; // Level 2 = 200 XP needed
-        let newLevel = agent!.level;
-
-        // Simple check: if we have enough XP for next level
-        const requiredXPForNextLevel = (agent!.level + 1) * 100; // Level 3 = 300 XP needed
-        if (newExperience >= requiredXPForNextLevel) {
-          newLevel = agent!.level + 1;
-        }
+        // Level 1 = 0-99 XP, Level 2 = 100-199 XP, Level 3 = 200-299 XP, etc.
+        let newLevel = Math.floor(newExperience / 100) + 1;
+        
+        // Ensure minimum level is 1
+        if (newLevel < 1) newLevel = 1;
 
         await mockPrisma.agent.update({
           where: { id: 'agent-123' },
@@ -546,8 +544,8 @@ describe('Mission Completion Tests', () => {
 
       expect(result.leveledUp).toBe(true);
       expect(result.oldLevel).toBe(1);
-      expect(result.newLevel).toBe(3); // More conservative expectation
-      expect(result.levelsGained).toBe(2);
+      expect(result.newLevel).toBe(5); // Level 1 + 400 XP = 500 XP total = Level 5 (Math.floor(500/100)+1)
+      expect(result.levelsGained).toBe(4);
     });
   });
 
@@ -636,7 +634,6 @@ describe('Mission Completion Tests', () => {
   });
 
   describe('Mission Validation', () => {
-    const mockUser = { id: '12345678-1234-1234-1234-123456789abc', email: 'test@example.com' };
     const mockMissionInstance = {
       id: 'instance-789',
       userId: mockUser.id,

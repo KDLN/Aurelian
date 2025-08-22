@@ -123,8 +123,6 @@ export async function POST(request: NextRequest) {
     );
 
   } catch (error) {
-    console.error('Error depositing to guild treasury:', error);
-    
     // Handle specific error cases
     if (error instanceof Error) {
       if (error.message.includes('Insufficient gold')) {
