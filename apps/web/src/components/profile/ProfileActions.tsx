@@ -218,10 +218,19 @@ export default function ProfileActions({
           gap: 12px;
         }
         
-        /* When embedded in header, use horizontal layout */
+        /* When embedded in header, use horizontal row layout */
         :global(.actions-section) .actions-grid {
-          grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+          display: flex;
+          flex-direction: row;
+          flex-wrap: wrap;
           gap: 8px;
+          justify-content: flex-start;
+        }
+        
+        :global(.actions-section) .actions-grid :global(.action-button) {
+          flex: 0 0 auto;
+          min-width: 80px;
+          padding: 8px 12px;
         }
 
         .actions-grid :global(.action-button) {
@@ -360,6 +369,26 @@ export default function ProfileActions({
 
           .action-text {
             font-size: 10px;
+          }
+          
+          /* Mobile embedded actions - keep horizontal but smaller */
+          :global(.actions-section) .actions-grid {
+            gap: 6px;
+            justify-content: center;
+          }
+          
+          :global(.actions-section) .actions-grid :global(.action-button) {
+            min-width: 70px;
+            padding: 6px 8px;
+            font-size: 11px;
+          }
+          
+          :global(.actions-section) .action-icon {
+            font-size: 14px;
+          }
+          
+          :global(.actions-section) .action-text {
+            font-size: 9px;
           }
         }
 
