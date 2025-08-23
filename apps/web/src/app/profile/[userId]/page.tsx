@@ -163,6 +163,13 @@ export default function ProfilePage() {
             achievements={profileData.achievements}
             isOnline={isOnline}
             isOwnProfile={isOwnProfile}
+            actions={<ProfileActions
+              targetUserId={targetUserId}
+              targetUserName={profileData.user.display}
+              permissions={profileData.permissions}
+              isOwnProfile={isOwnProfile}
+              embedded={true}
+            />}
           />
         </div>
 
@@ -177,14 +184,6 @@ export default function ProfilePage() {
           
           <div className="profile-sidebar-content">
             <ProfileAchievements achievements={profileData.achievements} />
-            
-            {/* Actions */}
-            <ProfileActions
-              targetUserId={targetUserId}
-              targetUserName={profileData.user.display}
-              permissions={profileData.permissions}
-              isOwnProfile={isOwnProfile}
-            />
             
             {/* Recent Activity */}
             {profileData.recentActivity.length > 0 && (

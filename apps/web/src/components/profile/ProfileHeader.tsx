@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import CharacterViewer from '../CharacterViewer';
 import { Badge } from '../ui/badge';
 
@@ -21,6 +22,7 @@ interface ProfileHeaderProps {
   achievements: string[];
   isOnline?: boolean;
   isOwnProfile?: boolean;
+  actions?: React.ReactNode;
 }
 
 export default function ProfileHeader({ 
@@ -28,7 +30,8 @@ export default function ProfileHeader({
   guild, 
   achievements, 
   isOnline = false,
-  isOwnProfile = false 
+  isOwnProfile = false,
+  actions
 }: ProfileHeaderProps) {
   const joinDate = new Date(user.createdAt).toLocaleDateString();
   const guildJoinDate = guild ? new Date(guild.joinedAt).toLocaleDateString() : null;
@@ -117,6 +120,13 @@ export default function ProfileHeader({
           </div>
         )}
       </div>
+
+      {/* Actions Section */}
+      {actions && (
+        <div className="actions-section">
+          {actions}
+        </div>
+      )}
 
       <style jsx>{`
         .profile-header {
@@ -262,6 +272,12 @@ export default function ProfileHeader({
           color: #a36a43;
         }
 
+        .actions-section {
+          margin-top: 16px;
+          padding-top: 16px;
+          border-top: 1px solid #4b3527;
+        }
+
         @media (max-width: 640px) {
           .profile-header {
             flex-direction: column;
@@ -292,6 +308,12 @@ export default function ProfileHeader({
 
           .achievement-badges {
             justify-content: center;
+          }
+          
+          .actions-section {
+            width: 100%;
+            margin-top: 12px;
+            padding-top: 12px;
           }
         }
       `}</style>

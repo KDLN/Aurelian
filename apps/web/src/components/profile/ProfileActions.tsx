@@ -15,13 +15,15 @@ interface ProfileActionsProps {
     canViewPrivateStats: boolean;
   };
   isOwnProfile: boolean;
+  embedded?: boolean;
 }
 
 export default function ProfileActions({ 
   targetUserId, 
   targetUserName,
   permissions,
-  isOwnProfile 
+  isOwnProfile,
+  embedded = false
 }: ProfileActionsProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -109,8 +111,8 @@ export default function ProfileActions({
     window.location.href = `/missions/leaderboard?compare=${targetUserId}`;
   };
 
-  return (
-    <ProfilePanel title="Actions">
+  const actionsContent = (
+    <>
       <div className="actions-grid">
         {permissions.canTrade && (
           <GameButton 
@@ -214,6 +216,12 @@ export default function ProfileActions({
           display: grid;
           grid-template-columns: repeat(2, 1fr);
           gap: 12px;
+        }
+        
+        /* When embedded in header, use horizontal layout */
+        :global(.actions-section) .actions-grid {
+          grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+          gap: 8px;
         }
 
         .actions-grid :global(.action-button) {
@@ -379,6 +387,16 @@ export default function ProfileActions({
           }
         }
       `}</style>
+    </>
+  );
+
+  if (embedded) {
+    return actionsContent;
+  }
+
+  return (
+    <ProfilePanel title="Actions">
+      {actionsContent}
     </ProfilePanel>
   );
 }
