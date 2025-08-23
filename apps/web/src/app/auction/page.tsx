@@ -424,7 +424,18 @@ export default function AuctionPage() {
                       <GameTableCell>{listing.qty}</GameTableCell>
                       <GameTableCell>{listing.price}g</GameTableCell>
                       <GameTableCell>{(listing.qty * listing.price).toLocaleString()}g</GameTableCell>
-                      <GameTableCell className={isOwn ? 'game-good' : ''}>{listing.seller}</GameTableCell>
+                      <GameTableCell className={isOwn ? 'game-good' : ''}>
+                        {isOwn ? (
+                          listing.seller
+                        ) : (
+                          <a 
+                            href={`/profile/${listing.sellerId}`}
+                            className="seller-link"
+                          >
+                            {listing.seller}
+                          </a>
+                        )}
+                      </GameTableCell>
                       <GameTableCell className={`game-${ageStatus}`}>{listing.age}min</GameTableCell>
                       <GameTableCell className="game-small">{listing.duration}min</GameTableCell>
                       <GameTableCell>
@@ -476,6 +487,20 @@ export default function AuctionPage() {
           </div>
         </div>
       </div>
+
+      <style jsx>{`
+        .seller-link {
+          color: #f1e5c8;
+          text-decoration: none;
+          border-bottom: 1px solid transparent;
+          transition: border-color 0.2s ease;
+        }
+
+        .seller-link:hover {
+          color: #a36a43;
+          border-bottom-color: #a36a43;
+        }
+      `}</style>
     </GameLayout>
   );
 }

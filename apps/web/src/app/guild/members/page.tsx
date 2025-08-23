@@ -308,7 +308,12 @@ export default function GuildMembersPage() {
                 {members.map(member => (
                   <tr key={member.id}>
                     <td>
-                      <strong>{member.displayName}</strong>
+                      <a 
+                        href={`/profile/${member.userId}`} 
+                        className="member-name-link"
+                      >
+                        <strong>{member.displayName}</strong>
+                      </a>
                     </td>
                     <td>
                       <span className={`game-pill game-pill-small ${getRoleColor(member.role)}`}>
@@ -594,6 +599,20 @@ export default function GuildMembersPage() {
           </div>
         </div>
       </div>
+
+      <style jsx>{`
+        .member-name-link {
+          color: #f1e5c8;
+          text-decoration: none;
+          border-bottom: 1px solid transparent;
+          transition: border-color 0.2s ease;
+        }
+
+        .member-name-link:hover {
+          color: #a36a43;
+          border-bottom-color: #a36a43;
+        }
+      `}</style>
     </GameLayout>
   );
 }

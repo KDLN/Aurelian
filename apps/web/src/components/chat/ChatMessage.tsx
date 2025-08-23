@@ -223,7 +223,24 @@ export function ChatMessageComponent({
               color: getRoleColor(message.guildRole),
               fontSize: isCompact ? '13px' : '14px'
             }}>
-              {getRoleIcon(message.guildRole)}{message.displayName}
+              {getRoleIcon(message.guildRole)}
+              <a 
+                href={`/profile/${message.userId}`}
+                style={{
+                  color: 'inherit',
+                  textDecoration: 'none',
+                  borderBottom: '1px solid transparent',
+                  transition: 'border-color 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderBottomColor = getRoleColor(message.guildRole);
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderBottomColor = 'transparent';
+                }}
+              >
+                {message.displayName}
+              </a>
             </span>
             
             {message.guildTag && (
