@@ -26,6 +26,7 @@ interface GameLayoutProps {
     description?: string;
     roleRequired?: string;
   }>;
+  hideActiveJobs?: boolean;
 }
 
 export default function GameLayout({
@@ -34,7 +35,8 @@ export default function GameLayout({
   sidebar,
   showChat = true,
   chatInitialChannel = 'general',
-  guildChannels = []
+  guildChannels = [],
+  hideActiveJobs = false
 }: GameLayoutProps) {
   const { world, subscribe } = useGameWorld();
   const { wallet, inventory, user } = useUserDataQuery();
@@ -386,42 +388,44 @@ export default function GameLayout({
           </div>
           
           {/* Active Jobs Section - Right Sidebar */}
-          <div style={{ 
-            background: 'rgba(83, 59, 44, 0.2)',
-            border: '1px solid #533b2c',
-            borderRadius: '4px',
-            padding: '8px',
-            marginBottom: '8px',
-            flexShrink: 0
-          }}>
-            <h4 style={{ marginBottom: '8px', color: '#f1e5c8', fontSize: '14px' }}>Active Jobs</h4>
-            <div className="game-space-between" style={{ marginBottom: '4px' }}>
-              <span>
-                Active Missions:
-                <HelpTooltip 
-                  content="Agents currently out on missions. Check mission control for details."
-                  position="top"
-                  maxWidth="160px"
-                />
-              </span>
-              <a href="/missions" style={{ color: '#f1e5c8', textDecoration: 'none' }}>
-                {missionsData?.activeMissions?.length || world.missions.length}
-              </a>
+          {!hideActiveJobs && (
+            <div style={{ 
+              background: 'rgba(83, 59, 44, 0.2)',
+              border: '1px solid #533b2c',
+              borderRadius: '4px',
+              padding: '8px',
+              marginBottom: '8px',
+              flexShrink: 0
+            }}>
+              <h4 style={{ marginBottom: '8px', color: '#f1e5c8', fontSize: '14px' }}>Active Jobs</h4>
+              <div className="game-space-between" style={{ marginBottom: '4px' }}>
+                <span>
+                  Active Missions:
+                  <HelpTooltip 
+                    content="Agents currently out on missions. Check mission control for details."
+                    position="top"
+                    maxWidth="160px"
+                  />
+                </span>
+                <a href="/missions" style={{ color: '#f1e5c8', textDecoration: 'none' }}>
+                  {missionsData?.activeMissions?.length || world.missions.length}
+                </a>
+              </div>
+              <div className="game-space-between">
+                <span>
+                  Crafting Jobs:
+                  <HelpTooltip 
+                    content="Items currently being crafted. Visit crafting to collect completed jobs."
+                    position="top"
+                    maxWidth="160px"
+                  />
+                </span>
+                <a href="/crafting" style={{ color: '#f1e5c8', textDecoration: 'none' }}>
+                  {world.crafting.length}
+                </a>
+              </div>
             </div>
-            <div className="game-space-between">
-              <span>
-                Crafting Jobs:
-                <HelpTooltip 
-                  content="Items currently being crafted. Visit crafting to collect completed jobs."
-                  position="top"
-                  maxWidth="160px"
-                />
-              </span>
-              <a href="/crafting" style={{ color: '#f1e5c8', textDecoration: 'none' }}>
-                {world.crafting.length}
-              </a>
-            </div>
-          </div>
+          )}
           
           {/* Chat Area - Fixed at Bottom */}
           {showChat && (

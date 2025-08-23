@@ -23,6 +23,8 @@ interface ProfileHeaderProps {
   isOnline?: boolean;
   isOwnProfile?: boolean;
   actions?: React.ReactNode;
+  activeMissions?: number;
+  craftingJobs?: number;
 }
 
 export default function ProfileHeader({ 
@@ -31,7 +33,9 @@ export default function ProfileHeader({
   achievements, 
   isOnline = false,
   isOwnProfile = false,
-  actions
+  actions,
+  activeMissions = 0,
+  craftingJobs = 0
 }: ProfileHeaderProps) {
   const joinDate = new Date(user.createdAt).toLocaleDateString();
   const guildJoinDate = guild ? new Date(guild.joinedAt).toLocaleDateString() : null;
@@ -88,6 +92,17 @@ export default function ProfileHeader({
               <>
                 <span className="meta-separator">•</span>
                 <span className="meta-item">{guild.name} {guild.role}</span>
+              </>
+            )}
+            {(activeMissions > 0 || craftingJobs > 0) && (
+              <>
+                <span className="meta-separator">•</span>
+                <span className="meta-item active-jobs">
+                  {activeMissions > 0 && `${activeMissions} missions`}
+                  {activeMissions > 0 && craftingJobs > 0 && ', '}
+                  {craftingJobs > 0 && `${craftingJobs} crafting`}
+                  <span className="active-indicator">●</span>
+                </span>
               </>
             )}
             {achievements.length > 1 && (
@@ -223,6 +238,28 @@ export default function ProfileHeader({
         .meta-separator {
           color: #8a7960;
           font-weight: bold;
+        }
+        
+        .active-jobs {
+          color: #4ade80;
+          font-weight: 600;
+          position: relative;
+        }
+        
+        .active-indicator {
+          color: #4ade80;
+          font-size: 8px;
+          margin-left: 4px;
+          animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.5;
+          }
         }
 
         .actions-section {

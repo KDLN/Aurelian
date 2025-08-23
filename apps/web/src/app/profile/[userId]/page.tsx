@@ -7,6 +7,7 @@ import ProfileHeader from '@/components/profile/ProfileHeader';
 import ProfileDashboard from '@/components/profile/ProfileDashboard';
 import ProfileActions from '@/components/profile/ProfileActions';
 import { supabase } from '@/lib/supabaseClient';
+import { useMissions } from '@/hooks/useMissionsQuery';
 
 interface ProfileData {
   user: {
@@ -57,6 +58,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState(false);
+  const { data: missionsData } = useMissions();
 
   useEffect(() => {
     loadProfile();
@@ -127,7 +129,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <GameLayout title="Profile">
+      <GameLayout title="Profile" hideActiveJobs={true}>
         <div className="loading-container">
           <div className="loading-spinner">Loading profile...</div>
         </div>
@@ -137,7 +139,7 @@ export default function ProfilePage() {
 
   if (error || !profileData) {
     return (
-      <GameLayout title="Profile">
+      <GameLayout title="Profile" hideActiveJobs={true}>
         <div className="error-container">
           <h2>Profile Not Found</h2>
           <p>{error || 'The requested profile could not be found.'}</p>
@@ -152,7 +154,7 @@ export default function ProfilePage() {
   const isOwnProfile = currentUser?.id === targetUserId;
 
   return (
-    <GameLayout title={`${profileData.user.display}'s Profile`}>
+    <GameLayout title={`${profileData.user.display}'s Profile`} hideActiveJobs={true}>
       <div className="profile-container">
         {/* Profile Header */}
         <div className="profile-header-section">
@@ -162,6 +164,8 @@ export default function ProfilePage() {
             achievements={profileData.achievements}
             isOnline={isOnline}
             isOwnProfile={isOwnProfile}
+            activeMissions={missionsData?.activeMissions?.length || 0}
+            craftingJobs={0}
             actions={<ProfileActions
               targetUserId={targetUserId}
               targetUserName={profileData.user.display}

@@ -222,30 +222,38 @@ export default function ProfileActions({
           gap: 12px;
         }
         
-        /* When embedded in header, use horizontal row layout */
+        /* When embedded in header, use 2x2 grid layout */
         :global(.actions-section) .actions-grid {
-          display: flex;
-          flex-direction: row;
-          flex-wrap: wrap;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          grid-template-rows: 1fr 1fr;
           gap: 6px;
-          justify-content: flex-end;
+          width: 140px;
         }
         
         :global(.actions-section) .actions-grid :global(.action-button) {
-          flex: 0 0 auto;
-          min-width: 36px;
-          width: 36px;
-          height: 36px;
-          padding: 8px;
-          border-radius: 6px;
           display: flex;
+          flex-direction: column;
           align-items: center;
           justify-content: center;
+          gap: 2px;
+          padding: 6px 4px;
+          min-height: 50px;
+          border-radius: 6px;
+          font-size: 10px;
         }
         
         :global(.actions-section) .action-icon {
           font-size: 16px;
           margin: 0;
+        }
+        
+        :global(.actions-section) .action-text {
+          font-size: 9px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
+          line-height: 1;
         }
 
         .actions-grid :global(.action-button) {
@@ -386,21 +394,23 @@ export default function ProfileActions({
             font-size: 10px;
           }
           
-          /* Mobile embedded actions - keep horizontal but smaller */
+          /* Mobile embedded actions - smaller 2x2 grid */
           :global(.actions-section) .actions-grid {
+            width: 120px;
             gap: 4px;
-            justify-content: center;
           }
           
           :global(.actions-section) .actions-grid :global(.action-button) {
-            min-width: 32px;
-            width: 32px;
-            height: 32px;
-            padding: 6px;
+            min-height: 40px;
+            padding: 4px 2px;
           }
           
           :global(.actions-section) .action-icon {
             font-size: 14px;
+          }
+          
+          :global(.actions-section) .action-text {
+            font-size: 8px;
           }
         }
 
