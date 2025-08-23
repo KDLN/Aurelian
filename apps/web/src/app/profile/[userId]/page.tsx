@@ -7,6 +7,7 @@ import ProfileHeader from '@/components/profile/ProfileHeader';
 import ProfileStats from '@/components/profile/ProfileStats';
 import ProfileAchievements from '@/components/profile/ProfileAchievements';
 import ProfileActions from '@/components/profile/ProfileActions';
+import { ProfileLayout, ProfileHeader as LayoutHeader, ProfileMain, ProfileSidebar, ProfileActions as LayoutActions } from '@/components/profile/ProfileLayout';
 import { supabase } from '@/lib/supabaseClient';
 
 interface ProfileData {
@@ -129,9 +130,11 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <GameLayout>
-        <div className="loading-container">
-          <div className="loading-spinner">Loading profile...</div>
-        </div>
+        <ProfileLayout>
+          <div className="loading-container">
+            <div className="loading-spinner">Loading profile...</div>
+          </div>
+        </ProfileLayout>
       </GameLayout>
     );
   }
@@ -139,13 +142,15 @@ export default function ProfilePage() {
   if (error || !profileData) {
     return (
       <GameLayout>
-        <div className="error-container">
-          <h2>Profile Not Found</h2>
-          <p>{error || 'The requested profile could not be found.'}</p>
-          <a href="/guild/browse" className="back-link">
-            ← Browse Traders
-          </a>
-        </div>
+        <ProfileLayout>
+          <div className="error-container">
+            <h2>Profile Not Found</h2>
+            <p>{error || 'The requested profile could not be found.'}</p>
+            <a href="/guild/browse" className="back-link">
+              ← Browse Traders
+            </a>
+          </div>
+        </ProfileLayout>
       </GameLayout>
     );
   }
@@ -154,9 +159,8 @@ export default function ProfilePage() {
 
   return (
     <GameLayout>
-      <div className="profile-page">
-        <div className="profile-content">
-          {/* Header Section */}
+      <ProfileLayout>
+        <LayoutHeader>
           <ProfileHeader
             user={profileData.user}
             guild={profileData.guild}
@@ -164,99 +168,64 @@ export default function ProfilePage() {
             isOnline={isOnline}
             isOwnProfile={isOwnProfile}
           />
+        </LayoutHeader>
 
-          {/* Main Content Grid */}
-          <div className="profile-grid">
-            {/* Left Column - Stats */}
-            <div className="stats-column">
-              <ProfileStats 
-                stats={profileData.stats}
-                canViewPrivateStats={profileData.permissions.canViewPrivateStats}
-              />
-            </div>
+        <ProfileMain>
+          <ProfileStats 
+            stats={profileData.stats}
+            canViewPrivateStats={profileData.permissions.canViewPrivateStats}
+          />
+        </ProfileMain>
 
-            {/* Right Column - Achievements and Actions */}
-            <div className="sidebar-column">
-              <ProfileAchievements achievements={profileData.achievements} />
-              
-              <ProfileActions
-                targetUserId={targetUserId}
-                targetUserName={profileData.user.display}
-                permissions={profileData.permissions}
-                isOwnProfile={isOwnProfile}
-              />
-
-              {/* Recent Activity */}
-              {profileData.recentActivity.length > 0 && (
-                <div className="recent-activity">
-                  <h3 className="activity-title">Recent Activity</h3>
-                  <div className="activity-list">
-                    {profileData.recentActivity.slice(0, 5).map((activity) => (
-                      <div key={activity.id} className="activity-item">
-                        <span className="activity-message">{activity.message}</span>
-                        <span className="activity-time">
-                          {new Date(activity.createdAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                    ))}
+        <ProfileSidebar>
+          <ProfileAchievements achievements={profileData.achievements} />
+          
+          {/* Recent Activity */}
+          {profileData.recentActivity.length > 0 && (
+            <div className="recent-activity">
+              <h3 className="activity-title">Recent Activity</h3>
+              <div className="activity-list">
+                {profileData.recentActivity.slice(0, 5).map((activity) => (
+                  <div key={activity.id} className="activity-item">
+                    <span className="activity-message">{activity.message}</span>
+                    <span className="activity-time">
+                      {new Date(activity.createdAt).toLocaleDateString()}
+                    </span>
                   </div>
-                </div>
-              )}
+                ))}
+              </div>
             </div>
-          </div>
-        </div>
-      </div>
+          )}
+        </ProfileSidebar>
+
+        <LayoutActions>
+          <ProfileActions
+            targetUserId={targetUserId}
+            targetUserName={profileData.user.display}
+            permissions={profileData.permissions}
+            isOwnProfile={isOwnProfile}
+          />
+        </LayoutActions>
+      </ProfileLayout>
 
       <style jsx>{`
-        .profile-page {
-          min-height: 100vh;
-          background: #231913;
-          color: #f1e5c8;
-          font-family: ui-monospace, Menlo, Consolas, monospace;
-        }
-
-        .profile-content {
-          max-width: 100%;
-          margin: 0;
-          padding: 12px;
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .profile-grid {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .stats-column {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .sidebar-column {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
         .recent-activity {
           background: #32241d;
-          border: 4px solid #533b2c;
-          border-radius: 10px;
+          border: 2px solid #533b2c;
+          border-radius: 8px;
           padding: 16px;
-          box-shadow: 0 4px 0 rgba(0,0,0,.4), inset 0 0 0 2px #1d1410;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
         .activity-title {
-          font-size: 16px;
-          font-weight: bold;
+          font-size: 14px;
+          font-weight: 600;
           color: #f1e5c8;
           margin: 0 0 12px 0;
-          border-bottom: 2px solid #533b2c;
+          border-bottom: 1px solid #4b3527;
           padding-bottom: 8px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
 
         .activity-list {
@@ -266,20 +235,26 @@ export default function ProfilePage() {
         }
 
         .activity-item {
-          padding: 8px;
+          padding: 12px;
           background: #2e231d;
-          border: 2px solid #4b3527;
+          border: 1px solid #4b3527;
           border-radius: 6px;
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
           gap: 8px;
+          transition: background-color 0.2s ease;
+        }
+
+        .activity-item:hover {
+          background: #342920;
         }
 
         .activity-message {
           font-size: 12px;
           color: #c7b38a;
           flex: 1;
+          line-height: 1.4;
         }
 
         .activity-time {
@@ -327,20 +302,11 @@ export default function ProfilePage() {
           border: 2px solid #a36a43;
           border-radius: 6px;
           background: #32241d;
+          transition: background-color 0.2s ease;
         }
 
         .back-link:hover {
           background: #7b4b2d;
-        }
-
-        @media (max-width: 768px) {
-          .profile-grid {
-            grid-template-columns: 1fr;
-          }
-          
-          .profile-content {
-            padding: 12px;
-          }
         }
       `}</style>
     </GameLayout>

@@ -121,14 +121,26 @@ export default function ProfileHeader({
       <style jsx>{`
         .profile-header {
           display: flex;
-          gap: 12px;
-          padding: 12px;
+          gap: 16px;
+          padding: 20px;
           background: #32241d;
-          border: 4px solid #533b2c;
-          border-radius: 8px;
-          box-shadow: 0 4px 0 rgba(0,0,0,.4), inset 0 0 0 2px #1d1410;
+          border: 2px solid #533b2c;
+          border-radius: 12px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
           color: #f1e5c8;
           font-family: ui-monospace, Menlo, Consolas, monospace;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .profile-header::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 3px;
+          background: linear-gradient(90deg, #a36a43, #7b4b2d);
         }
 
         .avatar-section {
@@ -173,10 +185,11 @@ export default function ProfileHeader({
         }
 
         .display-name {
-          font-size: 18px;
-          font-weight: bold;
+          font-size: 22px;
+          font-weight: 700;
           margin: 0;
           color: #f1e5c8;
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
         }
 
         .achievement-badge {
@@ -211,9 +224,10 @@ export default function ProfileHeader({
         .meta-info {
           display: flex;
           flex-direction: column;
-          gap: 4px;
+          gap: 6px;
           font-size: 12px;
           color: #c7b38a;
+          margin-top: 4px;
         }
 
         .achievements-preview {
@@ -253,13 +267,30 @@ export default function ProfileHeader({
             flex-direction: column;
             align-items: center;
             text-align: center;
+            padding: 16px;
+            gap: 12px;
+          }
+
+          .display-name {
+            font-size: 20px;
           }
           
           .name-row {
             justify-content: center;
+            flex-wrap: wrap;
+            gap: 8px;
           }
           
           .guild-info {
+            justify-content: center;
+            flex-wrap: wrap;
+          }
+
+          .achievements-preview {
+            width: 100%;
+          }
+
+          .achievement-badges {
             justify-content: center;
           }
         }

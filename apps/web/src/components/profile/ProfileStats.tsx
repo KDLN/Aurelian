@@ -1,6 +1,7 @@
 'use client';
 
-import GamePanel from '../ui/GamePanel';
+import { ProfilePanel } from './ProfileLayout';
+import StatCard from '../ui/StatCard';
 import { Badge } from '../ui/badge';
 
 interface ProfileStatsProps {
@@ -72,40 +73,52 @@ export default function ProfileStats({ stats, canViewPrivateStats = false }: Pro
   return (
     <div className="profile-stats">
       {/* Mission Statistics */}
-      <GamePanel className="stats-panel">
-        <h3 className="panel-title">Mission Performance</h3>
+      <ProfilePanel title="Mission Performance">
         <div className="stats-grid">
-          <div className="stat-item">
-            <span className="stat-label">Missions Completed</span>
-            <span className="stat-value">{stats.missions.completed}</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-label">Success Rate</span>
-            <span className="stat-value">{stats.missions.successRate}%</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-label">Current Streak</span>
-            <span className="stat-value">{stats.missions.currentStreak}</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-label">Best Streak</span>
-            <span className="stat-value">{stats.missions.longestStreak}</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-label">Gold from Missions</span>
-            <span className="stat-value">{formatGold(stats.missions.totalGoldEarned)}</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-label">Favorite Risk</span>
-            <Badge 
-              style={{ 
-                backgroundColor: getRiskLevelColor(stats.missions.favoriteRiskLevel),
-                color: '#000' 
-              }}
-            >
-              {stats.missions.favoriteRiskLevel}
-            </Badge>
-          </div>
+          <StatCard
+            label="Missions Completed"
+            value={stats.missions.completed}
+            icon="🗡️"
+          />
+          <StatCard
+            label="Success Rate"
+            value={`${stats.missions.successRate}%`}
+            icon="📈"
+            variant={stats.missions.successRate >= 80 ? 'positive' : stats.missions.successRate >= 60 ? 'neutral' : 'negative'}
+          />
+          <StatCard
+            label="Current Streak"
+            value={stats.missions.currentStreak}
+            icon="🔥"
+            variant={stats.missions.currentStreak >= 5 ? 'positive' : 'neutral'}
+          />
+          <StatCard
+            label="Best Streak"
+            value={stats.missions.longestStreak}
+            icon="🏆"
+          />
+          <StatCard
+            label="Gold from Missions"
+            value={formatGold(stats.missions.totalGoldEarned)}
+            icon="💰"
+            variant="positive"
+          />
+          <StatCard
+            label="Favorite Risk"
+            value={
+              <Badge 
+                style={{ 
+                  backgroundColor: getRiskLevelColor(stats.missions.favoriteRiskLevel),
+                  color: '#000',
+                  fontSize: '11px',
+                  padding: '2px 6px'
+                }}
+              >
+                {stats.missions.favoriteRiskLevel}
+              </Badge>
+            }
+            icon="⚖️"
+          />
         </div>
         
         {stats.missions.mostPopularRoute !== 'None' && (
@@ -114,28 +127,32 @@ export default function ProfileStats({ stats, canViewPrivateStats = false }: Pro
             <span className="route-value">{stats.missions.mostPopularRoute}</span>
           </div>
         )}
-      </GamePanel>
+      </ProfilePanel>
 
       {/* Crafting Statistics */}
-      <GamePanel className="stats-panel">
-        <h3 className="panel-title">Crafting Mastery</h3>
+      <ProfilePanel title="Crafting Mastery">
         <div className="stats-grid">
-          <div className="stat-item">
-            <span className="stat-label">Crafting Level</span>
-            <span className="stat-value">{stats.crafting.currentLevel}</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-label">Items Crafted</span>
-            <span className="stat-value">{stats.crafting.totalItemsCrafted}</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-label">Jobs Completed</span>
-            <span className="stat-value">{stats.crafting.completed}</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-label">Favorite Item</span>
-            <span className="stat-value">{stats.crafting.mostCraftedItem}</span>
-          </div>
+          <StatCard
+            label="Crafting Level"
+            value={stats.crafting.currentLevel}
+            icon="⭐"
+            size="lg"
+          />
+          <StatCard
+            label="Items Crafted"
+            value={stats.crafting.totalItemsCrafted}
+            icon="🔨"
+          />
+          <StatCard
+            label="Jobs Completed"
+            value={stats.crafting.completed}
+            icon="✅"
+          />
+          <StatCard
+            label="Favorite Item"
+            value={stats.crafting.mostCraftedItem}
+            icon="❤️"
+          />
         </div>
         
         <div className="xp-progress">
@@ -151,187 +168,163 @@ export default function ProfileStats({ stats, canViewPrivateStats = false }: Pro
             />
           </div>
         </div>
-      </GamePanel>
+      </ProfilePanel>
 
       {/* Trading Statistics */}
-      <GamePanel className="stats-panel">
-        <h3 className="panel-title">Trading Empire</h3>
+      <ProfilePanel title="Trading Empire">
         <div className="stats-grid">
-          <div className="stat-item">
-            <span className="stat-label">Items Sold</span>
-            <span className="stat-value">{stats.trading.soldListings}</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-label">Sales Revenue</span>
-            <span className="stat-value">{formatGold(stats.trading.totalGoldFromSales)}</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-label">Active Listings</span>
-            <span className="stat-value">{stats.trading.activeListings}</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-label">Avg Sale Price</span>
-            <span className="stat-value">{formatGold(stats.trading.averageListingPrice)}</span>
-          </div>
-          <div className="stat-item span-2">
-            <span className="stat-label">Most Traded Item</span>
-            <span className="stat-value">{stats.trading.mostTradedItem}</span>
-          </div>
+          <StatCard
+            label="Items Sold"
+            value={stats.trading.soldListings}
+            icon="📦"
+          />
+          <StatCard
+            label="Sales Revenue"
+            value={formatGold(stats.trading.totalGoldFromSales)}
+            icon="💰"
+            variant="positive"
+          />
+          <StatCard
+            label="Active Listings"
+            value={stats.trading.activeListings}
+            icon="📋"
+            variant={stats.trading.activeListings > 0 ? 'positive' : 'neutral'}
+          />
+          <StatCard
+            label="Avg Sale Price"
+            value={formatGold(stats.trading.averageListingPrice)}
+            icon="💎"
+          />
+          <StatCard
+            label="Most Traded Item"
+            value={stats.trading.mostTradedItem}
+            icon="🏅"
+            className="span-2"
+          />
         </div>
-      </GamePanel>
+      </ProfilePanel>
 
       {/* All-Time Statistics */}
       {canViewPrivateStats && (
-        <GamePanel className="stats-panel">
-          <h3 className="panel-title">All-Time Records</h3>
+        <ProfilePanel title="All-Time Records">
           <div className="stats-grid">
-            <div className="stat-item">
-              <span className="stat-label">Total Gold Earned</span>
-              <span className="stat-value">{formatGold(stats.allTime.goldEarned)}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">Total Gold Spent</span>
-              <span className="stat-value">{formatGold(stats.allTime.goldSpent)}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">Net Profit</span>
-              <span className={`stat-value ${stats.allTime.goldEarned >= stats.allTime.goldSpent ? 'positive' : 'negative'}`}>
-                {formatGold(stats.allTime.goldEarned - stats.allTime.goldSpent)}
-              </span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">Agents Hired</span>
-              <span className="stat-value">{stats.allTime.agentsHired}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">Total Playtime</span>
-              <span className="stat-value">{formatTime(stats.allTime.activeTimeMinutes)}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">Sessions</span>
-              <span className="stat-value">{stats.allTime.loginCount}</span>
-            </div>
+            <StatCard
+              label="Total Gold Earned"
+              value={formatGold(stats.allTime.goldEarned)}
+              icon="💰"
+              variant="positive"
+            />
+            <StatCard
+              label="Total Gold Spent"
+              value={formatGold(stats.allTime.goldSpent)}
+              icon="💸"
+              variant="negative"
+            />
+            <StatCard
+              label="Net Profit"
+              value={formatGold(stats.allTime.goldEarned - stats.allTime.goldSpent)}
+              icon={stats.allTime.goldEarned >= stats.allTime.goldSpent ? "📈" : "📉"}
+              variant={stats.allTime.goldEarned >= stats.allTime.goldSpent ? 'positive' : 'negative'}
+            />
+            <StatCard
+              label="Agents Hired"
+              value={stats.allTime.agentsHired}
+              icon="👥"
+            />
+            <StatCard
+              label="Total Playtime"
+              value={formatTime(stats.allTime.activeTimeMinutes)}
+              icon="⏰"
+            />
+            <StatCard
+              label="Sessions"
+              value={stats.allTime.loginCount}
+              icon="🔄"
+            />
           </div>
-        </GamePanel>
+        </ProfilePanel>
       )}
 
       <style jsx>{`
         .profile-stats {
           display: flex;
           flex-direction: column;
-          gap: 16px;
-        }
-
-        .stats-panel {
-          background: #32241d;
-          border: 4px solid #533b2c;
-          border-radius: 8px;
-          padding: 12px;
-          box-shadow: 0 4px 0 rgba(0,0,0,.4), inset 0 0 0 2px #1d1410;
-        }
-
-        .panel-title {
-          font-size: 14px;
-          font-weight: bold;
-          color: #f1e5c8;
-          margin: 0 0 8px 0;
-          border-bottom: 2px solid #533b2c;
-          padding-bottom: 6px;
+          gap: 20px;
         }
 
         .stats-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-          gap: 8px;
+          grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+          gap: 12px;
         }
 
-        .stat-item {
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-          padding: 6px;
-          background: #2e231d;
-          border: 2px solid #4b3527;
-          border-radius: 4px;
-        }
-
-        .stat-item.span-2 {
+        .stats-grid :global(.span-2) {
           grid-column: span 2;
         }
 
-        .stat-label {
-          font-size: 11px;
-          color: #c7b38a;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .stat-value {
-          font-size: 13px;
-          font-weight: bold;
-          color: #f1e5c8;
-        }
-
-        .stat-value.positive {
-          color: #4ade80;
-        }
-
-        .stat-value.negative {
-          color: #f87171;
-        }
-
         .popular-route {
-          margin-top: 12px;
-          padding: 8px;
+          margin-top: 16px;
+          padding: 12px;
           background: #2e231d;
-          border: 2px solid #4b3527;
+          border: 1px solid #4b3527;
           border-radius: 6px;
           display: flex;
           gap: 8px;
+          align-items: center;
         }
 
         .route-label {
           font-size: 12px;
           color: #c7b38a;
+          font-weight: 500;
         }
 
         .route-value {
           font-size: 12px;
           color: #f1e5c8;
-          font-weight: bold;
+          font-weight: 600;
         }
 
         .xp-progress {
-          margin-top: 12px;
+          margin-top: 16px;
+          padding: 12px;
+          background: rgba(163, 106, 67, 0.1);
+          border: 1px solid #533b2c;
+          border-radius: 6px;
         }
 
         .xp-label {
           font-size: 12px;
           color: #c7b38a;
-          margin-bottom: 4px;
+          margin-bottom: 8px;
+          font-weight: 500;
         }
 
         .xp-bar {
           width: 100%;
-          height: 8px;
+          height: 10px;
           background: #2e231d;
-          border: 2px solid #4b3527;
-          border-radius: 4px;
+          border: 1px solid #4b3527;
+          border-radius: 5px;
           overflow: hidden;
+          position: relative;
         }
 
         .xp-fill {
           height: 100%;
           background: linear-gradient(90deg, #7b4b2d, #a36a43);
+          border-radius: 4px;
           transition: width 0.3s ease;
+          box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.1);
         }
 
         @media (max-width: 768px) {
           .stats-grid {
             grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
           }
           
-          .stat-item.span-2 {
+          .stats-grid :global(.span-2) {
             grid-column: span 2;
           }
         }
@@ -339,9 +332,10 @@ export default function ProfileStats({ stats, canViewPrivateStats = false }: Pro
         @media (max-width: 480px) {
           .stats-grid {
             grid-template-columns: 1fr;
+            gap: 8px;
           }
           
-          .stat-item.span-2 {
+          .stats-grid :global(.span-2) {
             grid-column: span 1;
           }
         }

@@ -90,18 +90,18 @@ A complete interactive medieval trading route system with:
 - [x] Guild wars and competitions
 - [x] Member contribution tracking
 
-### 2.2 Guild Alliance System ⭐ **NEXT PRIORITY**
-- [ ] **Alliance Management**: Propose, accept, decline, and break alliances
-- [ ] **Travel Tax Benefits**: 25-50% tax reduction on allied guild roads  
-- [ ] **Auction Fee Benefits**: 10-15% fee reduction in allied markets
-- [ ] **Alliance Chat Channels**: Shared communication between allied guilds
-- [ ] **Safe Passage System**: No attacks in neutral zones between allies
-- [ ] **Alliance Directory**: View all current alliances and benefits
-- [ ] **Joint Mission Access**: Special multi-guild cooperative missions
-- [ ] **Alliance Activity Feed**: Track alliance-related guild events
-- [ ] **Alliance UI Integration**: Clear ally/enemy indicators throughout game
+### 2.2 Guild Alliance System ✅ **COMPLETE**
+- [x] **Alliance Management**: Propose, accept, decline, and break alliances
+- [x] **Travel Tax Benefits**: 35% tax reduction on allied guild roads  
+- [x] **Auction Fee Benefits**: 12% fee reduction in allied markets
+- [x] **Alliance Chat Channels**: Shared communication between allied guilds
+- [ ] **Safe Passage System**: No attacks in neutral zones between allies *(awaiting combat system)*
+- [x] **Alliance Directory**: View all current alliances and benefits
+- [x] **Joint Mission Access**: Special multi-guild cooperative missions
+- [x] **Alliance Activity Feed**: Track alliance-related guild events
+- [x] **Alliance UI Integration**: Clear ally/enemy indicators throughout game *(partial - alliance pages only)*
 
-### 2.3 Hub-Based Guild Wars ⭐ **NEXT AFTER ALLIANCES**
+### 2.3 Hub-Based Guild Wars ⭐ **NEXT PRIORITY**
 - [ ] **Contest Declaration System**: Challenge other guilds for hub control
 - [ ] **Economic Competition Mechanics**: Win through trade volume, missions, crafting activity
 - [ ] **Real-time Contest Scoring**: Track guild performance during 7-day contests

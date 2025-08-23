@@ -1,6 +1,7 @@
 'use client';
 
-import GamePanel from '../ui/GamePanel';
+import { useState } from 'react';
+import { ProfilePanel } from './ProfileLayout';
 import { Badge } from '../ui/badge';
 
 interface ProfileAchievementsProps {
@@ -86,14 +87,18 @@ const CATEGORY_ICONS = {
 };
 
 export default function ProfileAchievements({ achievements }: ProfileAchievementsProps) {
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
   if (achievements.length === 0) {
     return (
-      <GamePanel className="achievements-panel">
-        <h3 className="panel-title">Achievements</h3>
+      <ProfilePanel title="Achievements">
         <div className="no-achievements">
-          <span className="muted">No achievements yet. Start trading to earn your first badge!</span>
+          <div className="no-achievements-icon">🏆</div>
+          <span className="no-achievements-text">No achievements yet</span>
+          <span className="no-achievements-subtitle">Start trading to earn your first badge!</span>
         </div>
-      </GamePanel>
+      </ProfilePanel>
     );
   }
 
@@ -108,131 +113,247 @@ export default function ProfileAchievements({ achievements }: ProfileAchievement
     return groups;
   }, {} as Record<string, string[]>);
 
+  const categories = Object.keys(groupedAchievements);
+  const filteredAchievements = selectedCategory === 'all' 
+    ? achievements 
+    : groupedAchievements[selectedCategory] || [];
+
   return (
-    <GamePanel className="achievements-panel">
-      <h3 className="panel-title">
-        Achievements ({achievements.length})
-      </h3>
-      
-      <div className="achievements-container">
-        {Object.entries(groupedAchievements).map(([category, categoryAchievements]) => (
-          <div key={category} className="achievement-category">
-            <h4 className="category-title">
-              <span className="category-icon">{CATEGORY_ICONS[category as keyof typeof CATEGORY_ICONS]}</span>
+    <ProfilePanel title={`Achievements (${achievements.length})`}>
+      {/* Filter Controls */}
+      <div className="achievements-controls">
+        <div className="category-filters">
+          <button
+            className={`filter-button ${selectedCategory === 'all' ? 'active' : ''}`}
+            onClick={() => setSelectedCategory('all')}
+          >
+            All
+          </button>
+          {categories.map((category) => (
+            <button
+              key={category}
+              className={`filter-button ${selectedCategory === category ? 'active' : ''}`}
+              onClick={() => setSelectedCategory(category)}
+            >
+              <span className="filter-icon">
+                {CATEGORY_ICONS[category as keyof typeof CATEGORY_ICONS]}
+              </span>
               {category.charAt(0).toUpperCase() + category.slice(1)}
-            </h4>
-            
-            <div className="achievement-grid">
-              {categoryAchievements.map((achievement) => {
-                const data = ACHIEVEMENT_DATA[achievement];
-                const rarity = data?.rarity || 'common';
-                const colors = RARITY_COLORS[rarity];
-                
-                return (
-                  <div 
-                    key={achievement}
-                    className="achievement-badge"
-                    style={{
-                      backgroundColor: colors.bg,
-                      borderColor: colors.border,
-                      color: colors.text
-                    }}
-                  >
-                    <div className="achievement-name">{achievement}</div>
-                    <div className="achievement-description">{data?.description || ''}</div>
-                    <div className="achievement-rarity">{rarity.toUpperCase()}</div>
-                  </div>
-                );
-              })}
+            </button>
+          ))}
+        </div>
+        
+        <div className="view-toggles">
+          <button
+            className={`view-toggle ${viewMode === 'grid' ? 'active' : ''}`}
+            onClick={() => setViewMode('grid')}
+            title="Grid view"
+          >
+            ⊞
+          </button>
+          <button
+            className={`view-toggle ${viewMode === 'list' ? 'active' : ''}`}
+            onClick={() => setViewMode('list')}
+            title="List view"
+          >
+            ☰
+          </button>
+        </div>
+      </div>
+
+      {/* Achievements Display */}
+      <div className={`achievements-container ${viewMode}`}>
+        {filteredAchievements.map((achievement) => {
+          const data = ACHIEVEMENT_DATA[achievement];
+          const rarity = data?.rarity || 'common';
+          const colors = RARITY_COLORS[rarity];
+          const category = data?.category || 'missions';
+          
+          return (
+            <div 
+              key={achievement}
+              className="achievement-badge"
+              style={{
+                backgroundColor: colors.bg,
+                borderColor: colors.border,
+                color: colors.text
+              }}
+            >
+              <div className="achievement-header">
+                <span className="achievement-category-icon">
+                  {CATEGORY_ICONS[category as keyof typeof CATEGORY_ICONS]}
+                </span>
+                <div className="achievement-rarity">{rarity.toUpperCase()}</div>
+              </div>
+              <div className="achievement-name">{achievement}</div>
+              <div className="achievement-description">{data?.description || ''}</div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <style jsx>{`
-        .achievements-panel {
-          background: #32241d;
-          border: 4px solid #533b2c;
-          border-radius: 8px;
-          padding: 12px;
-          box-shadow: 0 4px 0 rgba(0,0,0,.4), inset 0 0 0 2px #1d1410;
-        }
-
-        .panel-title {
-          font-size: 14px;
-          font-weight: bold;
-          color: #f1e5c8;
-          margin: 0 0 10px 0;
-          border-bottom: 2px solid #533b2c;
-          padding-bottom: 6px;
-        }
-
         .no-achievements {
           text-align: center;
-          padding: 20px;
-        }
-
-        .muted {
-          color: #c7b38a;
-          font-style: italic;
-        }
-
-        .achievements-container {
+          padding: 32px 16px;
           display: flex;
           flex-direction: column;
-          gap: 16px;
-        }
-
-        .achievement-category {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .category-title {
-          font-size: 14px;
-          font-weight: bold;
-          color: #f1e5c8;
-          margin: 0;
-          display: flex;
           align-items: center;
           gap: 8px;
         }
 
-        .category-icon {
+        .no-achievements-icon {
+          font-size: 48px;
+          opacity: 0.5;
+        }
+
+        .no-achievements-text {
+          color: #f1e5c8;
+          font-weight: 600;
           font-size: 16px;
         }
 
-        .achievement-grid {
+        .no-achievements-subtitle {
+          color: #c7b38a;
+          font-size: 12px;
+          font-style: italic;
+        }
+
+        .achievements-controls {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 16px;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+
+        .category-filters {
+          display: flex;
+          gap: 4px;
+          flex-wrap: wrap;
+        }
+
+        .filter-button {
+          padding: 6px 10px;
+          background: #2e231d;
+          border: 1px solid #4b3527;
+          border-radius: 4px;
+          color: #c7b38a;
+          font-size: 11px;
+          font-family: inherit;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          min-height: 32px;
+        }
+
+        .filter-button:hover {
+          background: #342920;
+          border-color: #533b2c;
+        }
+
+        .filter-button.active {
+          background: #7b4b2d;
+          border-color: #a36a43;
+          color: #f1e5c8;
+        }
+
+        .filter-icon {
+          font-size: 12px;
+        }
+
+        .view-toggles {
+          display: flex;
+          gap: 2px;
+        }
+
+        .view-toggle {
+          padding: 6px 8px;
+          background: #2e231d;
+          border: 1px solid #4b3527;
+          border-radius: 4px;
+          color: #c7b38a;
+          font-size: 14px;
+          font-family: inherit;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          min-height: 32px;
+          min-width: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .view-toggle:hover {
+          background: #342920;
+          border-color: #533b2c;
+        }
+
+        .view-toggle.active {
+          background: #7b4b2d;
+          border-color: #a36a43;
+          color: #f1e5c8;
+        }
+
+        .achievements-container.grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+          gap: 12px;
+        }
+
+        .achievements-container.list {
+          display: flex;
+          flex-direction: column;
           gap: 8px;
         }
 
         .achievement-badge {
-          padding: 8px;
+          padding: 12px;
           border: 2px solid;
-          border-radius: 6px;
+          border-radius: 8px;
           display: flex;
           flex-direction: column;
-          gap: 3px;
-          transition: transform 0.2s ease, box-shadow 0.2s ease;
+          gap: 6px;
+          transition: all 0.2s ease;
           cursor: pointer;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .achievement-badge::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 2px;
+          background: currentColor;
+          opacity: 0.3;
         }
 
         .achievement-badge:hover {
           transform: translateY(-2px);
-          box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
 
-        .achievement-name {
-          font-size: 12px;
-          font-weight: bold;
+        .achievements-container.list .achievement-badge {
+          flex-direction: row;
+          align-items: center;
+          gap: 12px;
         }
 
-        .achievement-description {
-          font-size: 10px;
-          opacity: 0.9;
+        .achievement-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 4px;
+        }
+
+        .achievement-category-icon {
+          font-size: 16px;
         }
 
         .achievement-rarity {
@@ -240,16 +361,63 @@ export default function ProfileAchievements({ achievements }: ProfileAchievement
           text-transform: uppercase;
           letter-spacing: 0.5px;
           font-weight: bold;
-          align-self: flex-end;
-          opacity: 0.7;
+          opacity: 0.8;
+          padding: 2px 4px;
+          background: rgba(0, 0, 0, 0.2);
+          border-radius: 3px;
+        }
+
+        .achievement-name {
+          font-size: 13px;
+          font-weight: 600;
+          margin-bottom: 2px;
+        }
+
+        .achievements-container.list .achievement-name {
+          flex: 1;
+          margin-bottom: 0;
+        }
+
+        .achievement-description {
+          font-size: 11px;
+          opacity: 0.9;
+          line-height: 1.3;
+        }
+
+        .achievements-container.list .achievement-description {
+          flex: 2;
         }
 
         @media (max-width: 768px) {
-          .achievement-grid {
+          .achievements-controls {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 8px;
+          }
+
+          .category-filters {
+            justify-content: flex-start;
+          }
+
+          .view-toggles {
+            align-self: center;
+          }
+
+          .achievements-container.grid {
             grid-template-columns: 1fr;
+          }
+
+          .achievements-container.list .achievement-badge {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+
+          .filter-button {
+            font-size: 10px;
+            padding: 4px 6px;
           }
         }
       `}</style>
-    </GamePanel>
+    </ProfilePanel>
   );
 }

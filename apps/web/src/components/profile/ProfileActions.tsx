@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import GameButton from '../ui/GameButton';
-import GamePanel from '../ui/GamePanel';
+import { ProfilePanel } from './ProfileLayout';
 import { supabase } from '@/lib/supabaseClient';
 
 interface ProfileActionsProps {
@@ -110,9 +110,7 @@ export default function ProfileActions({
   };
 
   return (
-    <GamePanel className="profile-actions">
-      <h3 className="panel-title">Actions</h3>
-      
+    <ProfilePanel title="Actions">
       <div className="actions-grid">
         {permissions.canTrade && (
           <GameButton 
@@ -120,7 +118,8 @@ export default function ProfileActions({
             disabled={isLoading}
             className="action-button trade-button"
           >
-            🤝 Start Trade
+            <span className="action-icon">🤝</span>
+            <span className="action-text">Trade</span>
           </GameButton>
         )}
 
@@ -130,7 +129,8 @@ export default function ProfileActions({
             disabled={isLoading}
             className="action-button message-button"
           >
-            💬 Send Message
+            <span className="action-icon">💬</span>
+            <span className="action-text">Message</span>
           </GameButton>
         )}
 
@@ -139,7 +139,8 @@ export default function ProfileActions({
           disabled={isLoading}
           className="action-button shop-button"
         >
-          🛒 View Shop
+          <span className="action-icon">🛒</span>
+          <span className="action-text">Shop</span>
         </GameButton>
 
         <GameButton 
@@ -147,7 +148,8 @@ export default function ProfileActions({
           disabled={isLoading}
           className="action-button compare-button"
         >
-          📊 Compare Stats
+          <span className="action-icon">📊</span>
+          <span className="action-text">Compare</span>
         </GameButton>
 
         {permissions.canInviteToGuild && !showInviteModal && (
@@ -156,7 +158,8 @@ export default function ProfileActions({
             disabled={isLoading}
             className="action-button invite-button"
           >
-            🏰 Invite to Guild
+            <span className="action-icon">🏰</span>
+            <span className="action-text">Invite</span>
           </GameButton>
         )}
       </div>
@@ -207,82 +210,39 @@ export default function ProfileActions({
       )}
 
       <style jsx>{`
-        .profile-actions {
-          background: #32241d;
-          border: 4px solid #533b2c;
-          border-radius: 8px;
-          padding: 12px;
-          box-shadow: 0 4px 0 rgba(0,0,0,.4), inset 0 0 0 2px #1d1410;
-        }
-
-        .panel-title {
-          font-size: 14px;
-          font-weight: bold;
-          color: #f1e5c8;
-          margin: 0 0 10px 0;
-          border-bottom: 2px solid #533b2c;
-          padding-bottom: 6px;
-        }
-
         .actions-grid {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
-          gap: 8px;
+          gap: 12px;
         }
 
-        .action-button {
-          padding: 8px 12px;
+        .actions-grid :global(.action-button) {
+          padding: 12px 8px;
           font-size: 12px;
-          white-space: nowrap;
           display: flex;
+          flex-direction: column;
           align-items: center;
           justify-content: center;
           gap: 4px;
+          min-height: 64px;
+          text-align: center;
+          border-radius: 8px;
+          transition: all 0.2s ease;
         }
 
-        .trade-button {
-          background: #065f46;
-          border-color: #10b981;
+        .actions-grid :global(.action-button):hover {
+          transform: translateY(-1px);
         }
 
-        .trade-button:hover {
-          background: #047857;
+        .action-icon {
+          font-size: 18px;
         }
 
-        .message-button {
-          background: #1e40af;
-          border-color: #3b82f6;
-        }
-
-        .message-button:hover {
-          background: #1e3a8a;
-        }
-
-        .shop-button {
-          background: #7c2d12;
-          border-color: #ea580c;
-        }
-
-        .shop-button:hover {
-          background: #9a3412;
-        }
-
-        .compare-button {
-          background: #581c87;
-          border-color: #a855f7;
-        }
-
-        .compare-button:hover {
-          background: #6b21a8;
-        }
-
-        .invite-button {
-          background: #be123c;
-          border-color: #f43f5e;
-        }
-
-        .invite-button:hover {
-          background: #be185d;
+        .action-text {
+          font-size: 11px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
 
         .invite-modal {
@@ -295,27 +255,31 @@ export default function ProfileActions({
 
         .modal-title {
           font-size: 14px;
-          font-weight: bold;
+          font-weight: 600;
           color: #f1e5c8;
           margin: 0 0 12px 0;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
 
         .invite-message-input {
           width: 100%;
-          padding: 8px;
+          padding: 12px;
           background: #231913;
-          border: 2px solid #4b3527;
+          border: 1px solid #4b3527;
           border-radius: 6px;
           color: #f1e5c8;
           font-family: ui-monospace, Menlo, Consolas, monospace;
           font-size: 12px;
           resize: vertical;
           margin-bottom: 12px;
+          transition: border-color 0.2s ease;
         }
 
         .invite-message-input:focus {
           outline: none;
           border-color: #a36a43;
+          background: #2a1f18;
         }
 
         .invite-message-input::placeholder {
@@ -327,35 +291,31 @@ export default function ProfileActions({
           gap: 8px;
         }
 
-        .send-invite-button {
-          background: #be123c;
-          border-color: #f43f5e;
-        }
-
-        .cancel-button {
-          background: #4b3527;
-          border-color: #6b5b47;
+        .modal-actions :global(.game-button) {
+          flex: 1;
+          min-height: 40px;
         }
 
         .action-result {
-          margin-top: 12px;
+          margin-top: 16px;
           padding: 12px;
           border-radius: 6px;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          font-size: 14px;
+          font-size: 12px;
+          font-weight: 500;
         }
 
         .action-result.success {
-          background: #065f46;
-          border: 2px solid #10b981;
+          background: rgba(16, 185, 129, 0.15);
+          border: 1px solid #10b981;
           color: #d1fae5;
         }
 
         .action-result.error {
-          background: #7f1d1d;
-          border: 2px solid #ef4444;
+          background: rgba(239, 68, 68, 0.15);
+          border: 1px solid #ef4444;
           color: #fecaca;
         }
 
@@ -365,20 +325,60 @@ export default function ProfileActions({
           color: inherit;
           font-size: 16px;
           cursor: pointer;
-          padding: 0;
+          padding: 4px;
           margin-left: 8px;
+          border-radius: 3px;
+          transition: background-color 0.2s ease;
         }
 
         .close-result:hover {
-          opacity: 0.7;
+          background: rgba(255, 255, 255, 0.1);
         }
 
         @media (max-width: 640px) {
           .actions-grid {
             grid-template-columns: 1fr;
+            gap: 8px;
+          }
+
+          .actions-grid :global(.action-button) {
+            min-height: 56px;
+            padding: 10px 8px;
+          }
+
+          .action-icon {
+            font-size: 16px;
+          }
+
+          .action-text {
+            font-size: 10px;
+          }
+        }
+
+        @media (min-width: 1024px) {
+          .actions-grid {
+            grid-template-columns: 1fr;
+            gap: 10px;
+          }
+
+          .actions-grid :global(.action-button) {
+            flex-direction: row;
+            min-height: 48px;
+            gap: 8px;
+            text-align: left;
+            justify-content: flex-start;
+            padding: 12px 16px;
+          }
+
+          .action-icon {
+            font-size: 16px;
+          }
+
+          .action-text {
+            font-size: 12px;
           }
         }
       `}</style>
-    </GamePanel>
+    </ProfilePanel>
   );
 }
