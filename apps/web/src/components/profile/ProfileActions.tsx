@@ -119,9 +119,10 @@ export default function ProfileActions({
             onClick={handleStartTrade}
             disabled={isLoading}
             className="action-button trade-button"
+            title="Start Trade"
           >
             <span className="action-icon">🤝</span>
-            <span className="action-text">Trade</span>
+            {!embedded && <span className="action-text">Trade</span>}
           </GameButton>
         )}
 
@@ -130,9 +131,10 @@ export default function ProfileActions({
             onClick={handleSendMessage}
             disabled={isLoading}
             className="action-button message-button"
+            title="Send Message"
           >
             <span className="action-icon">💬</span>
-            <span className="action-text">Message</span>
+            {!embedded && <span className="action-text">Message</span>}
           </GameButton>
         )}
 
@@ -140,18 +142,20 @@ export default function ProfileActions({
           onClick={handleViewShop}
           disabled={isLoading}
           className="action-button shop-button"
+          title="View Shop"
         >
           <span className="action-icon">🛒</span>
-          <span className="action-text">Shop</span>
+          {!embedded && <span className="action-text">Shop</span>}
         </GameButton>
 
         <GameButton 
           onClick={handleCompareStats}
           disabled={isLoading}
           className="action-button compare-button"
+          title="Compare Stats"
         >
           <span className="action-icon">📊</span>
-          <span className="action-text">Compare</span>
+          {!embedded && <span className="action-text">Compare</span>}
         </GameButton>
 
         {permissions.canInviteToGuild && !showInviteModal && (
@@ -223,14 +227,25 @@ export default function ProfileActions({
           display: flex;
           flex-direction: row;
           flex-wrap: wrap;
-          gap: 8px;
-          justify-content: flex-start;
+          gap: 6px;
+          justify-content: flex-end;
         }
         
         :global(.actions-section) .actions-grid :global(.action-button) {
           flex: 0 0 auto;
-          min-width: 80px;
-          padding: 8px 12px;
+          min-width: 36px;
+          width: 36px;
+          height: 36px;
+          padding: 8px;
+          border-radius: 6px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        
+        :global(.actions-section) .action-icon {
+          font-size: 16px;
+          margin: 0;
         }
 
         .actions-grid :global(.action-button) {
@@ -373,22 +388,19 @@ export default function ProfileActions({
           
           /* Mobile embedded actions - keep horizontal but smaller */
           :global(.actions-section) .actions-grid {
-            gap: 6px;
+            gap: 4px;
             justify-content: center;
           }
           
           :global(.actions-section) .actions-grid :global(.action-button) {
-            min-width: 70px;
-            padding: 6px 8px;
-            font-size: 11px;
+            min-width: 32px;
+            width: 32px;
+            height: 32px;
+            padding: 6px;
           }
           
           :global(.actions-section) .action-icon {
             font-size: 14px;
-          }
-          
-          :global(.actions-section) .action-text {
-            font-size: 9px;
           }
         }
 

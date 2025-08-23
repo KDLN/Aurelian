@@ -4,8 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import GameLayout from '@/components/GameLayout';
 import ProfileHeader from '@/components/profile/ProfileHeader';
-import ProfileStats from '@/components/profile/ProfileStats';
-import ProfileAchievements from '@/components/profile/ProfileAchievements';
+import ProfileDashboard from '@/components/profile/ProfileDashboard';
 import ProfileActions from '@/components/profile/ProfileActions';
 import { supabase } from '@/lib/supabaseClient';
 
@@ -173,35 +172,13 @@ export default function ProfilePage() {
           />
         </div>
 
-        {/* Main Content Area with Scrolling */}
+        {/* Main Dashboard - No Scrolling */}
         <div className="profile-main-content">
-          <div className="profile-stats-section">
-            <ProfileStats 
-              stats={profileData.stats}
-              canViewPrivateStats={profileData.permissions.canViewPrivateStats}
-            />
-          </div>
-          
-          <div className="profile-sidebar-content">
-            <ProfileAchievements achievements={profileData.achievements} />
-            
-            {/* Recent Activity */}
-            {profileData.recentActivity.length > 0 && (
-              <div className="recent-activity">
-                <h3 className="activity-title">Recent Activity</h3>
-                <div className="activity-list">
-                  {profileData.recentActivity.slice(0, 5).map((activity) => (
-                    <div key={activity.id} className="activity-item">
-                      <span className="activity-message">{activity.message}</span>
-                      <span className="activity-time">
-                        {new Date(activity.createdAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          <ProfileDashboard 
+            stats={profileData.stats}
+            achievements={profileData.achievements}
+            canViewPrivateStats={profileData.permissions.canViewPrivateStats}
+          />
         </div>
       </div>
 
@@ -221,79 +198,10 @@ export default function ProfilePage() {
         
         .profile-main-content {
           flex: 1;
-          overflow-y: auto;
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-          padding-right: 4px; /* Space for scrollbar */
-        }
-        
-        .profile-stats-section {
-          flex-shrink: 0;
-          width: 100%;
-        }
-        
-        .profile-sidebar-content {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-          flex-shrink: 0;
-          width: 100%;
+          overflow: hidden;
+          min-height: 0;
         }
 
-        .recent-activity {
-          background: #32241d;
-          border: 2px solid #533b2c;
-          border-radius: 8px;
-          padding: 16px;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-
-        .activity-title {
-          font-size: 14px;
-          font-weight: 600;
-          color: #f1e5c8;
-          margin: 0 0 12px 0;
-          border-bottom: 1px solid #4b3527;
-          padding-bottom: 8px;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .activity-list {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .activity-item {
-          padding: 12px;
-          background: #2e231d;
-          border: 1px solid #4b3527;
-          border-radius: 6px;
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          gap: 8px;
-          transition: background-color 0.2s ease;
-        }
-
-        .activity-item:hover {
-          background: #342920;
-        }
-
-        .activity-message {
-          font-size: 12px;
-          color: #c7b38a;
-          flex: 1;
-          line-height: 1.4;
-        }
-
-        .activity-time {
-          font-size: 11px;
-          color: #8a7960;
-          white-space: nowrap;
-        }
 
         .loading-container {
           display: flex;
@@ -341,24 +249,6 @@ export default function ProfilePage() {
           background: #7b4b2d;
         }
         
-        /* Custom scrollbar styling for webkit browsers */
-        .profile-main-content::-webkit-scrollbar {
-          width: 6px;
-        }
-        
-        .profile-main-content::-webkit-scrollbar-track {
-          background: #1a1511;
-          border-radius: 3px;
-        }
-        
-        .profile-main-content::-webkit-scrollbar-thumb {
-          background: #533b2c;
-          border-radius: 3px;
-        }
-        
-        .profile-main-content::-webkit-scrollbar-thumb:hover {
-          background: #6d4a37;
-        }
       `}</style>
     </GameLayout>
   );

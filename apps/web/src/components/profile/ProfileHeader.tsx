@@ -67,58 +67,39 @@ export default function ProfileHeader({
       </div>
 
       <div className="info-section">
-        <div className="name-row">
-          <h2 className="display-name">{user.display}</h2>
-          {primaryAchievement && (
-            <Badge variant="secondary" className="achievement-badge">
-              {primaryAchievement}
-            </Badge>
-          )}
+        <div className="profile-info">
+          <div className="name-section">
+            <h2 className="display-name">{user.display}</h2>
+            {guild && (
+              <div className="guild-tag-inline">[{guild.tag}]</div>
+            )}
+            {primaryAchievement && (
+              <Badge variant="secondary" className="achievement-badge">
+                {primaryAchievement}
+              </Badge>
+            )}
+          </div>
+          
+          <div className="meta-line">
+            <span className="meta-item">Trader since {joinDate}</span>
+            <span className="meta-separator">•</span>
+            <span className="meta-item">{user.caravanSlotsUnlocked} caravan slots</span>
+            {guild && (
+              <>
+                <span className="meta-separator">•</span>
+                <span className="meta-item">{guild.name} {guild.role}</span>
+              </>
+            )}
+            {achievements.length > 1 && (
+              <>
+                <span className="meta-separator">•</span>
+                <span className="meta-item" title={achievements.slice(1).join(', ')}>
+                  {achievements.length} achievements
+                </span>
+              </>
+            )}
+          </div>
         </div>
-
-        {guild && (
-          <div className="guild-info">
-            <span className="guild-tag">[{guild.tag}]</span>
-            <span className="guild-name">{guild.name}</span>
-            <span className="guild-role">({guild.role})</span>
-          </div>
-        )}
-
-        <div className="meta-info">
-          <div className="joined-date">
-            Trader since {joinDate}
-          </div>
-          {guild && guildJoinDate && (
-            <div className="guild-joined">
-              Guild member since {guildJoinDate}
-            </div>
-          )}
-          <div className="caravan-info">
-            {user.caravanSlotsUnlocked} caravan slots unlocked
-          </div>
-        </div>
-
-        {achievements.length > 1 && (
-          <div className="achievements-preview">
-            <span className="achievements-label">Achievements:</span>
-            <div className="achievement-badges">
-              {achievements.slice(0, 4).map((achievement, index) => (
-                <Badge 
-                  key={index} 
-                  variant="outline" 
-                  className="mini-achievement"
-                >
-                  {achievement}
-                </Badge>
-              ))}
-              {achievements.length > 4 && (
-                <Badge variant="outline" className="more-achievements">
-                  +{achievements.length - 4}
-                </Badge>
-              )}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Actions Section */}
@@ -131,8 +112,10 @@ export default function ProfileHeader({
       <style jsx>{`
         .profile-header {
           display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
           gap: 16px;
-          padding: 20px;
+          padding: 16px 20px;
           background: #32241d;
           border: 2px solid #533b2c;
           border-radius: 12px;
@@ -185,21 +168,34 @@ export default function ProfileHeader({
           flex: 1;
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 6px;
+        }
+        
+        .profile-info {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
         }
 
-        .name-row {
+        .name-section {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 8px;
+          flex-wrap: wrap;
         }
 
         .display-name {
-          font-size: 22px;
+          font-size: 20px;
           font-weight: 700;
           margin: 0;
           color: #f1e5c8;
           text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+        }
+        
+        .guild-tag-inline {
+          font-size: 14px;
+          color: #a36a43;
+          font-weight: bold;
         }
 
         .achievement-badge {
@@ -210,72 +206,29 @@ export default function ProfileHeader({
           padding: 4px 8px;
         }
 
-        .guild-info {
+        .meta-line {
           display: flex;
           align-items: center;
           gap: 8px;
-          font-size: 14px;
+          font-size: 12px;
+          color: #c7b38a;
+          flex-wrap: wrap;
+          line-height: 1.3;
         }
-
-        .guild-tag {
-          color: #a36a43;
+        
+        .meta-item {
+          white-space: nowrap;
+        }
+        
+        .meta-separator {
+          color: #8a7960;
           font-weight: bold;
         }
 
-        .guild-name {
-          color: #c7b38a;
-        }
-
-        .guild-role {
-          color: #8a7960;
-          text-transform: lowercase;
-        }
-
-        .meta-info {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-          font-size: 12px;
-          color: #c7b38a;
-          margin-top: 4px;
-        }
-
-        .achievements-preview {
-          margin-top: 8px;
-        }
-
-        .achievements-label {
-          font-size: 12px;
-          color: #c7b38a;
-          margin-right: 8px;
-        }
-
-        .achievement-badges {
-          display: inline-flex;
-          gap: 4px;
-          flex-wrap: wrap;
-        }
-
-        .mini-achievement {
-          font-size: 10px;
-          padding: 2px 6px;
-          background: #2e231d;
-          border: 1px solid #533b2c;
-          color: #c7b38a;
-        }
-
-        .more-achievements {
-          font-size: 10px;
-          padding: 2px 6px;
-          background: #4b3527;
-          border: 1px solid #533b2c;
-          color: #a36a43;
-        }
-
         .actions-section {
-          margin-top: 16px;
-          padding-top: 16px;
-          border-top: 1px solid #4b3527;
+          flex-shrink: 0;
+          display: flex;
+          align-items: flex-start;
         }
 
         @media (max-width: 640px) {
