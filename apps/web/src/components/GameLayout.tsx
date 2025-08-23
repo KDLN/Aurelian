@@ -54,6 +54,7 @@ export default function GameLayout({
     description?: string;
     roleRequired?: string;
   }>>([]);
+  const [unreadMailCount, setUnreadMailCount] = useState(0);
 
   useEffect(() => {
     const unsubscribe = subscribe(() => forceUpdate(x => x + 1));
@@ -125,6 +126,21 @@ export default function GameLayout({
                 setUserGuildChannels(guildData.guild.channels);
               }
             }
+
+            // Load unread mail count
+            const mailResponse = await fetch('/api/mail/folders', {
+              headers: {
+                'Authorization': `Bearer ${session.access_token}`
+              }
+            });
+            
+            if (mailResponse.ok) {
+              const mailData = await mailResponse.json();
+              const inboxFolder = mailData.folders?.find((f: any) => f.id === 'inbox');
+              if (inboxFolder) {
+                setUnreadMailCount(inboxFolder.unreadCount || 0);
+              }
+            }
           }
         } catch (error) {
           console.error('Error loading user data:', error);
@@ -143,6 +159,10 @@ export default function GameLayout({
     { href: '/crafting', label: 'Crafting' },
     { href: '/contracts', label: 'Contracts' },
     { href: '/storage', label: 'Storage' },
+    { 
+      href: '/mail', 
+      label: unreadMailCount > 0 ? `📧 Mail (${unreadMailCount})` : '📧 Mail' 
+    },
     { href: '/guild', label: 'Guild' },
     { href: '/help', label: '❓ Help' },
   ];

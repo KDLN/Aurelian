@@ -51,11 +51,10 @@ export default function ProfileActions({
   const handleSendMessage = async () => {
     setIsLoading(true);
     try {
-      // For now, redirect to guild chat or general chat
-      // In a full implementation, this would open a direct message system
-      window.location.href = `/guild/channels?dm=${targetUserId}`;
+      // Redirect to mail system with compose mode for this user
+      window.location.href = `/mail?compose=true&to=${targetUserId}&name=${encodeURIComponent(targetUserName)}`;
     } catch (error) {
-      setActionResult({ type: 'error', message: 'Failed to send message' });
+      setActionResult({ type: 'error', message: 'Failed to open message composer' });
     } finally {
       setIsLoading(false);
     }

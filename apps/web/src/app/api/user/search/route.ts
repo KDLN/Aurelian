@@ -31,17 +31,18 @@ export async function GET(request: NextRequest) {
 
     const searchTerm = query.trim();
 
+    // Check if this is for guild search (exclude guild members) or general search
+    const forGuild = searchParams.get('guild') === 'true';
+    
     // Search users by email or display name
-    // Exclude users who are already in guilds and the current user
     const users = await prisma.user.findMany({
       where: {
         AND: [
           {
             id: { not: user.id } // Exclude current user
           },
-          {
-            guildMembership: null // Only users not in guilds
-          },
+          // Only exclude guild members if this is for guild search
+          ...(forGuild ? [{ guildMembership: null }] : []),
           {
             OR: [
               {
@@ -71,6 +72,11 @@ export async function GET(request: NextRequest) {
             display: true,
             avatar: true
           }
+        },
+        guildMembership: {
+          include: {
+            guild: true
+          }
         }
       },
       take: 10, // Limit results
@@ -91,6 +97,8 @@ export async function GET(request: NextRequest) {
       email: foundUser.email,
       displayName: foundUser.profile?.display || foundUser.email || 'Unknown',
       avatar: foundUser.profile?.avatar,
+      guildTag: foundUser.guildMembership?.guild.tag,
+      guildRole: foundUser.guildMembership?.role,
       joinedAt: foundUser.createdAt
     }));
 

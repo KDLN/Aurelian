@@ -34,6 +34,11 @@ model User {
   inventories          Inventory[]
   ledger               LedgerTx[]
   listings             Listing[]
+  mailsSent            Mail[]            @relation("MailSender")
+  mailsReceived        Mail[]            @relation("MailRecipient")
+  mailFolders          MailFolder[]
+  mailBlocks           MailBlock[]       @relation("MailBlocker")
+  mailBlockedBy        MailBlock[]       @relation("MailBlocked")
   missions             Mission[]
   missionInstances     MissionInstance[]
   profile              Profile?
@@ -56,6 +61,66 @@ model Profile {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Mail {
+  id           String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  senderId     String      @map("sender_id") @db.Uuid
+  recipientId  String      @map("recipient_id") @db.Uuid
+  subject      String      @default("")
+  content      String
+  status       MailStatus  @default(UNREAD)
+  priority     MailPriority @default(NORMAL)
+  isStarred    Boolean     @default(false) @map("is_starred")
+  parentMailId String?     @map("parent_mail_id") @db.Uuid
+  attachments  Json?       // { items: [], gold: 0, contracts: [] }
+  metadata     Json?       // For system mails, auto-responses, etc.
+  expiresAt    DateTime?   @map("expires_at")
+  readAt       DateTime?   @map("read_at")
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  
+  sender       User        @relation("MailSender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient    User        @relation("MailRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  parentMail   Mail?       @relation("MailReplies", fields: [parentMailId], references: [id])
+  replies      Mail[]      @relation("MailReplies")
+  
+  @@index([recipientId, status])
+  @@index([senderId])
+  @@index([createdAt])
+  @@index([parentMailId])
+}
+
+model MailFolder {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String   @db.Uuid
+  name        String   // "Inbox", "Sent", "Archive", "Custom Name"
+  isSystem    Boolean  @default(false) @map("is_system")
+  mailCount   Int      @default(0) @map("mail_count")
+  unreadCount Int      @default(0) @map("unread_count")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model MailBlock {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  blockerId   String   @map("blocker_id") @db.Uuid
+  blockedId   String   @map("blocked_id") @db.Uuid
+  reason      String?
+  createdAt   DateTime @default(now())
+  
+  blocker     User     @relation("MailBlocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked     User     @relation("MailBlocked", fields: [blockedId], references: [id], onDelete: Cascade)
+  
+  @@unique([blockerId, blockedId])
+  @@index([blockerId])
+  @@index([blockedId])
 }
 
 model ActivityLog {
@@ -865,4 +930,19 @@ enum ChannelType {
   TRADE
   GUILD
   ALLIANCE
+  DIRECT
+}
+
+enum MailStatus {
+  UNREAD
+  READ
+  ARCHIVED
+  DELETED
+}
+
+enum MailPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
 }

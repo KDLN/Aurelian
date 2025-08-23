@@ -8,6 +8,7 @@ import { EnhancedTickerRoom } from './rooms/enhanced-ticker';
 import { AuctionRoom } from './rooms/auction';
 import { PublicChatRoom } from './rooms/public-chat-room';
 import { GuildChatRoom } from './rooms/guild-chat-room';
+import { DirectMessageRoom } from './rooms/direct-message-room';
 
 const app = express();
 app.get('/', (_req: Request, res: Response) => res.send('Aurelian Realtime Server v2.0 - Ready'));
@@ -27,6 +28,8 @@ gameServer.define('chat_general', PublicChatRoom, { channelType: 'GENERAL' });
 gameServer.define('chat_trade', PublicChatRoom, { channelType: 'TRADE' });
 // Create separate rooms for each guild channel
 gameServer.define('chat_guild', GuildChatRoom).filterBy(['guildChannelId']);
+// Direct message rooms - filtered by participant pair
+gameServer.define('direct_message', DirectMessageRoom).filterBy(['participants']);
 
 const port = Number(process.env.PORT || 8787);
 server.listen(port, ()=> console.log(`Realtime running on :${port}`));
