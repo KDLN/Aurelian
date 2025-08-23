@@ -107,25 +107,28 @@ export default function ProfileActions({
     window.location.href = `/auction?seller=${targetUserId}`;
   };
 
-  const handleCompareStats = () => {
-    window.location.href = `/missions/leaderboard?compare=${targetUserId}`;
+  const handleReportPlayer = async () => {
+    setIsLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setActionResult({ type: 'error', message: 'Not authenticated' });
+        return;
+      }
+
+      // For now, redirect to help page with report section
+      // In a full implementation, this would open a report modal
+      window.location.href = `/help?section=report&player=${targetUserId}`;
+    } catch (error) {
+      setActionResult({ type: 'error', message: 'Failed to report player' });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const actionsContent = (
     <>
       <div className="actions-grid">
-        {permissions.canTrade && (
-          <GameButton 
-            onClick={handleStartTrade}
-            disabled={isLoading}
-            className="action-button trade-button"
-            title="Start Trade"
-          >
-            <span className="action-icon">🤝</span>
-            {!embedded && <span className="action-text">Trade</span>}
-          </GameButton>
-        )}
-
         {permissions.canMessage && (
           <GameButton 
             onClick={handleSendMessage}
@@ -134,40 +137,43 @@ export default function ProfileActions({
             title="Send Message"
           >
             <span className="action-icon">💬</span>
-            {!embedded && <span className="action-text">Message</span>}
+            <span className="action-text">Message</span>
           </GameButton>
         )}
 
-        <GameButton 
-          onClick={handleViewShop}
-          disabled={isLoading}
-          className="action-button shop-button"
-          title="View Shop"
-        >
-          <span className="action-icon">🛒</span>
-          {!embedded && <span className="action-text">Shop</span>}
-        </GameButton>
+        {permissions.canTrade && (
+          <GameButton 
+            onClick={handleStartTrade}
+            disabled={isLoading}
+            className="action-button trade-button"
+            title="Start Trade"
+          >
+            <span className="action-icon">🤝</span>
+            <span className="action-text">Trade</span>
+          </GameButton>
+        )}
 
-        <GameButton 
-          onClick={handleCompareStats}
-          disabled={isLoading}
-          className="action-button compare-button"
-          title="Compare Stats"
-        >
-          <span className="action-icon">📊</span>
-          {!embedded && <span className="action-text">Compare</span>}
-        </GameButton>
-
-        {permissions.canInviteToGuild && !showInviteModal && (
+        {permissions.canInviteToGuild && (
           <GameButton 
             onClick={handleInviteToGuild}
             disabled={isLoading}
             className="action-button invite-button"
+            title="Invite to Guild"
           >
             <span className="action-icon">🏰</span>
             <span className="action-text">Invite</span>
           </GameButton>
         )}
+
+        <GameButton 
+          onClick={handleReportPlayer}
+          disabled={isLoading}
+          className="action-button report-button"
+          title="Report Player"
+        >
+          <span className="action-icon">⚠️</span>
+          <span className="action-text">Report</span>
+        </GameButton>
       </div>
 
       {/* Guild Invitation Modal */}
