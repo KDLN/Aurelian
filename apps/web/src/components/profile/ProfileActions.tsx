@@ -210,34 +210,34 @@ export default function ProfileActions({
         .profile-actions {
           background: #32241d;
           border: 4px solid #533b2c;
-          border-radius: 10px;
-          padding: 16px;
+          border-radius: 8px;
+          padding: 12px;
           box-shadow: 0 4px 0 rgba(0,0,0,.4), inset 0 0 0 2px #1d1410;
         }
 
         .panel-title {
-          font-size: 16px;
+          font-size: 14px;
           font-weight: bold;
           color: #f1e5c8;
-          margin: 0 0 16px 0;
+          margin: 0 0 10px 0;
           border-bottom: 2px solid #533b2c;
-          padding-bottom: 8px;
+          padding-bottom: 6px;
         }
 
         .actions-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-          gap: 12px;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 8px;
         }
 
         .action-button {
-          padding: 12px 16px;
-          font-size: 14px;
+          padding: 8px 12px;
+          font-size: 12px;
           white-space: nowrap;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 8px;
+          gap: 4px;
         }
 
         .trade-button {

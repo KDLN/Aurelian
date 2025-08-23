@@ -153,18 +153,18 @@ export default function ProfileAchievements({ achievements }: ProfileAchievement
         .achievements-panel {
           background: #32241d;
           border: 4px solid #533b2c;
-          border-radius: 10px;
-          padding: 16px;
+          border-radius: 8px;
+          padding: 12px;
           box-shadow: 0 4px 0 rgba(0,0,0,.4), inset 0 0 0 2px #1d1410;
         }
 
         .panel-title {
-          font-size: 16px;
+          font-size: 14px;
           font-weight: bold;
           color: #f1e5c8;
-          margin: 0 0 16px 0;
+          margin: 0 0 10px 0;
           border-bottom: 2px solid #533b2c;
-          padding-bottom: 8px;
+          padding-bottom: 6px;
         }
 
         .no-achievements {
@@ -205,17 +205,17 @@ export default function ProfileAchievements({ achievements }: ProfileAchievement
 
         .achievement-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-          gap: 12px;
+          grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+          gap: 8px;
         }
 
         .achievement-badge {
-          padding: 12px;
+          padding: 8px;
           border: 2px solid;
-          border-radius: 8px;
+          border-radius: 6px;
           display: flex;
           flex-direction: column;
-          gap: 4px;
+          gap: 3px;
           transition: transform 0.2s ease, box-shadow 0.2s ease;
           cursor: pointer;
         }
@@ -226,17 +226,17 @@ export default function ProfileAchievements({ achievements }: ProfileAchievement
         }
 
         .achievement-name {
-          font-size: 14px;
+          font-size: 12px;
           font-weight: bold;
         }
 
         .achievement-description {
-          font-size: 12px;
+          font-size: 10px;
           opacity: 0.9;
         }
 
         .achievement-rarity {
-          font-size: 10px;
+          font-size: 9px;
           text-transform: uppercase;
           letter-spacing: 0.5px;
           font-weight: bold;

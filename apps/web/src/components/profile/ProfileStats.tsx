@@ -225,34 +225,34 @@ export default function ProfileStats({ stats, canViewPrivateStats = false }: Pro
         .stats-panel {
           background: #32241d;
           border: 4px solid #533b2c;
-          border-radius: 10px;
-          padding: 16px;
+          border-radius: 8px;
+          padding: 12px;
           box-shadow: 0 4px 0 rgba(0,0,0,.4), inset 0 0 0 2px #1d1410;
         }
 
         .panel-title {
-          font-size: 16px;
+          font-size: 14px;
           font-weight: bold;
           color: #f1e5c8;
-          margin: 0 0 12px 0;
+          margin: 0 0 8px 0;
           border-bottom: 2px solid #533b2c;
-          padding-bottom: 8px;
+          padding-bottom: 6px;
         }
 
         .stats-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 12px;
+          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+          gap: 8px;
         }
 
         .stat-item {
           display: flex;
           flex-direction: column;
-          gap: 4px;
-          padding: 8px;
+          gap: 2px;
+          padding: 6px;
           background: #2e231d;
           border: 2px solid #4b3527;
-          border-radius: 6px;
+          border-radius: 4px;
         }
 
         .stat-item.span-2 {
@@ -267,7 +267,7 @@ export default function ProfileStats({ stats, canViewPrivateStats = false }: Pro
         }
 
         .stat-value {
-          font-size: 14px;
+          font-size: 13px;
           font-weight: bold;
           color: #f1e5c8;
         }
@@ -327,6 +327,16 @@ export default function ProfileStats({ stats, canViewPrivateStats = false }: Pro
         }
 
         @media (max-width: 768px) {
+          .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+          
+          .stat-item.span-2 {
+            grid-column: span 2;
+          }
+        }
+
+        @media (max-width: 480px) {
           .stats-grid {
             grid-template-columns: 1fr;
           }

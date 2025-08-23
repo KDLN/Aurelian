@@ -55,7 +55,7 @@ export default function ProfileHeader({
             outfit={outfit}
             hair={hair}
             hat={hat}
-            size={120}
+            size={80}
             showBorder={true}
             activity="idle"
           />
@@ -121,11 +121,11 @@ export default function ProfileHeader({
       <style jsx>{`
         .profile-header {
           display: flex;
-          gap: 20px;
-          padding: 20px;
+          gap: 12px;
+          padding: 12px;
           background: #32241d;
           border: 4px solid #533b2c;
-          border-radius: 12px;
+          border-radius: 8px;
           box-shadow: 0 4px 0 rgba(0,0,0,.4), inset 0 0 0 2px #1d1410;
           color: #f1e5c8;
           font-family: ui-monospace, Menlo, Consolas, monospace;
@@ -173,7 +173,7 @@ export default function ProfileHeader({
         }
 
         .display-name {
-          font-size: 24px;
+          font-size: 18px;
           font-weight: bold;
           margin: 0;
           color: #f1e5c8;

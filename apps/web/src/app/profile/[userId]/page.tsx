@@ -216,30 +216,30 @@ export default function ProfilePage() {
         }
 
         .profile-content {
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 20px;
+          max-width: 100%;
+          margin: 0;
+          padding: 12px;
           display: flex;
           flex-direction: column;
-          gap: 20px;
+          gap: 12px;
         }
 
         .profile-grid {
-          display: grid;
-          grid-template-columns: 2fr 1fr;
-          gap: 20px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
         }
 
         .stats-column {
           display: flex;
           flex-direction: column;
-          gap: 16px;
+          gap: 12px;
         }
 
         .sidebar-column {
           display: flex;
           flex-direction: column;
-          gap: 16px;
+          gap: 12px;
         }
 
         .recent-activity {
