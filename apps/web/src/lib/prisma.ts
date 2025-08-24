@@ -26,12 +26,31 @@ class PrismaClientSingleton {
     }
 
     // Create new instance with proper configuration for production
+    const databaseUrl = process.env.DATABASE_URL;
+    
+    // Modify connection pool settings if they're too restrictive
+    let optimizedUrl = databaseUrl;
+    if (databaseUrl) {
+      const url = new URL(databaseUrl);
+      // Remove restrictive pool settings and add better ones
+      url.searchParams.delete('connection_limit');
+      url.searchParams.delete('pool_timeout');
+      url.searchParams.delete('connect_timeout');
+      
+      // Add optimized connection pool settings
+      url.searchParams.set('connection_limit', '10');
+      url.searchParams.set('pool_timeout', '60');
+      url.searchParams.set('connect_timeout', '10');
+      
+      optimizedUrl = url.toString();
+    }
+    
     this.instance = new PrismaClient({
       log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
       errorFormat: 'pretty',
       datasources: {
         db: {
-          url: process.env.DATABASE_URL
+          url: optimizedUrl
         }
       },
     });

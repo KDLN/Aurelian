@@ -79,34 +79,84 @@ export default function ContributionModal({ mission, isOpen, onClose, onSuccess 
         throw new Error('Authentication required');
       }
 
-      const response = await fetch(`/api/server/missions/${mission.id}/participate`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          contribution: {
-            items: Object.fromEntries(contributionItems)
-          }
-        })
-      });
+      // Try the full participation endpoint first, fallback to simple if it fails
+      let response;
+      try {
+        response = await fetch(`/api/server/missions/${mission.id}/participate`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            contribution: {
+              items: Object.fromEntries(contributionItems)
+            }
+          })
+        });
+      } catch (error) {
+        console.warn('Full participation failed, trying simplified approach:', error);
+        
+        // Fallback to simplified endpoint
+        response = await fetch(`/api/server/missions/${mission.id}/contribute-simple`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            contribution: {
+              items: Object.fromEntries(contributionItems)
+            }
+          })
+        });
+      }
 
       if (!response.ok) {
         const errorData = await response.json();
         console.error('Contribution failed:', errorData);
         
-        let errorMessage = errorData.error || 'Failed to contribute';
-        if (errorData.details) {
-          if (Array.isArray(errorData.details)) {
-            errorMessage += ': ' + errorData.details.join(', ');
-          } else if (typeof errorData.details === 'string') {
-            errorMessage += ': ' + errorData.details;
-          } else {
-            errorMessage += ': ' + JSON.stringify(errorData.details);
+        // If this was the full endpoint and it failed, try the simple one
+        if (response.url.includes('/participate')) {
+          console.warn('Full participation failed, trying simplified approach');
+          try {
+            const simpleResponse = await fetch(`/api/server/missions/${mission.id}/contribute-simple`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                contribution: {
+                  items: Object.fromEntries(contributionItems)
+                }
+              })
+            });
+            
+            if (simpleResponse.ok) {
+              console.log('Simplified contribution succeeded');
+              response = simpleResponse;
+            } else {
+              throw new Error('Both full and simple contribution failed');
+            }
+          } catch (simpleError) {
+            console.error('Simple contribution also failed:', simpleError);
           }
         }
-        throw new Error(errorMessage);
+        
+        if (!response.ok) {
+          let errorMessage = errorData.error || 'Failed to contribute';
+          if (errorData.details) {
+            if (Array.isArray(errorData.details)) {
+              errorMessage += ': ' + errorData.details.join(', ');
+            } else if (typeof errorData.details === 'string') {
+              errorMessage += ': ' + errorData.details;
+            } else {
+              errorMessage += ': ' + JSON.stringify(errorData.details);
+            }
+          }
+          throw new Error(errorMessage);
+        }
       }
 
       onSuccess();
