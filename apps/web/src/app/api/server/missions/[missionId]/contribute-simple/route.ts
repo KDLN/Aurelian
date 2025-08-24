@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
+import { mergeContributions, type ContributionData } from '@/lib/serverMissions';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -81,6 +82,20 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'No items to contribute' }, { status: 400 });
     }
 
+    // Get existing participation to accumulate contributions
+    const existingParticipation = await prisma.serverMissionParticipant.findUnique({
+      where: {
+        missionId_userId: {
+          missionId,
+          userId: user.id
+        }
+      }
+    });
+
+    // Merge new contribution with existing (accumulative)
+    const previousContribution = existingParticipation?.contribution as ContributionData | undefined;
+    const accumulatedContribution = mergeContributions(previousContribution, contribution);
+
     // Simple approach: Just record the participation without consuming resources
     // This avoids all the complex transaction and validation issues
     const participation = await prisma.serverMissionParticipant.upsert({
@@ -91,14 +106,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         }
       },
       update: {
-        contribution: contribution,
+        contribution: accumulatedContribution, // Store accumulated total
         tier: 'bronze' // Default tier for now
       },
       create: {
         missionId,
         userId: user.id,
         guildId: null,
-        contribution: contribution,
+        contribution: accumulatedContribution,
         tier: 'bronze',
         joinedAt: new Date()
       }

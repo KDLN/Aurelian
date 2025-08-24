@@ -82,6 +82,43 @@ export function calculateContributionScore(
   return totalPossible > 0 ? totalScore / totalPossible : 0;
 }
 
+// Merge two contribution objects, adding quantities together
+export function mergeContributions(
+  existing: ContributionData | null,
+  newContribution: ContributionData
+): ContributionData {
+  if (!existing) return newContribution;
+
+  const merged: ContributionData = { ...existing };
+
+  // Merge items by adding quantities
+  if (newContribution.items) {
+    if (!merged.items) merged.items = {};
+    for (const [itemKey, quantity] of Object.entries(newContribution.items)) {
+      merged.items[itemKey] = (merged.items[itemKey] || 0) + quantity;
+    }
+  }
+
+  // Add gold contributions
+  if (newContribution.gold) {
+    merged.gold = (merged.gold || 0) + newContribution.gold;
+  }
+
+  // Add trade contributions
+  if (newContribution.trades) {
+    merged.trades = (merged.trades || 0) + newContribution.trades;
+  }
+
+  // Merge any other numeric fields
+  for (const [key, value] of Object.entries(newContribution)) {
+    if (key !== 'items' && key !== 'gold' && key !== 'trades' && typeof value === 'number') {
+      merged[key] = (merged[key] || 0) + value;
+    }
+  }
+
+  return merged;
+}
+
 // Determine tier based on contribution score
 export function calculateTier(score: number, tiers: TierThresholds): string {
   if (score >= (tiers.legendary || 1.5)) return 'legendary';

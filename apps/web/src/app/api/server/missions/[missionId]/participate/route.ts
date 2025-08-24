@@ -8,6 +8,7 @@ import {
   updateMissionProgress,
   calculateContributionScore,
   calculateTier,
+  mergeContributions,
   isMissionCompleted,
   updateMissionRankings,
   type ContributionData,
@@ -119,10 +120,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const guildId = userProfile?.guildMembership?.guildId || null;
 
-    // Calculate contribution score and tier
+    // Merge new contribution with existing (accumulative)
+    const accumulatedContribution = mergeContributions(previousContribution, contribution);
+
+    // Calculate contribution score and tier based on TOTAL contributions
     const requirements = mission.globalRequirements as MissionRequirements;
     const tiers = mission.tiers as TierThresholds;
-    const score = calculateContributionScore(contribution, requirements);
+    const score = calculateContributionScore(accumulatedContribution, requirements);
     const tier = calculateTier(score, tiers);
 
     let participation;
@@ -130,7 +134,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       // Consume resources from user's inventory/wallet
       await consumeResources(contribution, user.id, missionId, tx);
 
-      // Create or update participation
+      // Create or update participation with accumulated total
       participation = await tx.serverMissionParticipant.upsert({
         where: {
           missionId_userId: {
@@ -139,7 +143,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           }
         },
         update: {
-          contribution: contribution,
+          contribution: accumulatedContribution, // Store accumulated total
           guildId: guildId,
           tier: tier !== 'none' ? tier : null
         },
@@ -147,7 +151,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           missionId,
           userId: user.id,
           guildId: guildId,
-          contribution: contribution,
+          contribution: accumulatedContribution,
           tier: tier !== 'none' ? tier : null
         }
       });
