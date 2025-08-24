@@ -95,10 +95,13 @@ export function useHireAgent() {
 
       const data = await response.json();
       console.log(data.message);
+      alert(`✅ Success: ${data.message}`);
       return true;
     } catch (err) {
       console.error('Error hiring agent:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(errorMessage);
+      alert(`❌ Hiring failed: ${errorMessage}`);
       return false;
     } finally {
       setIsHiring(false);

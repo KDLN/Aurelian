@@ -177,15 +177,22 @@ export async function ensureUserSynced(authUser: any) {
     });
 
     if (!existingWallet) {
-      await prisma.wallet.create({
-        data: {
-          userId: userId,
-          gold: 500  // Starter gold
-        }
-      });
+      try {
+        await prisma.wallet.create({
+          data: {
+            userId: userId,
+            gold: 1000  // Increased starter gold
+          }
+        });
+        console.log(`✅ Created wallet for user ${userId} with 1000 gold`);
 
-      // Add starter items for new users only
-      await addStarterItems(userId);
+        // Add starter items for new users only
+        await addStarterItems(userId);
+      } catch (walletError) {
+        console.error('❌ Failed to create wallet for user:', userId, walletError);
+        // Don't throw - we want user creation to succeed even if wallet fails
+        // They can use the wallet creation endpoint later
+      }
     }
 
     // Cache user as synced for 5 minutes

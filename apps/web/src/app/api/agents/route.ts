@@ -77,16 +77,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Agent type is required' }, { status: 400 });
     }
 
-    // Check if user has enough gold
-    const wallet = await prisma.wallet.findUnique({
+    // Check if user has a wallet, create if missing
+    let wallet = await prisma.wallet.findUnique({
       where: { userId: user.id }
     });
 
+    if (!wallet) {
+      // Auto-create missing wallet with starter gold
+      wallet = await prisma.wallet.create({
+        data: {
+          userId: user.id,
+          gold: 1000  // Starter gold
+        }
+      });
+      console.log(`✅ Auto-created wallet for user ${user.id} with 1000 gold`);
+    }
+
     const hiringCost = getHiringCost(agentType);
     
-    if (!wallet || wallet.gold < hiringCost) {
+    if (wallet.gold < hiringCost) {
       return NextResponse.json({ 
-        error: `Insufficient gold. Need ${hiringCost}g, have ${wallet?.gold || 0}g` 
+        error: `Insufficient gold. Need ${hiringCost}g, have ${wallet.gold}g` 
       }, { status: 400 });
     }
 
