@@ -183,12 +183,13 @@ export async function updateMissionProgress(
   }
 
   // Apply net changes to current progress
+  // IMPORTANT: globalProgress should match globalRequirements structure (flat, not nested)
   const newProgress = { ...currentProgress };
 
+  // Handle items with flat structure to match requirements
   if (netChange.items) {
-    newProgress.items = { ...(newProgress.items || {}) };
     for (const [itemKey, change] of Object.entries(netChange.items)) {
-      newProgress.items[itemKey] = Math.max(0, (newProgress.items[itemKey] || 0) + change);
+      newProgress[itemKey] = Math.max(0, (newProgress[itemKey] || 0) + change);
     }
   }
 
@@ -211,11 +212,24 @@ export async function updateMissionProgress(
 
 // Check if mission is completed based on current progress
 export function isMissionCompleted(progress: ContributionData, requirements: MissionRequirements): boolean {
-  // Check items
+  // Handle flat structure: requirements and progress should have matching structures
+  // Check if requirements has items as nested object or flat properties
   if (requirements.items) {
+    // Requirements has nested items structure
     for (const [itemKey, required] of Object.entries(requirements.items)) {
-      const current = progress.items?.[itemKey] || 0;
+      // Check both flat structure (progress[itemKey]) and nested structure (progress.items?.[itemKey])
+      const currentFlat = (progress as any)[itemKey] || 0;
+      const currentNested = progress.items?.[itemKey] || 0;
+      const current = Math.max(currentFlat, currentNested); // Use whichever is higher
       if (current < required) return false;
+    }
+  } else {
+    // Requirements has flat structure - check flat properties
+    for (const [key, required] of Object.entries(requirements)) {
+      if (typeof required === 'number') {
+        const current = (progress as any)[key] || 0;
+        if (current < required) return false;
+      }
     }
   }
 

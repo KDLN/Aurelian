@@ -10,84 +10,83 @@ datasource db {
 }
 
 model User {
-  id                   String            @id @db.Uuid
-  email                String?           @unique
-  isAdmin              Boolean           @default(false) @map("is_admin")
-  createdAt            DateTime          @default(now())
-  updatedAt            DateTime          @updatedAt
-  caravanSlotsUnlocked Int               @default(3) @map("caravan_slots_unlocked")
-  caravanSlotsPremium  Int               @default(0) @map("caravan_slots_premium")
-  craftingLevel        Int               @default(1) @map("crafting_level")
-  craftingXP           Int               @default(0) @map("crafting_xp")
-  craftingXPNext       Int               @default(100) @map("crafting_xp_next")
+  id                   String                       @id @db.Uuid
+  email                String?                      @unique
+  createdAt            DateTime                     @default(now())
+  updatedAt            DateTime                     @updatedAt
+  caravanSlotsUnlocked Int                          @default(3) @map("caravan_slots_unlocked")
+  caravanSlotsPremium  Int                          @default(0) @map("caravan_slots_premium")
+  craftingLevel        Int                          @default(1) @map("crafting_level")
+  craftingXP           Int                          @default(0) @map("crafting_xp")
+  craftingXPNext       Int                          @default(100) @map("crafting_xp_next")
+  isAdmin              Boolean                      @default(false) @map("is_admin")
+  activityLogs         ActivityLog[]
   agents               Agent[]
+  allianceMissions     AllianceMissionParticipant[]
   unlockedBlueprints   BlueprintUnlock[]
   characters           Character[]
   chatMentions         ChatMention[]
   chatMessages         ChatMessage[]
   chatReactions        ChatReaction[]
-  contracts            Contract[]        @relation("ContractOwner")
+  contracts            Contract[]                   @relation("ContractOwner")
   craftJobs            CraftJob[]
-  guildInvitesSent     GuildInvite[]     @relation("GuildInviteSent")
-  guildInvitesReceived GuildInvite[]     @relation("GuildInviteReceived")
-  guildRequestsSent    GuildRequest[]    @relation("GuildRequestSent")
+  dailyStats           DailyStats[]
+  gameNews             GameNews[]
+  guildInvitesSent     GuildInvite[]                @relation("GuildInviteSent")
+  guildInvitesReceived GuildInvite[]                @relation("GuildInviteReceived")
   guildLogs            GuildLog[]
   guildMembership      GuildMember?
+  guildRequestsSent    GuildRequest[]               @relation("GuildRequestSent")
   inventories          Inventory[]
   ledger               LedgerTx[]
   listings             Listing[]
-  mailsSent            Mail[]            @relation("MailSender")
-  mailsReceived        Mail[]            @relation("MailRecipient")
+  mailsReceived        Mail[]                       @relation("MailRecipient")
+  mailsSent            Mail[]                       @relation("MailSender")
+  mailBlockedBy        MailBlock[]                  @relation("MailBlocked")
+  mailBlocks           MailBlock[]                  @relation("MailBlocker")
   mailFolders          MailFolder[]
-  mailBlocks           MailBlock[]       @relation("MailBlocker")
-  mailBlockedBy        MailBlock[]       @relation("MailBlocked")
   missions             Mission[]
   missionInstances     MissionInstance[]
   profile              Profile?
   routeBookings        RouteBooking[]
+  serverMissions       ServerMissionParticipant[]
   trailNodes           TrailNode[]
   trailSegs            TrailSeg[]
   wallets              Wallet?
-  allianceMissions     AllianceMissionParticipant[]
-  activityLogs         ActivityLog[]
-  dailyStats           DailyStats[]
-  gameNews             GameNews[]
-  serverMissions       ServerMissionParticipant[]
 }
 
 model Profile {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId    String   @unique @db.Uuid
-  display   String   @unique @default(dbgenerated("('Trader'::text || (gen_random_uuid())::text)"))
-  avatar    Json?
-  onboardingProgress Json? @map("onboarding_progress")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId             String   @unique @db.Uuid
+  display            String   @unique @default(dbgenerated("('Trader'::text || (gen_random_uuid())::text)"))
+  avatar             Json?
+  onboardingProgress Json?    @map("onboarding_progress")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Mail {
-  id           String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  senderId     String      @map("sender_id") @db.Uuid
-  recipientId  String      @map("recipient_id") @db.Uuid
-  subject      String      @default("")
+  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  senderId     String       @map("sender_id") @db.Uuid
+  recipientId  String       @map("recipient_id") @db.Uuid
+  subject      String       @default("")
   content      String
-  status       MailStatus  @default(UNREAD)
+  status       MailStatus   @default(UNREAD)
   priority     MailPriority @default(NORMAL)
-  isStarred    Boolean     @default(false) @map("is_starred")
-  parentMailId String?     @map("parent_mail_id") @db.Uuid
-  attachments  Json?       // { items: [], gold: 0, contracts: [] }
-  metadata     Json?       // For system mails, auto-responses, etc.
-  expiresAt    DateTime?   @map("expires_at")
-  readAt       DateTime?   @map("read_at")
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  
-  sender       User        @relation("MailSender", fields: [senderId], references: [id], onDelete: Cascade)
-  recipient    User        @relation("MailRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
-  parentMail   Mail?       @relation("MailReplies", fields: [parentMailId], references: [id])
-  replies      Mail[]      @relation("MailReplies")
-  
+  isStarred    Boolean      @default(false) @map("is_starred")
+  parentMailId String?      @map("parent_mail_id") @db.Uuid
+  attachments  Json?
+  metadata     Json?
+  expiresAt    DateTime?    @map("expires_at")
+  readAt       DateTime?    @map("read_at")
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  parentMail   Mail?        @relation("MailReplies", fields: [parentMailId], references: [id])
+  replies      Mail[]       @relation("MailReplies")
+  recipient    User         @relation("MailRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  sender       User         @relation("MailSender", fields: [senderId], references: [id], onDelete: Cascade)
+
   @@index([recipientId, status])
   @@index([senderId])
   @@index([createdAt])
@@ -97,30 +96,28 @@ model Mail {
 model MailFolder {
   id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId      String   @db.Uuid
-  name        String   // "Inbox", "Sent", "Archive", "Custom Name"
+  name        String
   isSystem    Boolean  @default(false) @map("is_system")
   mailCount   Int      @default(0) @map("mail_count")
   unreadCount Int      @default(0) @map("unread_count")
   sortOrder   Int      @default(0) @map("sort_order")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@unique([userId, name])
   @@index([userId])
 }
 
 model MailBlock {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  blockerId   String   @map("blocker_id") @db.Uuid
-  blockedId   String   @map("blocked_id") @db.Uuid
-  reason      String?
-  createdAt   DateTime @default(now())
-  
-  blocker     User     @relation("MailBlocker", fields: [blockerId], references: [id], onDelete: Cascade)
-  blocked     User     @relation("MailBlocked", fields: [blockedId], references: [id], onDelete: Cascade)
-  
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  blockerId String   @map("blocker_id") @db.Uuid
+  blockedId String   @map("blocked_id") @db.Uuid
+  reason    String?
+  createdAt DateTime @default(now())
+  blocked   User     @relation("MailBlocked", fields: [blockedId], references: [id], onDelete: Cascade)
+  blocker   User     @relation("MailBlocker", fields: [blockerId], references: [id], onDelete: Cascade)
+
   @@unique([blockerId, blockedId])
   @@index([blockerId])
   @@index([blockedId])
@@ -129,9 +126,9 @@ model MailBlock {
 model ActivityLog {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId    String   @db.Uuid
-  type      String   // 'mission_completed', 'auction_sold', 'agent_hired', 'item_crafted', etc.
+  type      String
   message   String
-  metadata  Json?    // Additional data like reward amount, item details, etc.
+  metadata  Json?
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -162,20 +159,20 @@ model DailyStats {
 }
 
 model GameNews {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   title       String
   content     String
-  category    String   // 'update', 'event', 'maintenance', 'market', 'announcement'
-  priority    String   @default("normal") // 'low', 'normal', 'high', 'urgent'
-  isActive    Boolean  @default(true)
-  isPinned    Boolean  @default(false)
-  authorId    String   @db.Uuid
-  publishedAt DateTime @default(now())
+  category    String
+  priority    String    @default("normal")
+  isActive    Boolean   @default(true)
+  isPinned    Boolean   @default(false)
+  authorId    String    @db.Uuid
+  publishedAt DateTime  @default(now())
   expiresAt   DateTime?
-  metadata    Json?    // Additional data like links, images, etc.
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([isActive, publishedAt])
   @@index([category])
@@ -492,9 +489,9 @@ model Guild {
   alliancesTo   GuildAlliance[]    @relation("AllianceTo")
   channels      GuildChannel[]
   invites       GuildInvite[]
-  requests      GuildRequest[]
   logs          GuildLog[]
   members       GuildMember[]
+  requests      GuildRequest[]
   warehouse     GuildWarehouse[]
 
   @@index([name])
@@ -574,17 +571,17 @@ model GuildInvite {
 }
 
 model GuildRequest {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  guildId   String   @db.Uuid
-  userId    String   @db.Uuid
+  id        String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  guildId   String             @db.Uuid
+  userId    String             @db.Uuid
   message   String?
   status    GuildRequestStatus @default(PENDING)
-  expiresAt DateTime @map("expires_at")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  guild     Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
-  user      User     @relation("GuildRequestSent", fields: [userId], references: [id], onDelete: Cascade)
-  
+  expiresAt DateTime           @map("expires_at")
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+  guild     Guild              @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  user      User               @relation("GuildRequestSent", fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([guildId, userId])
   @@index([userId])
   @@index([guildId])
@@ -625,25 +622,25 @@ model GuildChannel {
 }
 
 model GuildAlliance {
-  id                  String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  fromGuildId         String              @map("from_guild_id") @db.Uuid
-  toGuildId           String              @map("to_guild_id") @db.Uuid
-  type                AllianceType        @default(NEUTRAL)
-  status              AllianceStatus      @default(PENDING)
-  proposedAt          DateTime            @default(now()) @map("proposed_at")
-  acceptedAt          DateTime?           @map("accepted_at")
-  expiresAt           DateTime?           @map("expires_at")
-  travelTaxReduction  Int                 @default(35) @map("travel_tax_reduction")
-  auctionFeeReduction Int                 @default(12) @map("auction_fee_reduction")
+  id                  String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  fromGuildId         String            @map("from_guild_id") @db.Uuid
+  toGuildId           String            @map("to_guild_id") @db.Uuid
+  type                AllianceType      @default(NEUTRAL)
+  status              AllianceStatus    @default(PENDING)
+  proposedAt          DateTime          @default(now()) @map("proposed_at")
+  acceptedAt          DateTime?         @map("accepted_at")
+  expiresAt           DateTime?         @map("expires_at")
+  travelTaxReduction  Int               @default(35) @map("travel_tax_reduction")
+  auctionFeeReduction Int               @default(12) @map("auction_fee_reduction")
   terms               Json?
-  proposalMessage     String?             @map("proposal_message")
-  brokenAt            DateTime?           @map("broken_at")
-  brokenBy            String?             @map("broken_by") @db.Uuid
-  brokenReason        String?             @map("broken_reason")
-  fromGuild           Guild               @relation("AllianceFrom", fields: [fromGuildId], references: [id], onDelete: Cascade)
-  toGuild             Guild               @relation("AllianceTo", fields: [toGuildId], references: [id], onDelete: Cascade)
+  proposalMessage     String?           @map("proposal_message")
+  brokenAt            DateTime?         @map("broken_at")
+  brokenBy            String?           @map("broken_by") @db.Uuid
+  brokenReason        String?           @map("broken_reason")
   channels            AllianceChannel[]
   missions            AllianceMission[]
+  fromGuild           Guild             @relation("AllianceFrom", fields: [fromGuildId], references: [id], onDelete: Cascade)
+  toGuild             Guild             @relation("AllianceTo", fields: [toGuildId], references: [id], onDelete: Cascade)
 
   @@unique([fromGuildId, toGuildId])
   @@index([status])
@@ -664,30 +661,30 @@ model AllianceChannel {
   updatedAt   DateTime      @updatedAt
   alliance    GuildAlliance @relation(fields: [allianceId], references: [id], onDelete: Cascade)
   messages    ChatMessage[]
-  
+
   @@unique([allianceId, name])
   @@index([allianceId])
   @@index([isActive])
 }
 
 model AllianceMission {
-  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  allianceId    String        @db.Uuid
-  name          String
-  description   String
-  requirements  Json
-  rewards       Json
-  status        String        @default("active")
-  startedAt     DateTime      @default(now()) @map("started_at")
-  completedAt   DateTime?     @map("completed_at")
-  expiresAt     DateTime?     @map("expires_at")
-  maxParticipants Int         @default(10) @map("max_participants")
-  currentParticipants Int     @default(0) @map("current_participants")
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  alliance      GuildAlliance @relation(fields: [allianceId], references: [id], onDelete: Cascade)
-  participants  AllianceMissionParticipant[]
-  
+  id                  String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  allianceId          String                       @db.Uuid
+  name                String
+  description         String
+  requirements        Json
+  rewards             Json
+  status              String                       @default("active")
+  startedAt           DateTime                     @default(now()) @map("started_at")
+  completedAt         DateTime?                    @map("completed_at")
+  expiresAt           DateTime?                    @map("expires_at")
+  maxParticipants     Int                          @default(10) @map("max_participants")
+  currentParticipants Int                          @default(0) @map("current_participants")
+  createdAt           DateTime                     @default(now())
+  updatedAt           DateTime                     @updatedAt
+  alliance            GuildAlliance                @relation(fields: [allianceId], references: [id], onDelete: Cascade)
+  participants        AllianceMissionParticipant[]
+
   @@index([allianceId])
   @@index([status])
   @@index([expiresAt])
@@ -702,7 +699,7 @@ model AllianceMissionParticipant {
   joinedAt     DateTime        @default(now()) @map("joined_at")
   mission      AllianceMission @relation(fields: [missionId], references: [id], onDelete: Cascade)
   user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@unique([missionId, userId])
   @@index([missionId])
   @@index([userId])
@@ -795,25 +792,25 @@ model EquipmentDef {
 }
 
 model ChatMessage {
-  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  content         String
-  userId          String         @db.Uuid
+  id                String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  content           String
+  userId            String           @db.Uuid
   channelType       ChannelType
-  guildChannelId    String?        @db.Uuid
-  allianceChannelId String?        @db.Uuid
-  parentMessageId   String?        @map("parent_message_id") @db.Uuid
-  editedAt        DateTime?      @map("edited_at")
-  deletedAt       DateTime?      @map("deleted_at")
-  metadata        Json?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  mentions        ChatMention[]
-  guildChannel      GuildChannel?    @relation(fields: [guildChannelId], references: [id], onDelete: Cascade)
+  guildChannelId    String?          @db.Uuid
+  allianceChannelId String?          @db.Uuid
+  parentMessageId   String?          @map("parent_message_id") @db.Uuid
+  editedAt          DateTime?        @map("edited_at")
+  deletedAt         DateTime?        @map("deleted_at")
+  metadata          Json?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  mentions          ChatMention[]
   allianceChannel   AllianceChannel? @relation(fields: [allianceChannelId], references: [id], onDelete: Cascade)
+  guildChannel      GuildChannel?    @relation(fields: [guildChannelId], references: [id], onDelete: Cascade)
   parentMessage     ChatMessage?     @relation("MessageReplies", fields: [parentMessageId], references: [id])
   replies           ChatMessage[]    @relation("MessageReplies")
   user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  reactions       ChatReaction[]
+  reactions         ChatReaction[]
 
   @@index([channelType, createdAt])
   @@index([guildChannelId, createdAt])
@@ -851,21 +848,20 @@ model ChatMention {
 }
 
 model ServerMission {
-  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name                String
-  description         String   @db.Text
-  type                String   // world_event, trade_festival, resource_drive, competition, seasonal
-  globalRequirements  Json     // {items: {...}, gold: number, trades: number, etc.}
-  globalProgress      Json     // Current server-wide progress
-  rewards             Json     // {tiers: {bronze: {...}, silver: {...}, gold: {...}}}
-  tiers               Json     // {bronze: 0.1, silver: 0.25, gold: 0.5} (percentage thresholds)
-  status              String   @default("scheduled") // scheduled, active, completed, failed
-  startedAt           DateTime?
-  endsAt              DateTime
-  completedAt         DateTime?
-  createdAt           DateTime @default(now())
-  
-  participants        ServerMissionParticipant[]
+  id                 String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name               String
+  description        String
+  type               String
+  globalRequirements Json
+  globalProgress     Json
+  rewards            Json
+  tiers              Json
+  status             String                     @default("scheduled")
+  startedAt          DateTime?
+  endsAt             DateTime
+  completedAt        DateTime?
+  createdAt          DateTime                   @default(now())
+  participants       ServerMissionParticipant[]
 
   @@index([status, endsAt])
   @@index([type])
@@ -874,19 +870,18 @@ model ServerMission {
 }
 
 model ServerMissionParticipant {
-  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  missionId       String   @db.Uuid
-  userId          String   @db.Uuid
-  guildId         String?  @db.Uuid  // Optional guild affiliation
-  contribution    Json     // Individual contribution details
-  tier            String?  // bronze, silver, gold, legendary
-  rank            Int?     // Leaderboard position
-  rewardClaimed   Boolean  @default(false)
-  joinedAt        DateTime @default(now())
-  
-  mission         ServerMission @relation(fields: [missionId], references: [id], onDelete: Cascade)
-  user            User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  missionId     String        @db.Uuid
+  userId        String        @db.Uuid
+  guildId       String?       @db.Uuid
+  contribution  Json
+  tier          String?
+  rank          Int?
+  rewardClaimed Boolean       @default(false)
+  joinedAt      DateTime      @default(now())
+  mission       ServerMission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([missionId, userId])
   @@index([missionId])
   @@index([userId])
