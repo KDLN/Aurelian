@@ -48,9 +48,10 @@ interface ProfileDashboardProps {
   };
   achievements: string[];
   canViewPrivateStats?: boolean;
+  showUnobtainedAchievements?: boolean;
 }
 
-export default function ProfileDashboard({ stats, achievements, canViewPrivateStats = false }: ProfileDashboardProps) {
+export default function ProfileDashboard({ stats, achievements, canViewPrivateStats = false, showUnobtainedAchievements = false }: ProfileDashboardProps) {
   const [showAllStats, setShowAllStats] = useState(false);
 
   const formatGold = (amount: number) => amount.toLocaleString();
@@ -71,6 +72,89 @@ export default function ProfileDashboard({ stats, achievements, canViewPrivateSt
       default: return '#c7b38a';
     }
   };
+
+  // Achievement definitions
+  const ACHIEVEMENT_DATA: Record<string, {
+    description: string;
+    category: 'missions' | 'trading' | 'crafting' | 'social' | 'time';
+    rarity: 'common' | 'rare' | 'epic' | 'legendary';
+    requirement: (stats: any) => boolean;
+  }> = {
+    'Century Runner': {
+      description: 'Complete 100 missions',
+      category: 'missions',
+      rarity: 'rare',
+      requirement: (stats) => stats.missions.completed >= 100
+    },
+    'Near Perfect': {
+      description: 'Achieve 95%+ mission success rate',
+      category: 'missions',
+      rarity: 'epic',
+      requirement: (stats) => stats.missions.successRate >= 95
+    },
+    'Streak Master': {
+      description: 'Complete 10 missions in a row',
+      category: 'missions',
+      rarity: 'rare',
+      requirement: (stats) => stats.missions.longestStreak >= 10
+    },
+    'Gold Hoarder': {
+      description: 'Earn 10,000+ gold from missions',
+      category: 'missions',
+      rarity: 'rare',
+      requirement: (stats) => stats.missions.totalGoldEarned >= 10000
+    },
+    'Master Crafter': {
+      description: 'Reach crafting level 10',
+      category: 'crafting',
+      rarity: 'epic',
+      requirement: (stats) => stats.crafting.currentLevel >= 10
+    },
+    'Production Line': {
+      description: 'Craft 500+ items',
+      category: 'crafting',
+      rarity: 'rare',
+      requirement: (stats) => stats.crafting.totalItemsCrafted >= 500
+    },
+    'Market Mogul': {
+      description: 'Complete 50+ auction sales',
+      category: 'trading',
+      rarity: 'rare',
+      requirement: (stats) => stats.trading.soldListings >= 50
+    },
+    'Sales Champion': {
+      description: 'Earn 5,000+ gold from sales',
+      category: 'trading',
+      rarity: 'epic',
+      requirement: (stats) => stats.trading.totalGoldFromSales >= 5000
+    },
+    'Time Veteran': {
+      description: 'Play for 100+ hours',
+      category: 'time',
+      rarity: 'legendary',
+      requirement: (stats) => stats.allTime.activeTimeMinutes >= 6000
+    },
+    'Dedicated Trader': {
+      description: 'Log in 100+ times',
+      category: 'social',
+      rarity: 'rare',
+      requirement: (stats) => stats.allTime.loginCount >= 100
+    },
+    'Caravan Master': {
+      description: 'Unlock 5+ caravan slots',
+      category: 'missions',
+      rarity: 'epic',
+      requirement: (stats) => stats.missions.completed >= 25 // Assuming slots unlock based on missions
+    }
+  };
+
+  // Calculate which achievements are available but not yet obtained
+  const unobtainedAchievements = showUnobtainedAchievements 
+    ? Object.entries(ACHIEVEMENT_DATA)
+        .filter(([name, data]) => !achievements.includes(name) && !data.requirement(stats))
+        .map(([name, data]) => ({ name, ...data }))
+        .slice(0, 3) // Show top 3 closest achievements
+    : [];
 
   // Get highlights - most interesting stats to show
   const highlights = [
@@ -192,6 +276,24 @@ export default function ProfileDashboard({ stats, achievements, canViewPrivateSt
                   {achievements.length > 3 && (
                     <div className="mini-badge more">+{achievements.length - 3}</div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* Unobtained Achievements - Only for own profile */}
+            {unobtainedAchievements.length > 0 && (
+              <div className="progress-card unobtained-achievements-card">
+                <div className="progress-header">
+                  <span className="progress-icon">🎯</span>
+                  <span className="progress-title">Goals to Unlock</span>
+                </div>
+                <div className="unobtained-achievements">
+                  {unobtainedAchievements.map((achievement, index) => (
+                    <div key={index} className="unobtained-badge">
+                      <div className="unobtained-name">{achievement.name}</div>
+                      <div className="unobtained-description">{achievement.description}</div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -495,6 +597,40 @@ export default function ProfileDashboard({ stats, achievements, canViewPrivateSt
         .mini-badge.more {
           background: #533b2c;
           color: #c7b38a;
+        }
+
+        .unobtained-achievements {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .unobtained-badge {
+          padding: 6px 8px;
+          background: #1e1912;
+          border: 1px dashed #4b3527;
+          border-radius: 4px;
+          opacity: 0.8;
+          transition: all 0.2s ease;
+        }
+
+        .unobtained-badge:hover {
+          opacity: 1;
+          border-color: #a36a43;
+          background: #241d16;
+        }
+
+        .unobtained-name {
+          font-size: 10px;
+          font-weight: 600;
+          color: #a36a43;
+          margin-bottom: 2px;
+        }
+
+        .unobtained-description {
+          font-size: 8px;
+          color: #8a7560;
+          line-height: 1.2;
         }
 
         .counter-grid {
