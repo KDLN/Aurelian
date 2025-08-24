@@ -157,7 +157,18 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       });
 
       // Update mission progress
-      await updateMissionProgress(missionId, contribution, previousContribution);
+      try {
+        console.log('📊 Updating mission progress...', {
+          missionId,
+          contribution,
+          previousContribution
+        });
+        await updateMissionProgress(missionId, contribution, previousContribution);
+        console.log('✅ Mission progress updated successfully');
+      } catch (progressError) {
+        console.error('❌ Failed to update mission progress:', progressError);
+        // Continue with the transaction - don't fail the contribution
+      }
 
       // Log activity
       await tx.activityLog.create({
