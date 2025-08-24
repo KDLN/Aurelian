@@ -12,7 +12,7 @@ interface RecentActivity {
   id: string;
   type: 'mission_completed' | 'auction_sold' | 'agent_hired' | 'item_crafted';
   message: string;
-  timestamp: Date;
+  timestamp: Date | string;
   reward?: number;
 }
 
@@ -130,9 +130,10 @@ export default function TradingHub() {
     }
   };
 
-  const formatTimeAgo = (timestamp: Date) => {
+  const formatTimeAgo = (timestamp: Date | string) => {
     const now = new Date();
-    const diff = now.getTime() - timestamp.getTime();
+    const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
+    const diff = now.getTime() - date.getTime();
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
     
