@@ -529,7 +529,7 @@ export default function MissionsPage() {
           <div className="game-flex-col">
             {activeMissions.length > 0 ? activeMissions.map(missionInstance => {
               const missionDef = missionInstance.mission || missionDefs.find(def => def.id === missionInstance.missionId);
-              const agentOnMission = agents.find(a => a.id === (missionInstance as any).agentId);
+              const agentOnMission = missionInstance.agent || agents.find(a => a.id === missionInstance.agentId);
               
               return (
               <div key={missionInstance.id} className="game-card" style={{ 

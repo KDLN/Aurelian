@@ -26,6 +26,13 @@ export interface MissionInstance {
   completedAt?: string;
   mission?: MissionDef;
   caravanSlot: number; // Which caravan slot (1-4) this mission is using
+  agentId?: string; // Agent assigned to this mission
+  agent?: {
+    id: string;
+    name: string;
+    level: number;
+    specialty: string;
+  };
 }
 
 export interface MissionsData {

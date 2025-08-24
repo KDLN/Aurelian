@@ -71,6 +71,15 @@ export async function GET(request: NextRequest) {
           itemsReceived: true,
           completedAt: true,
           caravanSlot: true,
+          agentId: true,
+          agent: {
+            select: {
+              id: true,
+              name: true,
+              level: true,
+              specialty: true,
+            }
+          },
           mission: {
             select: {
               id: true,
@@ -98,6 +107,7 @@ export async function GET(request: NextRequest) {
         console.log('🎯 [Missions GET] Active missions:', activeMissions.map(m => ({
           id: m.id.substring(0, 8),
           missionName: m.mission?.name,
+          agentName: m.agent?.name || 'No Agent',
           status: m.status,
           endTime: m.endTime,
           timeLeft: Math.max(0, Math.ceil((new Date(m.endTime).getTime() - Date.now()) / 1000)) + 's'
