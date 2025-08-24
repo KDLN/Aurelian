@@ -360,15 +360,6 @@ export default function GameLayout({
             </div>
           )}
 
-          <div>
-            <GameButton 
-              variant="warning" 
-              onClick={() => world.tick()}
-              style={{ width: '100%' }}
-            >
-              Advance Time (+10 min)
-            </GameButton>
-          </div>
         </GamePanel>
 
         <GamePanel 
