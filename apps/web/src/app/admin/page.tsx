@@ -45,18 +45,27 @@ export default function AdminPage() {
         return;
       }
 
-      // Check if user is admin (you can modify this logic as needed)
-      const adminEmails = ['kdln@live.com']; // Add admin emails here
-      const isUserAdmin = adminEmails.includes(session.user.email || '');
-      
-      if (!isUserAdmin) {
-        setError('Access denied - Admin only');
-        setLoading(false);
-        return;
-      }
+      // Check admin status via API
+      const response = await fetch('/api/admin/check-access', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
 
-      setIsAdmin(true);
-      await loadUsers();
+      if (response.ok) {
+        const data = await response.json();
+        if (data.isAdmin) {
+          setIsAdmin(true);
+          await loadUsers();
+        } else {
+          setError('Access denied - Admin only');
+          setLoading(false);
+        }
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || 'Access denied - Admin only');
+        setLoading(false);
+      }
     } catch (error) {
       console.error('Admin check failed:', error);
       setError('Failed to verify admin access');

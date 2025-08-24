@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { 
-  authenticateUser, 
+  authenticateUserAndCheckAdmin, 
   createErrorResponse, 
   createSuccessResponse
 } from '@/lib/apiUtils';
@@ -13,17 +13,9 @@ export async function GET(request: NextRequest) {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '') || null;
     
-    const authResult = await authenticateUser(token);
+    const authResult = await authenticateUserAndCheckAdmin(token);
     if ('error' in authResult) {
       return createErrorResponse(authResult.error as string);
-    }
-
-    const { user } = authResult;
-    
-    // Check if user is admin
-    const adminEmails = ['kdln@live.com']; // Add more admin emails as needed
-    if (!adminEmails.includes(user.email || '')) {
-      return createErrorResponse('FORBIDDEN', 'Admin access required');
     }
 
     // Get all users with related data

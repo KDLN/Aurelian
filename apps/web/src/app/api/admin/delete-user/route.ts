@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { 
-  authenticateUser, 
+  authenticateUserAndCheckAdmin, 
   createErrorResponse, 
   createSuccessResponse
 } from '@/lib/apiUtils';
@@ -9,33 +9,28 @@ import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
 
-const supabaseAdmin = createClient(
+// Only create supabase admin client if service role key is available
+const supabaseAdmin = process.env.SUPABASE_SERVICE_ROLE_KEY ? createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
   {
     auth: {
       autoRefreshToken: false,
       persistSession: false
     }
   }
-);
+) : null;
 
 export async function DELETE(request: NextRequest) {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '') || null;
     
-    const authResult = await authenticateUser(token);
+    const authResult = await authenticateUserAndCheckAdmin(token);
     if ('error' in authResult) {
       return createErrorResponse(authResult.error as string);
     }
 
     const { user: adminUser } = authResult;
-    
-    // Check if user is admin
-    const adminEmails = ['kdln@live.com']; // Add more admin emails as needed
-    if (!adminEmails.includes(adminUser.email || '')) {
-      return createErrorResponse('FORBIDDEN', 'Admin access required');
-    }
 
     const { userId } = await request.json();
 
@@ -135,13 +130,17 @@ export async function DELETE(request: NextRequest) {
       });
     });
 
-    // 6. Delete from Supabase Auth
+    // 6. Delete from Supabase Auth (if service role key is available)
     try {
-      if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      if (supabaseAdmin) {
         const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId);
         if (authError) {
           console.error('Failed to delete from Supabase Auth:', authError);
+        } else {
+          console.log('Successfully deleted user from Supabase Auth');
         }
+      } else {
+        console.warn('SUPABASE_SERVICE_ROLE_KEY not configured - skipping Supabase Auth deletion');
       }
     } catch (authError) {
       console.error('Error deleting from Supabase Auth:', authError);
@@ -163,6 +162,13 @@ export async function DELETE(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    const token = request.headers.get('authorization')?.replace('Bearer ', '') || null;
+    
+    const authResult = await authenticateUserAndCheckAdmin(token);
+    if ('error' in authResult) {
+      return createErrorResponse(authResult.error as string);
+    }
+
     // List all users for admin reference
     const users = await prisma.user.findMany({
       select: {

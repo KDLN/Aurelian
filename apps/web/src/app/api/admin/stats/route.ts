@@ -1,8 +1,16 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { authenticateUserAndCheckAdmin, createErrorResponse } from '@/lib/apiUtils';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const token = request.headers.get('authorization')?.replace('Bearer ', '') || null;
+    
+    const authResult = await authenticateUserAndCheckAdmin(token);
+    if ('error' in authResult) {
+      return createErrorResponse(authResult.error as string);
+    }
+
     const [
       itemsCount,
       equipmentCount,

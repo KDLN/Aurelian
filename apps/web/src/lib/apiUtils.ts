@@ -8,6 +8,7 @@ export const ApiErrors = {
   INVALID_TOKEN: { error: 'Invalid token', status: 401 },
   NOT_IN_GUILD: { error: 'Not in a guild', status: 403 },
   INSUFFICIENT_PERMISSIONS: { error: 'Insufficient permissions', status: 403 },
+  ADMIN_REQUIRED: { error: 'Admin access required', status: 403 },
   MISSING_FIELDS: { error: 'Missing required fields', status: 400 },
   INTERNAL_ERROR: { error: 'Internal server error', status: 500 },
   NOT_FOUND: { error: 'Resource not found', status: 404 },
@@ -68,6 +69,38 @@ export async function authenticateUser(token: string | null) {
   }
 
   return { user };
+}
+
+// Check if user is admin by looking up in database
+export async function checkUserIsAdmin(userId: string) {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { isAdmin: true }
+    });
+
+    return user?.isAdmin === true;
+  } catch (error) {
+    console.error('Error checking admin status:', error);
+    return false;
+  }
+}
+
+// Authenticate user and check admin status
+export async function authenticateUserAndCheckAdmin(token: string | null) {
+  const authResult = await authenticateUser(token);
+  if ('error' in authResult) {
+    return authResult;
+  }
+
+  const { user } = authResult;
+  const isAdmin = await checkUserIsAdmin(user.id);
+  
+  if (!isAdmin) {
+    return { error: 'ADMIN_REQUIRED' as const };
+  }
+
+  return { user, isAdmin: true };
 }
 
 // Get user's guild membership with role and guild info

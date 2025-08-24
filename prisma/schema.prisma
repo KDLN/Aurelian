@@ -11,6 +11,7 @@ datasource db {
 model User {
   id                   String            @id @db.Uuid
   email                String?           @unique
+  isAdmin              Boolean           @default(false) @map("is_admin")
   createdAt            DateTime          @default(now())
   updatedAt            DateTime          @updatedAt
   caravanSlotsUnlocked Int               @default(3) @map("caravan_slots_unlocked")
