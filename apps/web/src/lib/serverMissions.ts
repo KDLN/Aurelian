@@ -276,12 +276,9 @@ export async function consumeResources(
   missionId: string,
   tx?: any // Optional transaction context
 ) {
-  const client = tx || prisma;
-  const transactionWrapper = tx ? 
-    async (fn: any) => fn(tx) : 
-    async (fn: any) => prisma.$transaction(fn);
-
-  await transactionWrapper(async (txClient: any) => {
+  // If we have a transaction context, use it directly without wrapping
+  if (tx) {
+    const txClient = tx;
     // Consume items from inventory
     if (contribution.items) {
       for (const [itemKey, quantity] of Object.entries(contribution.items)) {
@@ -343,7 +340,72 @@ export async function consumeResources(
         }
       });
     }
-  });
+  } else {
+    // No transaction context provided, use our own transaction
+    await prisma.$transaction(async (txClient) => {
+      // Consume items from inventory
+      if (contribution.items) {
+        for (const [itemKey, quantity] of Object.entries(contribution.items)) {
+          const itemDef = await txClient.itemDef.findUnique({
+            where: { key: itemKey }
+          });
+
+          if (!itemDef) continue;
+
+          await txClient.inventory.update({
+            where: {
+              userId_itemId_location: {
+                userId,
+                itemId: itemDef.id,
+                location: 'warehouse'
+              }
+            },
+            data: {
+              qty: { decrement: quantity }
+            }
+          });
+
+          // Log transaction
+          await txClient.ledgerTx.create({
+            data: {
+              userId,
+              amount: -quantity,
+              reason: `Server Mission Contribution: ${itemDef.name}`,
+              meta: {
+                missionId,
+                itemKey,
+                quantity,
+                type: 'server_mission_contribution'
+              }
+            }
+          });
+        }
+      }
+
+      // Consume gold from wallet
+      if (contribution.gold) {
+        await txClient.wallet.update({
+          where: { userId },
+          data: {
+            gold: { decrement: contribution.gold }
+          }
+        });
+
+        // Log transaction
+        await txClient.ledgerTx.create({
+          data: {
+            userId,
+            amount: -contribution.gold,
+            reason: 'Server Mission Gold Contribution',
+            meta: {
+              missionId,
+              type: 'server_mission_contribution'
+            }
+          }
+        });
+      }
+    });
+  }
 }
 
 // Calculate and update all participant rankings for a mission

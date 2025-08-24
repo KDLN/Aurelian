@@ -170,8 +170,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         }
       });
     }, {
-      timeout: 30000 // 30 second timeout
+      timeout: 15000 // 15 second timeout
     });
+
+    // Resources already consumed in the transaction above
 
     // Check if mission is now completed
     const updatedMission = await prisma.serverMission.findUnique({
