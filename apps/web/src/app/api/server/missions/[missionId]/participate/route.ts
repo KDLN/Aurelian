@@ -27,8 +27,15 @@ interface RouteParams {
 // POST /api/server/missions/[missionId]/participate - Submit contribution
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('sb-access-token')?.value;
+    // Try Bearer token first (from Authorization header)
+    let token = request.headers.get('authorization')?.replace('Bearer ', '');
+    
+    // Fallback to cookie if no Bearer token
+    if (!token) {
+      const cookieStore = await cookies();
+      token = cookieStore.get('sb-access-token')?.value;
+    }
+    
     const { missionId } = await params;
 
     if (!token) {
