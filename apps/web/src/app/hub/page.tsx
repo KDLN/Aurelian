@@ -64,8 +64,10 @@ export default function TradingHub() {
         }).catch(() => null), // Stats is optional
         // Game news (public endpoint, no auth needed)
         fetch('/api/news?limit=6').catch(() => null),
-        // Server missions (public endpoint for active missions)
-        fetch('/api/server/missions?status=active').catch(() => null),
+        // Server missions (authenticated endpoint for active missions)
+        fetch('/api/server/missions?status=active', {
+          headers: { 'Authorization': `Bearer ${session.access_token}` },
+        }).catch(() => null),
       ];
 
       try {

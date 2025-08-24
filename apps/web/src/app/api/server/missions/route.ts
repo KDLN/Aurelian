@@ -11,8 +11,14 @@ const supabase = createClient(
 // GET /api/server/missions - List active server missions for players
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('sb-access-token')?.value;
+    // Try Bearer token first (from Authorization header)
+    let token = request.headers.get('authorization')?.replace('Bearer ', '');
+    
+    // Fallback to cookie if no Bearer token
+    if (!token) {
+      const cookieStore = await cookies();
+      token = cookieStore.get('sb-access-token')?.value;
+    }
 
     if (!token) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });

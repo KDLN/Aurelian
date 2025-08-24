@@ -36,10 +36,15 @@ export default function MissionsPage() {
     const fetchServerMissions = async () => {
       setServerMissionsLoading(true);
       try {
-        const response = await fetch('/api/server/missions?status=active');
-        if (response.ok) {
-          const result = await response.json();
-          setServerMissions(result.missions || []);
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          const response = await fetch('/api/server/missions?status=active', {
+            headers: { 'Authorization': `Bearer ${session.access_token}` },
+          });
+          if (response.ok) {
+            const result = await response.json();
+            setServerMissions(result.missions || []);
+          }
         }
       } catch (error) {
         console.error('Failed to fetch server missions:', error);

@@ -13,6 +13,7 @@ import OnboardingTips from '@/components/OnboardingTips';
 import EventBanner from '@/components/server/EventBanner';
 import { CharacterAppearance } from '@/lib/sprites/characterSprites';
 import { loadCharacterAppearance } from '@/lib/sprites/characterOptions';
+import { supabase } from '@/lib/supabaseClient';
 import '@/lib/game/styles.css';
 
 interface GameLayoutProps {
@@ -97,10 +98,15 @@ export default function GameLayout({
   useEffect(() => {
     const fetchServerMissions = async () => {
       try {
-        const response = await fetch('/api/server/missions?status=active');
-        if (response.ok) {
-          const result = await response.json();
-          setActiveServerMissions(result.missions || []);
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          const response = await fetch('/api/server/missions?status=active', {
+            headers: { 'Authorization': `Bearer ${session.access_token}` },
+          });
+          if (response.ok) {
+            const result = await response.json();
+            setActiveServerMissions(result.missions || []);
+          }
         }
       } catch (error) {
         console.error('Failed to fetch server missions:', error);
