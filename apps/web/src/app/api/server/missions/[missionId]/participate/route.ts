@@ -79,6 +79,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Validate the contribution
     const validation = await validateContribution(contribution, user.id, missionId);
     if (!validation.valid) {
+      console.error('Validation failed for mission participation:', {
+        missionId,
+        userId: user.id,
+        contribution,
+        errors: validation.errors
+      });
       return NextResponse.json({ 
         error: 'Invalid contribution', 
         details: validation.errors 
