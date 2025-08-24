@@ -10,6 +10,7 @@ const adminSections = [
   { id: 'equipment', title: 'Equipment', href: '/admin/equipment', icon: '⚔️' },
   { id: 'blueprints', title: 'Blueprints', href: '/admin/blueprints', icon: '📜' },
   { id: 'missions', title: 'Missions', href: '/admin/missions', icon: '🚛' },
+  { id: 'server-missions', title: 'Server Missions', href: '/admin/server-missions', icon: '🌍' },
   { id: 'hubs', title: 'Hubs', href: '/admin/hubs', icon: '🏛️' },
 ];
 

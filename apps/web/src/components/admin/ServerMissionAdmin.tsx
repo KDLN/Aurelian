@@ -324,9 +324,29 @@ export default function ServerMissionAdmin() {
 
       {activeTab === 'templates' && (
         <MissionTemplates
-          onUseTemplate={(template) => {
-            // Switch to create tab with template data
-            setActiveTab('create');
+          onCreateMission={async (template) => {
+            try {
+              // Convert template to mission data format
+              const now = new Date();
+              const endsAt = new Date(now.getTime() + (template.duration * 60 * 60 * 1000)); // Convert hours to milliseconds
+              
+              const missionData = {
+                name: template.name,
+                description: template.description,
+                type: template.type,
+                globalRequirements: template.globalRequirements,
+                rewards: template.rewards,
+                tiers: template.tiers,
+                endsAt: endsAt.toISOString(),
+                status: 'scheduled'
+              };
+              
+              await handleCreateMission(missionData);
+              alert(`Mission "${template.name}" launched successfully!`);
+            } catch (error) {
+              console.error('Failed to launch template mission:', error);
+              alert('Failed to launch mission. Please try again.');
+            }
           }}
         />
       )}
