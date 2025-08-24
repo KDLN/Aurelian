@@ -95,9 +95,17 @@ export default function ContributionModal({ mission, isOpen, onClose, onSuccess 
       if (!response.ok) {
         const errorData = await response.json();
         console.error('Contribution failed:', errorData);
-        const errorMessage = errorData.details ? 
-          `${errorData.error}: ${errorData.details.join(', ')}` : 
-          (errorData.error || 'Failed to contribute');
+        
+        let errorMessage = errorData.error || 'Failed to contribute';
+        if (errorData.details) {
+          if (Array.isArray(errorData.details)) {
+            errorMessage += ': ' + errorData.details.join(', ');
+          } else if (typeof errorData.details === 'string') {
+            errorMessage += ': ' + errorData.details;
+          } else {
+            errorMessage += ': ' + JSON.stringify(errorData.details);
+          }
+        }
         throw new Error(errorMessage);
       }
 
