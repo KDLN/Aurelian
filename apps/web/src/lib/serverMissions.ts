@@ -149,21 +149,38 @@ export async function updateMissionProgress(
   // Calculate the net change (new contribution - old contribution)
   const netChange: ContributionData = {};
 
-  // Calculate net change for items
-  if (contribution.items || previousContribution?.items) {
-    netChange.items = {};
+  // Calculate net change for items - handle both flat and nested structures
+  const getItemContributions = (contrib: ContributionData | undefined) => {
+    if (!contrib) return {};
+    // If it has items property, use that (nested structure)
+    if (contrib.items) return contrib.items;
+    // Otherwise extract numeric properties that aren't gold/trades (flat structure)
+    const items: Record<string, number> = {};
+    for (const [key, value] of Object.entries(contrib)) {
+      if (key !== 'gold' && key !== 'trades' && typeof value === 'number') {
+        items[key] = value;
+      }
+    }
+    return items;
+  };
+
+  const newItems = getItemContributions(contribution);
+  const oldItems = getItemContributions(previousContribution);
+  
+  if (Object.keys(newItems).length > 0 || Object.keys(oldItems).length > 0) {
     const allItemKeys = new Set([
-      ...Object.keys(contribution.items || {}),
-      ...Object.keys(previousContribution?.items || {})
+      ...Object.keys(newItems),
+      ...Object.keys(oldItems)
     ]);
 
     for (const itemKey of allItemKeys) {
-      const newAmount = contribution.items?.[itemKey] || 0;
-      const oldAmount = previousContribution?.items?.[itemKey] || 0;
+      const newAmount = newItems[itemKey] || 0;
+      const oldAmount = oldItems[itemKey] || 0;
       const change = newAmount - oldAmount;
       
       if (change !== 0) {
-        netChange.items[itemKey] = change;
+        // Store as flat in netChange for applying to globalProgress
+        netChange[itemKey] = change;
       }
     }
   }
@@ -186,19 +203,11 @@ export async function updateMissionProgress(
   // IMPORTANT: globalProgress should match globalRequirements structure (flat, not nested)
   const newProgress = { ...currentProgress };
 
-  // Handle items with flat structure to match requirements
-  if (netChange.items) {
-    for (const [itemKey, change] of Object.entries(netChange.items)) {
-      newProgress[itemKey] = Math.max(0, (newProgress[itemKey] || 0) + change);
+  // Apply all changes from netChange (items stored as flat properties)
+  for (const [key, change] of Object.entries(netChange)) {
+    if (typeof change === 'number') {
+      newProgress[key] = Math.max(0, (newProgress[key] || 0) + change);
     }
-  }
-
-  if (netChange.gold !== undefined) {
-    newProgress.gold = Math.max(0, (newProgress.gold || 0) + netChange.gold);
-  }
-
-  if (netChange.trades !== undefined) {
-    newProgress.trades = Math.max(0, (newProgress.trades || 0) + netChange.trades);
   }
 
   // Update the mission progress
