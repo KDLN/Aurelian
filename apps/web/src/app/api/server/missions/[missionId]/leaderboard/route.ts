@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import { getMissionLeaderboard, getMissionTierStats } from '@/lib/serverMissions';
 
 const supabase = createClient(

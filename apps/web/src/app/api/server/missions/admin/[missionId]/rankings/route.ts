@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticateUserAndCheckAdmin, createErrorResponse, createSuccessResponse } from '@/lib/apiUtils';
 import { updateMissionRankings } from '@/lib/serverMissions';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 
 interface RouteParams {
   params: Promise<{ missionId: string }>;

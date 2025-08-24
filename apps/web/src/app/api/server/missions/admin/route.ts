@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticateUserAndCheckAdmin, createErrorResponse, createSuccessResponse, validateRequiredFields } from '@/lib/apiUtils';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 
 // GET /api/server/missions/admin - List all server missions for admin
 export async function GET(request: NextRequest) {
