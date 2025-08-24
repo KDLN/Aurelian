@@ -24,15 +24,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    // Starter equipment items
+    // Starter equipment items (using equipment item keys)
     const starterGear = [
       'rusty_sword',
       'leather_vest',
       'basic_compass',
-      'lucky_charm',
-      'merchant_knife',
-      'scout_cloak',
-      'trade_ledger'
+      'lucky_charm'
     ];
 
     // Add these items to user's inventory

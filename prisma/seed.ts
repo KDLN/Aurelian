@@ -1,4 +1,5 @@
 import { PrismaClient, ItemRarity, MissionRisk } from '@prisma/client';
+import { seedEquipment } from './seeds/equipment';
 
 const prisma = new PrismaClient();
 
@@ -45,6 +46,19 @@ async function main() {
     { key: 'relic_compass', name: 'Relic Compass', rarity: ItemRarity.EPIC },
     { key: 'enchanted_satchel', name: 'Enchanted Satchel', rarity: ItemRarity.EPIC },
     { key: 'beacon_crystal', name: 'Beacon Crystal', rarity: ItemRarity.LEGENDARY },
+    
+    // Equipment Items (for agent gear)
+    { key: 'rusty_sword', name: 'Rusty Sword', rarity: ItemRarity.COMMON },
+    { key: 'steel_blade', name: 'Steel Blade', rarity: ItemRarity.UNCOMMON },
+    { key: 'merchant_knife', name: 'Merchant\'s Knife', rarity: ItemRarity.COMMON },
+    { key: 'chainmail', name: 'Chainmail Armor', rarity: ItemRarity.UNCOMMON },
+    { key: 'scout_cloak', name: 'Scout\'s Cloak', rarity: ItemRarity.COMMON },
+    { key: 'basic_compass', name: 'Basic Compass', rarity: ItemRarity.COMMON },
+    { key: 'lockpicks', name: 'Lockpicks', rarity: ItemRarity.UNCOMMON },
+    { key: 'trade_ledger', name: 'Trade Ledger', rarity: ItemRarity.COMMON },
+    { key: 'lucky_charm', name: 'Lucky Charm', rarity: ItemRarity.COMMON },
+    { key: 'guild_signet', name: 'Guild Signet Ring', rarity: ItemRarity.RARE },
+    { key: 'speed_boots', name: 'Swift Boots', rarity: ItemRarity.UNCOMMON },
   ];
 
   for (const item of items) {
@@ -481,6 +495,9 @@ async function main() {
       console.log(`Mission already exists: ${mission.name}`);
     }
   }
+
+  // Seed equipment definitions
+  await seedEquipment();
 
   console.log('Seeding completed!');
 }
