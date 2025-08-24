@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import GameButton from '@/components/ui/GameButton';
 import GamePanel from '@/components/ui/GamePanel';
-import { useUserDataQuery } from '@/hooks/useUserDataQuery';
+import { useUserDataQuery, userKeys } from '@/hooks/useUserDataQuery';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
 
 interface ContributionModalProps {
@@ -19,7 +20,8 @@ interface ContributionModalProps {
 }
 
 export default function ContributionModal({ mission, isOpen, onClose, onSuccess }: ContributionModalProps) {
-  const { inventory } = useUserDataQuery();
+  const { inventory, user } = useUserDataQuery();
+  const queryClient = useQueryClient();
   const [contributions, setContributions] = useState<Record<string, number>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -169,6 +171,12 @@ export default function ContributionModal({ mission, isOpen, onClose, onSuccess 
         }
       }
 
+      // Invalidate all user data queries globally (for all components including main header)
+      if (user?.id) {
+        queryClient.invalidateQueries({ queryKey: userKeys.wallet(user.id) });
+        queryClient.invalidateQueries({ queryKey: userKeys.inventory(user.id) });
+      }
+      
       onSuccess();
       onClose();
     } catch (err) {
