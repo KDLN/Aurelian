@@ -1,300 +1,252 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { RefreshCw, Plus, Settings, TrendingUp, Users, Package, Sword, ScrollText, Truck, Castle } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
+import GameButton from '@/components/ui/GameButton';
+import GamePanel from '@/components/ui/GamePanel';
 
-const adminSections = [
-  {
-    id: 'news',
-    title: 'News & Announcements',
-    description: 'Manage game updates, events, and announcements',
-    href: '/admin/news',
-    icon: '📢',
-    iconComponent: ScrollText,
-    color: 'bg-blue-500',
-  },
-  {
-    id: 'items',
-    title: 'Items',
-    description: 'Manage game items, materials, and crafted goods',
-    href: '/admin/items',
-    icon: '📦',
-    iconComponent: Package,
-    color: 'bg-green-500',
-  },
-  {
-    id: 'equipment',
-    title: 'Equipment',
-    description: 'Manage weapons, armor, tools, and accessories',
-    href: '/admin/equipment',
-    icon: '⚔️',
-    iconComponent: Sword,
-    color: 'bg-red-500',
-  },
-  {
-    id: 'blueprints',
-    title: 'Blueprints',
-    description: 'Manage crafting recipes and requirements',
-    href: '/admin/blueprints',
-    icon: '📜',
-    iconComponent: ScrollText,
-    color: 'bg-purple-500',
-  },
-  {
-    id: 'missions',
-    title: 'Missions',
-    description: 'Manage mission definitions and rewards',
-    href: '/admin/missions',
-    icon: '🚛',
-    iconComponent: Truck,
-    color: 'bg-orange-500',
-  },
-  {
-    id: 'hubs',
-    title: 'Hubs & Routes',
-    description: 'Manage trading hubs and route connections',
-    href: '/admin/hubs',
-    icon: '🏛️',
-    iconComponent: Castle,
-    color: 'bg-indigo-500',
-  },
-];
-
-const systemStatus = [
-  { name: 'Database Connection', status: 'online', color: 'bg-green-500' },
-  { name: 'Admin Panel', status: 'active', color: 'bg-green-500' },
-  { name: 'Game Services', status: 'running', color: 'bg-green-500' },
-];
+interface UserData {
+  id: string;
+  email: string | null;
+  createdAt: string;
+  profile?: {
+    display: string;
+    avatar?: any;
+  };
+  wallet?: {
+    gold: number;
+  };
+  guildMembership?: {
+    guild: {
+      name: string;
+      tag: string;
+    };
+    role: string;
+  };
+}
 
 export default function AdminPage() {
-  const [stats, setStats] = useState<any>(null);
+  const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    loadStats();
+    checkAdminAccess();
   }, []);
 
-  const loadStats = async () => {
-    setLoading(true);
+  const checkAdminAccess = async () => {
     try {
-      const response = await fetch('/api/admin/stats');
-      const data = await response.json();
-      setStats(data);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setError('Not authenticated');
+        setLoading(false);
+        return;
+      }
+
+      // Check if user is admin (you can modify this logic as needed)
+      const adminEmails = ['kdln@live.com']; // Add admin emails here
+      const isUserAdmin = adminEmails.includes(session.user.email || '');
+      
+      if (!isUserAdmin) {
+        setError('Access denied - Admin only');
+        setLoading(false);
+        return;
+      }
+
+      setIsAdmin(true);
+      await loadUsers();
     } catch (error) {
-      console.error('Failed to load stats:', error);
+      console.error('Admin check failed:', error);
+      setError('Failed to verify admin access');
+      setLoading(false);
+    }
+  };
+
+  const loadUsers = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const response = await fetch('/api/admin/users', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(data.users);
+      } else {
+        setError('Failed to load users');
+      }
+    } catch (error) {
+      console.error('Failed to load users:', error);
+      setError('Failed to load users');
     } finally {
       setLoading(false);
     }
   };
 
-  const formatStatValue = (value: unknown) => {
-    if (typeof value === 'number') {
-      return value.toLocaleString();
+  const deleteUser = async (userId: string, userEmail: string) => {
+    if (!confirm(`Are you sure you want to delete user: ${userEmail}?\n\nThis will:\n- Remove from Supabase Auth\n- Delete profile and wallet\n- Convert messages to "Deleted User"\n- Remove from guilds\n\nThis action cannot be undone!`)) {
+      return;
     }
-    return String(value || 0);
+
+    setDeletingUserId(userId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const response = await fetch('/api/admin/delete-user', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ userId })
+      });
+
+      if (response.ok) {
+        await loadUsers(); // Refresh the list
+        alert('User deleted successfully');
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to delete user: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error('Failed to delete user:', error);
+      alert('Failed to delete user');
+    } finally {
+      setDeletingUserId(null);
+    }
   };
 
-  const formatStatKey = (key: string) => {
-    return key
-      .replace(/([A-Z])/g, ' $1')
-      .replace(/^./, str => str.toUpperCase())
-      .trim();
-  };
+  if (loading) {
+    return (
+      <div className="game">
+        <GamePanel style={{ margin: '20px auto', maxWidth: '800px' }}>
+          <h1>Admin Panel</h1>
+          <p>Loading...</p>
+        </GamePanel>
+      </div>
+    );
+  }
+
+  if (error || !isAdmin) {
+    return (
+      <div className="game">
+        <GamePanel style={{ margin: '20px auto', maxWidth: '800px' }}>
+          <h1>Admin Panel</h1>
+          <p style={{ color: '#ff6b6b' }}>{error || 'Access denied'}</p>
+          <GameButton onClick={() => window.location.href = '/'}>
+            Return to Game
+          </GameButton>
+        </GamePanel>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-background p-2 sm:p-4">
-      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
-        {/* Welcome Section */}
-        <Card>
-          <CardHeader>
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-              <div className="space-y-2">
-                <CardTitle className="text-3xl font-bold flex items-center gap-3">
-                  <div className="bg-gradient-to-br from-orange-400 to-orange-600 w-12 h-12 rounded-xl flex items-center justify-center text-white text-2xl shadow-lg">
-                    ⚡
-                  </div>
-                  Admin Panel
-                </CardTitle>
-                <CardDescription className="text-lg">
-                  Manage all aspects of your game content from one central location
-                </CardDescription>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Button
-                  onClick={loadStats}
-                  variant="outline"
-                  className="w-full sm:w-auto"
-                  disabled={loading}
-                >
-                  <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                  Refresh Stats
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-        </Card>
+    <div className="game">
+      <GamePanel style={{ margin: '20px auto', maxWidth: '1000px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h1>Admin Panel - User Management</h1>
+          <GameButton onClick={() => window.location.href = '/'}>
+            Return to Game
+          </GameButton>
+        </div>
 
-        {/* Quick Stats */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5" />
-              Overview
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="bg-muted animate-pulse rounded-lg p-6">
-                    <div className="h-8 bg-muted-foreground/20 rounded mb-2"></div>
-                    <div className="h-4 bg-muted-foreground/20 rounded w-2/3"></div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                {stats && Object.entries(stats).map(([key, value]) => (
-                  <Card key={key} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-4 sm:p-6">
-                      <div className="text-2xl font-bold mb-1">
-                        {formatStatValue(value)}
-                      </div>
-                      <div className="text-sm text-muted-foreground font-medium">
-                        {formatStatKey(key)}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <div style={{ marginBottom: '20px' }}>
+          <GameButton onClick={loadUsers} disabled={loading}>
+            🔄 Refresh Users
+          </GameButton>
+        </div>
 
-        {/* Management Sections */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Settings className="w-5 h-5" />
-              Content Management
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {adminSections.map((section) => (
-                <Link
-                  key={section.id}
-                  href={section.href}
-                  className="group block"
+        <div style={{ 
+          background: 'rgba(83, 59, 44, 0.2)',
+          border: '1px solid #533b2c',
+          borderRadius: '4px',
+          padding: '16px'
+        }}>
+          <h3>Users ({users.length})</h3>
+          
+          {users.length === 0 ? (
+            <p>No users found</p>
+          ) : (
+            <div style={{ display: 'grid', gap: '16px' }}>
+              {users.map(user => (
+                <div 
+                  key={user.id}
+                  style={{
+                    background: 'rgba(26, 21, 17, 0.5)',
+                    border: '1px solid #533b2c',
+                    borderRadius: '4px',
+                    padding: '12px',
+                    display: 'grid',
+                    gridTemplateColumns: '1fr auto',
+                    gap: '12px',
+                    alignItems: 'center'
+                  }}
                 >
-                  <Card className="hover:shadow-md transition-all h-full">
-                    <CardContent className="p-4 sm:p-6">
-                      <div className="flex items-start space-x-4">
-                        <div className={`${section.color} w-12 h-12 rounded-lg flex items-center justify-center text-white text-2xl group-hover:scale-110 transition-transform shadow-lg`}>
-                          <section.iconComponent className="w-6 h-6" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-lg font-semibold mb-2 group-hover:text-primary transition-colors">
-                            {section.title}
-                          </h3>
-                          <p className="text-muted-foreground text-sm">
-                            {section.description}
-                          </p>
-                        </div>
+                  <div>
+                    <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+                      {user.profile?.display || 'No Display Name'}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#9b8c70', marginBottom: '8px' }}>
+                      Email: {user.email || 'No email'}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#9b8c70', marginBottom: '4px' }}>
+                      ID: {user.id}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#9b8c70', marginBottom: '4px' }}>
+                      Joined: {new Date(user.createdAt).toLocaleDateString()}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#9b8c70', marginBottom: '4px' }}>
+                      Gold: {user.wallet?.gold?.toLocaleString() || '0'}
+                    </div>
+                    {user.guildMembership && (
+                      <div style={{ fontSize: '12px', color: '#9b8c70' }}>
+                        Guild: {user.guildMembership.guild.name} [{user.guildMembership.guild.tag}] - {user.guildMembership.role}
                       </div>
-                    </CardContent>
-                  </Card>
-                </Link>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <GameButton
+                      variant="danger"
+                      size="small"
+                      onClick={() => deleteUser(user.id, user.email || user.profile?.display || user.id)}
+                      disabled={deletingUserId === user.id}
+                    >
+                      {deletingUserId === user.id ? '🔄 Deleting...' : '🗑️ Delete User'}
+                    </GameButton>
+                  </div>
+                </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
-
-        {/* System Status and Quick Actions */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* System Status */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                System Status
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {systemStatus.map((item, index) => (
-                  <div key={index} className="flex items-center justify-between py-3 border-b last:border-b-0">
-                    <span className="text-muted-foreground font-medium">{item.name}</span>
-                    <div className="flex items-center space-x-2">
-                      <div className={`w-2 h-2 ${item.color} rounded-full`}></div>
-                      <Badge variant="outline" className="text-green-600 border-green-200">
-                        {item.status}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Plus className="w-5 h-5" />
-                Quick Actions
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <Button
-                  onClick={loadStats}
-                  variant="default"
-                  className="w-full justify-between"
-                  disabled={loading}
-                >
-                  <span>Refresh Statistics</span>
-                  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                </Button>
-                <Button
-                  asChild
-                  variant="outline"
-                  className="w-full justify-between"
-                >
-                  <Link href="/admin/items">
-                    <span>Add New Item</span>
-                    <Package className="w-4 h-4" />
-                  </Link>
-                </Button>
-                <Button
-                  asChild
-                  variant="outline"
-                  className="w-full justify-between"
-                >
-                  <Link href="/admin/missions">
-                    <span>Create Mission</span>
-                    <Truck className="w-4 h-4" />
-                  </Link>
-                </Button>
-                <Button
-                  asChild
-                  variant="outline"
-                  className="w-full justify-between"
-                >
-                  <Link href="/admin/news">
-                    <span>Add News Item</span>
-                    <ScrollText className="w-4 h-4" />
-                  </Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          )}
         </div>
-      </div>
+
+        <div style={{ 
+          background: 'rgba(255, 107, 107, 0.1)',
+          border: '1px solid #ff6b6b',
+          borderRadius: '4px',
+          padding: '12px',
+          marginTop: '20px'
+        }}>
+          <h4 style={{ color: '#ff6b6b', marginBottom: '8px' }}>⚠️ Warning</h4>
+          <p style={{ fontSize: '12px', margin: 0 }}>
+            User deletion is permanent and will:
+            <br />• Remove user from Supabase Auth
+            <br />• Delete profile, wallet, and personal data
+            <br />• Convert chat messages to "Deleted User"
+            <br />• Remove from guilds and clear memberships
+            <br />• Preserve mail/transactions for record keeping
+          </p>
+        </div>
+      </GamePanel>
     </div>
   );
 }

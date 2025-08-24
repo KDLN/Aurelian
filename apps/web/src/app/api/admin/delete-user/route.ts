@@ -1,84 +1,163 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { 
+  authenticateUser, 
+  createErrorResponse, 
+  createSuccessResponse
+} from '@/lib/apiUtils';
 import { prisma } from '@/lib/prisma';
+import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
 
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
+);
+
 export async function DELETE(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-    const email = searchParams.get('email');
+    const token = request.headers.get('authorization')?.replace('Bearer ', '') || null;
     
-    if (!userId && !email) {
-      return NextResponse.json({ error: 'userId or email required' }, { status: 400 });
+    const authResult = await authenticateUser(token);
+    if ('error' in authResult) {
+      return createErrorResponse(authResult.error as string);
     }
 
-    let userToDelete;
+    const { user: adminUser } = authResult;
     
-    if (userId) {
-      userToDelete = await prisma.user.findUnique({ where: { id: userId } });
-    } else if (email) {
-      userToDelete = await prisma.user.findUnique({ where: { email: email } });
+    // Check if user is admin
+    const adminEmails = ['kdln@live.com']; // Add more admin emails as needed
+    if (!adminEmails.includes(adminUser.email || '')) {
+      return createErrorResponse('FORBIDDEN', 'Admin access required');
     }
+
+    const { userId } = await request.json();
+
+    if (!userId) {
+      return createErrorResponse('MISSING_FIELDS', 'userId is required');
+    }
+
+    // Prevent self-deletion
+    if (userId === adminUser.id) {
+      return createErrorResponse('VALIDATION_ERROR', 'Cannot delete your own admin account');
+    }
+
+    let userToDelete = await prisma.user.findUnique({ 
+      where: { id: userId },
+      include: { profile: true }
+    });
     
     if (!userToDelete) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return createErrorResponse('NOT_FOUND', 'User not found');
     }
 
     const targetUserId = userToDelete.id;
     console.log(`Deleting user: ${targetUserId} (${userToDelete.email})`);
 
-    // Delete in correct order to handle foreign key constraints
-    console.log('Deleting user data...');
-    
-    // Delete mission instances first
-    const deletedMissions = await prisma.missionInstance.deleteMany({
-      where: { userId: targetUserId }
+    // Start transaction to handle all deletions
+    await prisma.$transaction(async (tx) => {
+      // 1. Soft delete chat messages - convert to "Deleted User"
+      await tx.chatMessage.updateMany({
+        where: { senderId: userId },
+        data: {
+          senderDisplay: 'Deleted User',
+        }
+      });
+
+      // 2. Remove from guilds (this will cascade to related records)
+      await tx.guildMember.deleteMany({
+        where: { userId: userId }
+      });
+
+      // 3. Delete personal data (cascading will handle related records)
+      await tx.profile.deleteMany({
+        where: { userId: userId }
+      });
+
+      await tx.wallet.deleteMany({
+        where: { userId: userId }
+      });
+
+      await tx.character.deleteMany({
+        where: { userId: userId }
+      });
+
+      await tx.inventory.deleteMany({
+        where: { userId: userId }
+      });
+
+      await tx.mailFolder.deleteMany({
+        where: { userId: userId }
+      });
+
+      await tx.mailBlock.deleteMany({
+        where: { 
+          OR: [
+            { blockerId: userId },
+            { blockedId: userId }
+          ]
+        }
+      });
+
+      // 4. Delete activity data
+      await tx.craftJob.deleteMany({
+        where: { userId: userId }
+      });
+
+      await tx.mission.deleteMany({
+        where: { userId: userId }
+      });
+
+      await tx.missionInstance.deleteMany({
+        where: { userId: userId }
+      });
+
+      await tx.listing.deleteMany({
+        where: { sellerId: userId }
+      });
+
+      await tx.contract.deleteMany({
+        where: { ownerId: userId }
+      });
+
+      // Keep mail for record keeping - they'll show "Deleted User"
+      // Keep ledger transactions for audit purposes
+
+      // 5. Finally, delete the user record
+      await tx.user.delete({
+        where: { id: userId }
+      });
     });
-    console.log(`Deleted ${deletedMissions.count} mission instances`);
-    
-    // Delete inventory
-    const deletedInventory = await prisma.inventory.deleteMany({
-      where: { userId: targetUserId }
-    });
-    console.log(`Deleted ${deletedInventory.count} inventory items`);
-    
-    // Delete wallet
-    const deletedWallet = await prisma.wallet.deleteMany({
-      where: { userId: targetUserId }
-    });
-    console.log(`Deleted ${deletedWallet.count} wallets`);
-    
-    // Delete profile
-    const deletedProfile = await prisma.profile.deleteMany({
-      where: { userId: targetUserId }
-    });
-    console.log(`Deleted ${deletedProfile.count} profiles`);
-    
-    // Finally delete user
-    const deletedUser = await prisma.user.delete({
-      where: { id: targetUserId }
-    });
+
+    // 6. Delete from Supabase Auth
+    try {
+      if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+        if (authError) {
+          console.error('Failed to delete from Supabase Auth:', authError);
+        }
+      }
+    } catch (authError) {
+      console.error('Error deleting from Supabase Auth:', authError);
+    }
+
     console.log('User deleted successfully');
 
-    return NextResponse.json({
-      success: true,
-      message: `User ${deletedUser.email} and all related data deleted successfully`,
-      deletedCounts: {
-        missions: deletedMissions.count,
-        inventory: deletedInventory.count,
-        wallets: deletedWallet.count,
-        profiles: deletedProfile.count,
-        users: 1
-      }
+    return createSuccessResponse({
+      deleted: true,
+      userEmail: userToDelete.email,
+      userDisplay: userToDelete.profile?.display
     });
 
   } catch (error) {
     console.error('Delete user error:', error);
-    return NextResponse.json({
-      error: 'Failed to delete user',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    return createErrorResponse('INTERNAL_ERROR', 'Failed to delete user');
   }
 }
 

@@ -55,6 +55,7 @@ export default function GameLayout({
     roleRequired?: string;
   }>>([]);
   const [unreadMailCount, setUnreadMailCount] = useState(0);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const unsubscribe = subscribe(() => forceUpdate(x => x + 1));
@@ -113,6 +114,10 @@ export default function GameLayout({
               }
             }
 
+            // Check if user is admin
+            const adminEmails = ['kdln@live.com'];
+            setIsAdmin(adminEmails.includes(session.user.email || ''));
+
             // Load guild info
             const guildResponse = await fetch('/api/guild/info', {
               headers: {
@@ -165,6 +170,7 @@ export default function GameLayout({
     },
     { href: '/guild', label: 'Guild' },
     { href: '/help', label: '❓ Help' },
+    ...(isAdmin ? [{ href: '/admin', label: '⚙️ Admin' }] : []),
   ];
 
   // Don't render until mobile detection is complete
