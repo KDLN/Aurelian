@@ -29,49 +29,12 @@ export default function MissionsPage() {
   
   const missionHelpers = useMissionHelpers();
   
-  const handlePopulateMissions = useCallback(async () => {
-    if (!mounted) return;
-    
-    setPopulatingMissions(true);
-    try {
-      const session = await supabase.auth.getSession();
-      const token = session.data.session?.access_token;
-      
-      if (!token) {
-        alert('Authentication failed');
-        return;
-      }
-
-      const response = await fetch('/api/missions/populate-initial', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      const result = await response.json();
-      
-      if (response.ok) {
-        alert(`✅ ${result.message}`);
-        // Refresh missions data
-        refetch();
-      } else {
-        alert(`❌ ${result.error || result.message}`);
-      }
-    } catch (err) {
-      console.error('Failed to populate missions:', err);
-      alert('❌ Failed to populate missions');
-    } finally {
-      setPopulatingMissions(false);
-    }
-  }, [mounted, refetch]);
   const { formatDuration, getRiskColor, isReady } = missionHelpers;
   
   const [selectedMission, setSelectedMission] = useState<string>('');
   const [selectedAgent, setSelectedAgent] = useState<string>('');
   const [completionMessage, setCompletionMessage] = useState<string>('');
   const [completingMissions, setCompletingMissions] = useState<Set<string>>(new Set());
-  const [populatingMissions, setPopulatingMissions] = useState(false);
 
   // Extract data with safe defaults and proper typing
   const missionDefs = (data as MissionsData | undefined)?.missionDefs ?? [];
@@ -383,21 +346,6 @@ export default function MissionsPage() {
                 <option disabled>No missions available</option>
               )}
             </select>
-            {missionDefs.length === 0 && !isLoading && (
-              <div style={{ marginTop: '12px' }}>
-                <button 
-                  onClick={handlePopulateMissions}
-                  disabled={populatingMissions}
-                  className="game-btn game-btn-primary"
-                  style={{ fontSize: 'var(--font-size-xs)', padding: 'var(--space-sm) var(--space-md)' }}
-                >
-                  {populatingMissions ? '🔄 Adding Missions...' : '🎯 Add Initial Missions (Debug)'}
-                </button>
-                <p className="game-small game-muted" style={{ textAlign: 'center', marginTop: 'var(--space-sm)' }}>
-                  This will populate the database with starter missions
-                </p>
-              </div>
-            )}
           </div>
 
           <div style={{ marginBottom: '1rem' }}>
