@@ -252,34 +252,6 @@ export default function GameLayout({
                   {wallet ? wallet.gold.toLocaleString() : '0'}
                 </span>
               </div>
-              {!wallet && user && (
-                <div style={{ marginTop: '8px' }}>
-                  <GameButton 
-                    onClick={async () => {
-                      try {
-                        const session = await import('@/lib/supabaseClient').then(m => m.supabase.auth.getSession());
-                        const token = session.data.session?.access_token;
-                        if (!token) return;
-                        
-                        const response = await fetch('/api/user/wallet/create', {
-                          method: 'POST',
-                          headers: { 'Authorization': `Bearer ${token}` }
-                        });
-                        
-                        if (response.ok) {
-                          window.location.reload();
-                        }
-                      } catch (error) {
-                        console.error('Failed to create wallet:', error);
-                      }
-                    }}
-                    variant="warning"
-                    size="small"
-                  >
-                    💰 Create Wallet
-                  </GameButton>
-                </div>
-              )}
               <div className="game-space-between">
                 <span style={{ color: '#9b8c70' }}>EXP:</span>
                 <span style={{ color: '#f1e5c8' }}>0 / 100</span>
