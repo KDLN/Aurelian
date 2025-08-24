@@ -273,19 +273,25 @@ export async function validateContribution(
 export async function consumeResources(
   contribution: ContributionData,
   userId: string,
-  missionId: string
+  missionId: string,
+  tx?: any // Optional transaction context
 ) {
-  await prisma.$transaction(async (tx) => {
+  const client = tx || prisma;
+  const transactionWrapper = tx ? 
+    async (fn: any) => fn(tx) : 
+    async (fn: any) => prisma.$transaction(fn);
+
+  await transactionWrapper(async (txClient: any) => {
     // Consume items from inventory
     if (contribution.items) {
       for (const [itemKey, quantity] of Object.entries(contribution.items)) {
-        const itemDef = await tx.itemDef.findUnique({
+        const itemDef = await txClient.itemDef.findUnique({
           where: { key: itemKey }
         });
 
         if (!itemDef) continue;
 
-        await tx.inventory.update({
+        await txClient.inventory.update({
           where: {
             userId_itemId_location: {
               userId,
@@ -299,7 +305,7 @@ export async function consumeResources(
         });
 
         // Log transaction
-        await tx.ledgerTx.create({
+        await txClient.ledgerTx.create({
           data: {
             userId,
             amount: -quantity,
@@ -317,7 +323,7 @@ export async function consumeResources(
 
     // Consume gold from wallet
     if (contribution.gold) {
-      await tx.wallet.update({
+      await txClient.wallet.update({
         where: { userId },
         data: {
           gold: { decrement: contribution.gold }
@@ -325,7 +331,7 @@ export async function consumeResources(
       });
 
       // Log transaction
-      await tx.ledgerTx.create({
+      await txClient.ledgerTx.create({
         data: {
           userId,
           amount: -contribution.gold,

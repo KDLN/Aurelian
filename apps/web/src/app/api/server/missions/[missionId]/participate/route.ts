@@ -128,7 +128,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     let participation;
     await prisma.$transaction(async (tx) => {
       // Consume resources from user's inventory/wallet
-      await consumeResources(contribution, user.id, missionId);
+      await consumeResources(contribution, user.id, missionId, tx);
 
       // Create or update participation
       participation = await tx.serverMissionParticipant.upsert({
@@ -169,6 +169,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           }
         }
       });
+    }, {
+      timeout: 30000 // 30 second timeout
     });
 
     // Check if mission is now completed
