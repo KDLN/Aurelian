@@ -22,6 +22,17 @@ export default function AgentsPage() {
   const [equipmentMode, setEquipmentMode] = useState<{ agentId: string; slot: EquipmentSlot } | null>(null);
 
   const handleHireAgent = async () => {
+    // Debug info for mobile
+    const debugInfo = `Debug Info:
+🎯 Agent: ${selectedAgentType}
+💰 Gold: ${wallet?.gold || 0}
+💸 Cost: ${getHiringCost(selectedAgentType)}
+👥 Agents: ${agents.length}/4
+⚙️ Hiring: ${isHiring}
+🎁 Gear: ${isGivingGear}`;
+    
+    alert(debugInfo);
+    
     const isFirstAgent = agents.length === 0;
     const success = await hireAgent(selectedAgentType);
     if (success) {
@@ -37,6 +48,8 @@ export default function AgentsPage() {
         alert('🎉 New agent hired successfully!');
       }
       refetch();
+    } else {
+      alert('❌ Agent hiring failed - check your connection and try again');
     }
   };
 
@@ -182,18 +195,41 @@ export default function AgentsPage() {
               </div>
 
               <div>
-                <button 
-                  className="game-btn game-btn-primary"
-                  onClick={handleHireAgent}
-                  disabled={
-                    isHiring || 
+                {(() => {
+                  const buttonDisabled = isHiring || 
                     isGivingGear ||
                     agents.length >= 4 || 
-                    (wallet?.gold || 0) < getHiringCost(selectedAgentType)
-                  }
-                >
-                  {isHiring ? 'Hiring...' : isGivingGear ? 'Adding Gear...' : 'Hire Agent'}
-                </button>
+                    (wallet?.gold || 0) < getHiringCost(selectedAgentType);
+                  
+                  return (
+                    <>
+                      <button 
+                        className="game-btn game-btn-primary"
+                        onClick={handleHireAgent}
+                        disabled={buttonDisabled}
+                      >
+                        {isHiring ? 'Hiring...' : isGivingGear ? 'Adding Gear...' : 'Hire Agent'}
+                      </button>
+                      
+                      {/* Debug info for mobile */}
+                      <div className="game-tiny" style={{ marginTop: '0.25rem', opacity: 0.7 }}>
+                        Gold: {wallet?.gold || 0}g | Cost: {getHiringCost(selectedAgentType)}g | 
+                        Agents: {agents.length}/4 | 
+                        Button: {buttonDisabled ? '🚫 DISABLED' : '✅ ENABLED'}
+                      </div>
+                      
+                      {buttonDisabled && (
+                        <div className="game-tiny game-bad" style={{ marginTop: '0.25rem' }}>
+                          {isHiring && '⏳ Currently hiring...'}
+                          {isGivingGear && '🎁 Adding starter gear...'}
+                          {agents.length >= 4 && '👥 Max agents (4/4)'}
+                          {(wallet?.gold || 0) < getHiringCost(selectedAgentType) && 
+                            `💰 Need ${getHiringCost(selectedAgentType)}g (have ${wallet?.gold || 0}g)`}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             </div>
 
