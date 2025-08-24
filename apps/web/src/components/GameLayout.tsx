@@ -10,6 +10,7 @@ import { useMobile } from '@/hooks/useMobile';
 import { ChatSystem } from '@/components/chat';
 import HelpTooltip from '@/components/HelpTooltip';
 import OnboardingTips from '@/components/OnboardingTips';
+import EventBanner from '@/components/server/EventBanner';
 import { CharacterAppearance } from '@/lib/sprites/characterSprites';
 import { loadCharacterAppearance } from '@/lib/sprites/characterOptions';
 import '@/lib/game/styles.css';
@@ -47,6 +48,7 @@ export default function GameLayout({
   const [username, setUsername] = useState<string>('Anonymous Trader');
   const [characterAppearance, setCharacterAppearance] = useState<CharacterAppearance | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [activeServerMissions, setActiveServerMissions] = useState<any[]>([]);
   const [chatCollapsed, setChatCollapsed] = useState(isMobile);
   const [userGuildChannels, setUserGuildChannels] = useState<Array<{
     id: string;
@@ -89,6 +91,26 @@ export default function GameLayout({
     };
     
     loadAppearance();
+  }, []);
+
+  // Fetch active server missions
+  useEffect(() => {
+    const fetchServerMissions = async () => {
+      try {
+        const response = await fetch('/api/server/missions?status=active');
+        if (response.ok) {
+          const result = await response.json();
+          setActiveServerMissions(result.missions || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch server missions:', error);
+      }
+    };
+
+    fetchServerMissions();
+    // Refetch every 5 minutes
+    const interval = setInterval(fetchServerMissions, 5 * 60 * 1000);
+    return () => clearInterval(interval);
   }, []);
 
   // Load username and guild info from profile
@@ -373,6 +395,22 @@ export default function GameLayout({
         >
           {/* Main Content Area */}
           <div style={{ flex: '1', overflow: 'hidden', paddingBottom: '16px', minHeight: 0 }}>
+            {/* Active Server Mission Banners */}
+            {activeServerMissions.length > 0 && (
+              <div style={{ marginBottom: '16px' }}>
+                {activeServerMissions.slice(0, 1).map((mission) => (
+                  <EventBanner
+                    key={mission.id}
+                    mission={{
+                      ...mission,
+                      userParticipation: null // TODO: Fetch user participation status
+                    }}
+                    className="mb-4"
+                  />
+                ))}
+              </div>
+            )}
+            
             {children}
           </div>
           

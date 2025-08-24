@@ -12,6 +12,7 @@ import { calculateMissionSuccess, getMissionDifficultyText } from '@/lib/mission
 import { agentTypeInfo } from '@/lib/agents/generator';
 import { supabase } from '@/lib/supabaseClient';
 import HelpTooltip, { RiskTooltip, DurationTooltip } from '@/components/HelpTooltip';
+import ContributionModal from '@/components/server/ContributionModal';
 
 export default function MissionsPage() {
   const { data, isLoading, error, refetch } = useMissions(); // Uses optimized 60s polling
@@ -22,9 +23,32 @@ export default function MissionsPage() {
   const [mounted, setMounted] = useState(false);
   const { wallet } = useUserDataQuery();
   const { agents, isLoading: agentsLoading } = useAgents();
+  const [serverMissions, setServerMissions] = useState<any[]>([]);
+  const [serverMissionsLoading, setServerMissionsLoading] = useState(false);
+  const [selectedMissionForContribution, setSelectedMissionForContribution] = useState<any | null>(null);
   
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  // Fetch server missions
+  useEffect(() => {
+    const fetchServerMissions = async () => {
+      setServerMissionsLoading(true);
+      try {
+        const response = await fetch('/api/server/missions?status=active');
+        if (response.ok) {
+          const result = await response.json();
+          setServerMissions(result.missions || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch server missions:', error);
+      } finally {
+        setServerMissionsLoading(false);
+      }
+    };
+
+    fetchServerMissions();
   }, []);
   
   const missionHelpers = useMissionHelpers();
@@ -291,6 +315,94 @@ export default function MissionsPage() {
           </div>
         )}
 
+        {/* Active Server Missions */}
+        {serverMissions.length > 0 && (
+          <div className="game-card">
+            <h3>🌍 Server-Wide Events</h3>
+            <p className="game-muted game-small">
+              Join forces with all players to complete these massive collaborative missions!
+            </p>
+            
+            <div className="game-grid-2" style={{ marginTop: '1rem' }}>
+              {serverMissions.map((mission: any) => {
+                const progress = mission.globalProgress || {};
+                const requirements = mission.globalRequirements || {};
+                
+                // Calculate overall progress percentage
+                let totalProgress = 0;
+                let totalRequired = 0;
+                Object.keys(requirements).forEach(key => {
+                  totalProgress += progress[key] || 0;
+                  totalRequired += requirements[key] || 0;
+                });
+                const progressPercent = totalRequired > 0 ? Math.round((totalProgress / totalRequired) * 100) : 0;
+                
+                const timeRemaining = mission.endsAt ? new Date(mission.endsAt).getTime() - Date.now() : 0;
+                const hoursLeft = Math.max(0, Math.floor(timeRemaining / (1000 * 60 * 60)));
+                
+                return (
+                  <div key={mission.id} className="game-card-nested">
+                    <div className="game-space-between" style={{ marginBottom: '0.5rem' }}>
+                      <h4 className="game-good">{mission.name}</h4>
+                      <span className={`game-pill ${
+                        mission.status === 'active' ? 'game-pill-good' : 
+                        mission.status === 'scheduled' ? 'game-pill-warn' : 'game-pill-muted'
+                      }`}>
+                        {mission.status}
+                      </span>
+                    </div>
+                    
+                    <p className="game-muted game-small" style={{ marginBottom: '0.5rem' }}>
+                      {mission.description}
+                    </p>
+                    
+                    {/* Requirements breakdown */}
+                    <div className="game-small" style={{ marginBottom: '0.5rem' }}>
+                      <strong>Required Resources:</strong>
+                      <div className="game-flex-row" style={{ flexWrap: 'wrap', gap: '0.25rem', marginTop: '0.25rem' }}>
+                        {Object.entries(requirements).map(([key, value]) => (
+                          <span key={key} className="game-pill game-pill-muted">
+                            {key.replace(/_/g, ' ')}: {(progress[key] || 0).toLocaleString()}/{(value as number).toLocaleString()}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div className="game-space-between" style={{ marginBottom: '0.5rem' }}>
+                      <div>
+                        <span className="game-small">Global Progress: </span>
+                        <span className="game-good game-small">{progressPercent}%</span>
+                      </div>
+                      {hoursLeft > 0 && (
+                        <div className="game-small game-muted">
+                          {hoursLeft}h remaining
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="game-progress-bar" style={{ marginBottom: '0.5rem' }}>
+                      <div 
+                        className="game-progress-fill"
+                        style={{ width: `${Math.min(100, progressPercent)}%` }}
+                      ></div>
+                    </div>
+                    
+                    {mission.status === 'active' && (
+                      <button 
+                        className="game-btn game-btn-primary game-btn-small"
+                        style={{ width: '100%' }}
+                        onClick={() => setSelectedMissionForContribution(mission)}
+                      >
+                        🎯 Contribute Resources
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Mission Guide and Quick Stats */}
         <div className="game-card">
           <div className="game-grid-2">
@@ -544,6 +656,30 @@ export default function MissionsPage() {
           </div>
         </div>
       </div>
+
+      {/* Contribution Modal */}
+      {selectedMissionForContribution && (
+        <ContributionModal
+          mission={selectedMissionForContribution}
+          isOpen={!!selectedMissionForContribution}
+          onClose={() => setSelectedMissionForContribution(null)}
+          onSuccess={() => {
+            // Refresh server missions after successful contribution
+            const fetchServerMissions = async () => {
+              try {
+                const response = await fetch('/api/server/missions?status=active');
+                if (response.ok) {
+                  const result = await response.json();
+                  setServerMissions(result.missions || []);
+                }
+              } catch (error) {
+                console.error('Failed to refresh server missions:', error);
+              }
+            };
+            fetchServerMissions();
+          }}
+        />
+      )}
     </GameLayout>
   );
 }

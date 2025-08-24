@@ -27,6 +27,7 @@ export default function TradingHub() {
   const [craftingInfo, setCraftingInfo] = useState<any>(null);
   const [dailyStats, setDailyStats] = useState<any>(null);
   const [gameNews, setGameNews] = useState<any[]>([]);
+  const [serverMissions, setServerMissions] = useState<any[]>([]);
 
   useEffect(() => {
     const initializeHubData = async () => {
@@ -63,10 +64,12 @@ export default function TradingHub() {
         }).catch(() => null), // Stats is optional
         // Game news (public endpoint, no auth needed)
         fetch('/api/news?limit=6').catch(() => null),
+        // Server missions (public endpoint for active missions)
+        fetch('/api/server/missions?status=active').catch(() => null),
       ];
 
       try {
-        const [activitiesRes, profileRes, guildRes, craftingRes, statsRes, newsRes] = await Promise.all(fetchPromises);
+        const [activitiesRes, profileRes, guildRes, craftingRes, statsRes, newsRes, serverMissionsRes] = await Promise.all(fetchPromises);
 
         // Handle activities
         if (activitiesRes?.ok) {
@@ -102,6 +105,12 @@ export default function TradingHub() {
         if (newsRes?.ok) {
           const result = await newsRes.json();
           setGameNews(result.news || []);
+        }
+
+        // Handle server missions (optional)
+        if (serverMissionsRes?.ok) {
+          const result = await serverMissionsRes.json();
+          setServerMissions(result.missions || []);
         }
       } catch (error) {
         console.error('Error fetching hub data:', error);
@@ -312,6 +321,81 @@ export default function TradingHub() {
                 View All Missions ({activeMissions.length})
               </Link>
             )}
+          </div>
+        )}
+
+        {/* Active Server Missions */}
+        {serverMissions.length > 0 && (
+          <div className="game-card">
+            <div className="game-space-between">
+              <h3>🌍 Active Server Events</h3>
+              <Link href="/missions" className="game-btn game-btn-small">
+                View All
+              </Link>
+            </div>
+            <div className="game-flex-col">
+              {serverMissions.slice(0, 2).map((mission: any) => {
+                const progress = mission.globalProgress || {};
+                const requirements = mission.globalRequirements || {};
+                
+                // Calculate overall progress percentage
+                let totalProgress = 0;
+                let totalRequired = 0;
+                Object.keys(requirements).forEach(key => {
+                  totalProgress += progress[key] || 0;
+                  totalRequired += requirements[key] || 0;
+                });
+                const progressPercent = totalRequired > 0 ? Math.round((totalProgress / totalRequired) * 100) : 0;
+                
+                const timeRemaining = mission.endsAt ? new Date(mission.endsAt).getTime() - Date.now() : 0;
+                const hoursLeft = Math.max(0, Math.floor(timeRemaining / (1000 * 60 * 60)));
+                
+                return (
+                  <div key={mission.id} className="game-card-nested">
+                    <div className="game-space-between" style={{ marginBottom: '0.5rem' }}>
+                      <h4 className="game-good">{mission.name}</h4>
+                      <span className={`game-pill ${
+                        mission.status === 'active' ? 'game-pill-good' : 
+                        mission.status === 'scheduled' ? 'game-pill-warn' : 'game-pill-muted'
+                      }`}>
+                        {mission.status}
+                      </span>
+                    </div>
+                    
+                    <p className="game-muted game-small">{mission.description}</p>
+                    
+                    <div className="game-space-between" style={{ marginTop: '0.5rem' }}>
+                      <div>
+                        <span className="game-small">Progress: </span>
+                        <span className="game-good game-small">{progressPercent}%</span>
+                      </div>
+                      {hoursLeft > 0 && (
+                        <div className="game-small game-muted">
+                          {hoursLeft}h remaining
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="game-progress-bar" style={{ marginTop: '0.5rem' }}>
+                      <div 
+                        className="game-progress-fill"
+                        style={{ width: `${Math.min(100, progressPercent)}%` }}
+                      ></div>
+                    </div>
+                    
+                    {mission.status === 'active' && (
+                      <Link 
+                        href={`/missions?server=${mission.id}`} 
+                        className="game-btn game-btn-small game-btn-primary" 
+                        style={{ marginTop: '0.5rem', width: '100%', textAlign: 'center' }}
+                      >
+                        🎯 Contribute Resources
+                      </Link>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
