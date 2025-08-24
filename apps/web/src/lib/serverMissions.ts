@@ -212,37 +212,13 @@ export async function updateMissionProgress(
 
 // Check if mission is completed based on current progress
 export function isMissionCompleted(progress: ContributionData, requirements: MissionRequirements): boolean {
-  // Handle flat structure: requirements and progress should have matching structures
-  // Check if requirements has items as nested object or flat properties
-  if (requirements.items) {
-    // Requirements has nested items structure
-    for (const [itemKey, required] of Object.entries(requirements.items)) {
-      // Check both flat structure (progress[itemKey]) and nested structure (progress.items?.[itemKey])
-      const currentFlat = (progress as any)[itemKey] || 0;
-      const currentNested = progress.items?.[itemKey] || 0;
-      const current = Math.max(currentFlat, currentNested); // Use whichever is higher
+  // Both progress and requirements use flat structure now
+  // Check all numeric requirements
+  for (const [key, required] of Object.entries(requirements)) {
+    if (typeof required === 'number') {
+      const current = (progress as any)[key] || 0;
       if (current < required) return false;
     }
-  } else {
-    // Requirements has flat structure - check flat properties
-    for (const [key, required] of Object.entries(requirements)) {
-      if (typeof required === 'number') {
-        const current = (progress as any)[key] || 0;
-        if (current < required) return false;
-      }
-    }
-  }
-
-  // Check gold
-  if (requirements.gold) {
-    const current = progress.gold || 0;
-    if (current < requirements.gold) return false;
-  }
-
-  // Check trades
-  if (requirements.trades) {
-    const current = progress.trades || 0;
-    if (current < requirements.trades) return false;
   }
 
   return true;
