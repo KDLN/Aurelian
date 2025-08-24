@@ -167,9 +167,12 @@ export default function AdminPage() {
           </GameButton>
         </div>
 
-        <div style={{ marginBottom: '20px' }}>
+        <div style={{ marginBottom: '20px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
           <GameButton onClick={loadUsers} disabled={loading}>
             🔄 Refresh Users
+          </GameButton>
+          <GameButton onClick={() => window.location.href = '/admin/server-missions'}>
+            🌍 Server Missions
           </GameButton>
         </div>
 
