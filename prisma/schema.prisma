@@ -52,6 +52,7 @@ model User {
   activityLogs         ActivityLog[]
   dailyStats           DailyStats[]
   gameNews             GameNews[]
+  serverMissions       ServerMissionParticipant[]
 }
 
 model Profile {
@@ -847,6 +848,51 @@ model ChatMention {
   @@unique([messageId, userId, type])
   @@index([messageId])
   @@index([userId])
+}
+
+model ServerMission {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                String
+  description         String   @db.Text
+  type                String   // world_event, trade_festival, resource_drive, competition, seasonal
+  globalRequirements  Json     // {items: {...}, gold: number, trades: number, etc.}
+  globalProgress      Json     // Current server-wide progress
+  rewards             Json     // {tiers: {bronze: {...}, silver: {...}, gold: {...}}}
+  tiers               Json     // {bronze: 0.1, silver: 0.25, gold: 0.5} (percentage thresholds)
+  status              String   @default("scheduled") // scheduled, active, completed, failed
+  startedAt           DateTime?
+  endsAt              DateTime
+  completedAt         DateTime?
+  createdAt           DateTime @default(now())
+  
+  participants        ServerMissionParticipant[]
+
+  @@index([status, endsAt])
+  @@index([type])
+  @@index([startedAt])
+  @@index([createdAt])
+}
+
+model ServerMissionParticipant {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  missionId       String   @db.Uuid
+  userId          String   @db.Uuid
+  guildId         String?  @db.Uuid  // Optional guild affiliation
+  contribution    Json     // Individual contribution details
+  tier            String?  // bronze, silver, gold, legendary
+  rank            Int?     // Leaderboard position
+  rewardClaimed   Boolean  @default(false)
+  joinedAt        DateTime @default(now())
+  
+  mission         ServerMission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  user            User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([missionId, userId])
+  @@index([missionId])
+  @@index([userId])
+  @@index([guildId])
+  @@index([tier])
+  @@index([rank])
 }
 
 enum ItemRarity {

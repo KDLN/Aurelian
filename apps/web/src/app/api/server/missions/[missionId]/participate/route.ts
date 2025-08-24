@@ -1,0 +1,208 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+import { cookies } from 'next/headers';
+import prisma from '@/lib/prisma';
+import {
+  validateContribution,
+  consumeResources,
+  updateMissionProgress,
+  calculateContributionScore,
+  calculateTier,
+  isMissionCompleted,
+  updateMissionRankings,
+  type ContributionData,
+  type MissionRequirements,
+  type TierThresholds
+} from '@/lib/serverMissions';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+interface RouteParams {
+  params: Promise<{ missionId: string }>;
+}
+
+// POST /api/server/missions/[missionId]/participate - Submit contribution
+export async function POST(request: NextRequest, { params }: RouteParams) {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get('sb-access-token')?.value;
+    const { missionId } = await params;
+
+    if (!token) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Invalid authentication' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { contribution } = body as { contribution: ContributionData };
+
+    if (!contribution) {
+      return NextResponse.json({ error: 'Contribution data required' }, { status: 400 });
+    }
+
+    // Get mission details
+    const mission = await prisma.serverMission.findUnique({
+      where: { id: missionId },
+      include: {
+        participants: {
+          where: { userId: user.id }
+        }
+      }
+    });
+
+    if (!mission) {
+      return NextResponse.json({ error: 'Mission not found' }, { status: 404 });
+    }
+
+    if (mission.status !== 'active') {
+      return NextResponse.json({ error: 'Mission is not active' }, { status: 400 });
+    }
+
+    if (new Date() > new Date(mission.endsAt)) {
+      return NextResponse.json({ error: 'Mission has ended' }, { status: 400 });
+    }
+
+    // Validate the contribution
+    const validation = await validateContribution(contribution, user.id, missionId);
+    if (!validation.valid) {
+      return NextResponse.json({ 
+        error: 'Invalid contribution', 
+        details: validation.errors 
+      }, { status: 400 });
+    }
+
+    // Get previous contribution if exists
+    const previousParticipation = mission.participants[0];
+    const previousContribution = previousParticipation?.contribution as ContributionData | undefined;
+
+    // Get user's guild affiliation
+    const userProfile = await prisma.user.findUnique({
+      where: { id: user.id },
+      include: {
+        guildMembership: {
+          select: { guildId: true }
+        }
+      }
+    });
+
+    const guildId = userProfile?.guildMembership?.guildId || null;
+
+    // Calculate contribution score and tier
+    const requirements = mission.globalRequirements as MissionRequirements;
+    const tiers = mission.tiers as TierThresholds;
+    const score = calculateContributionScore(contribution, requirements);
+    const tier = calculateTier(score, tiers);
+
+    let participation;
+    await prisma.$transaction(async (tx) => {
+      // Consume resources from user's inventory/wallet
+      await consumeResources(contribution, user.id, missionId);
+
+      // Create or update participation
+      participation = await tx.serverMissionParticipant.upsert({
+        where: {
+          missionId_userId: {
+            missionId,
+            userId: user.id
+          }
+        },
+        update: {
+          contribution: contribution,
+          guildId: guildId,
+          tier: tier !== 'none' ? tier : null
+        },
+        create: {
+          missionId,
+          userId: user.id,
+          guildId: guildId,
+          contribution: contribution,
+          tier: tier !== 'none' ? tier : null
+        }
+      });
+
+      // Update mission progress
+      await updateMissionProgress(missionId, contribution, previousContribution);
+
+      // Log activity
+      await tx.activityLog.create({
+        data: {
+          userId: user.id,
+          type: 'server_mission_contribution',
+          message: `Contributed to "${mission.name}"`,
+          metadata: {
+            missionId,
+            contribution,
+            tier,
+            score: Math.round(score * 100) / 100
+          }
+        }
+      });
+    });
+
+    // Check if mission is now completed
+    const updatedMission = await prisma.serverMission.findUnique({
+      where: { id: missionId },
+      select: { globalProgress: true, globalRequirements: true }
+    });
+
+    let missionCompleted = false;
+    if (updatedMission && isMissionCompleted(
+      updatedMission.globalProgress as ContributionData,
+      updatedMission.globalRequirements as MissionRequirements
+    )) {
+      await prisma.serverMission.update({
+        where: { id: missionId },
+        data: {
+          status: 'completed',
+          completedAt: new Date()
+        }
+      });
+      missionCompleted = true;
+    }
+
+    // Update rankings after any contribution change
+    await updateMissionRankings(missionId);
+
+    // Get updated participation data with new rankings
+    const finalParticipation = await prisma.serverMissionParticipant.findUnique({
+      where: { id: participation!.id },
+      select: {
+        id: true,
+        contribution: true,
+        tier: true,
+        rank: true,
+        joinedAt: true
+      }
+    });
+
+    return NextResponse.json({ 
+      success: true,
+      participation: {
+        id: finalParticipation!.id,
+        contribution: finalParticipation!.contribution,
+        tier: finalParticipation!.tier,
+        rank: finalParticipation!.rank,
+        joinedAt: finalParticipation!.joinedAt,
+        contributionScore: Math.round(score * 100) / 100
+      },
+      mission: {
+        completed: missionCompleted,
+        progress: updatedMission?.globalProgress
+      }
+    });
+
+  } catch (error) {
+    console.error('Error submitting participation:', error);
+    return NextResponse.json(
+      { error: 'Failed to submit participation' },
+      { status: 500 }
+    );
+  }
+}
