@@ -345,21 +345,75 @@ export default function MissionsPage() {
                 const timeRemaining = mission.endsAt ? new Date(mission.endsAt).getTime() - Date.now() : 0;
                 const hoursLeft = Math.max(0, Math.floor(timeRemaining / (1000 * 60 * 60)));
                 
+                // Check if user has participated and get their contribution
+                const userParticipation = mission.userParticipation;
+                const hasParticipated = !!userParticipation;
+                const userContribution = userParticipation?.contribution;
+                const userTier = userParticipation?.tier;
+                
                 return (
-                  <div key={mission.id} className="game-card-nested">
+                  <div key={mission.id} className="game-card-nested" style={{
+                    ...(hasParticipated ? {
+                      backgroundColor: 'rgba(76, 175, 80, 0.05)',
+                      border: '2px solid rgba(76, 175, 80, 0.3)',
+                      boxShadow: '0 0 8px rgba(76, 175, 80, 0.2)'
+                    } : {})
+                  }}>
                     <div className="game-space-between" style={{ marginBottom: '0.5rem' }}>
                       <h4 className="game-good">{mission.name}</h4>
-                      <span className={`game-pill ${
-                        mission.status === 'active' ? 'game-pill-good' : 
-                        mission.status === 'scheduled' ? 'game-pill-warn' : 'game-pill-muted'
-                      }`}>
-                        {mission.status}
-                      </span>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        {hasParticipated && (
+                          <span className="game-pill game-pill-good">
+                            ✓ Participating{userTier ? ` (${userTier})` : ''}
+                          </span>
+                        )}
+                        <span className={`game-pill ${
+                          mission.status === 'active' ? 'game-pill-good' : 
+                          mission.status === 'scheduled' ? 'game-pill-warn' : 'game-pill-muted'
+                        }`}>
+                          {mission.status}
+                        </span>
+                      </div>
                     </div>
                     
                     <p className="game-muted game-small" style={{ marginBottom: '0.5rem' }}>
                       {mission.description}
                     </p>
+
+                    {/* User's contributions (if participated) */}
+                    {hasParticipated && userContribution && (
+                      <div className="game-small" style={{ 
+                        marginBottom: '0.75rem',
+                        backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                        border: '1px solid rgba(76, 175, 80, 0.3)',
+                        borderRadius: '4px',
+                        padding: '8px'
+                      }}>
+                        <strong className="game-good">Your Total Contributions:</strong>
+                        <div className="game-flex-row" style={{ flexWrap: 'wrap', gap: '0.25rem', marginTop: '0.25rem' }}>
+                          {userContribution.items && Object.entries(userContribution.items).map(([key, value]) => (
+                            <span key={key} className="game-pill game-pill-good game-small">
+                              {key.replace(/_/g, ' ')}: {(value as number).toLocaleString()}
+                            </span>
+                          ))}
+                          {userContribution.gold && (
+                            <span className="game-pill game-pill-good game-small">
+                              Gold: {userContribution.gold.toLocaleString()}
+                            </span>
+                          )}
+                          {userContribution.trades && (
+                            <span className="game-pill game-pill-good game-small">
+                              Trades: {userContribution.trades.toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                        {userParticipation.joinedAt && (
+                          <div className="game-muted" style={{ fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                            Joined: {new Date(userParticipation.joinedAt).toLocaleDateString()}
+                          </div>
+                        )}
+                      </div>
+                    )}
                     
                     {/* Requirements breakdown */}
                     <div className="game-small" style={{ marginBottom: '0.5rem' }}>
@@ -394,11 +448,11 @@ export default function MissionsPage() {
                     
                     {mission.status === 'active' && (
                       <button 
-                        className="game-btn game-btn-primary game-btn-small"
+                        className={`game-btn ${hasParticipated ? 'game-btn-secondary' : 'game-btn-primary'} game-btn-small`}
                         style={{ width: '100%' }}
                         onClick={() => setSelectedMissionForContribution(mission)}
                       >
-                        🎯 Contribute Resources
+                        {hasParticipated ? '➕ Contribute More' : '🎯 Start Contributing'}
                       </button>
                     )}
                   </div>
