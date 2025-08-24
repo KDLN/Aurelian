@@ -21,7 +21,7 @@ export default function MissionsPage() {
   
   // Only load user data after component mounts to avoid blocking initial render
   const [mounted, setMounted] = useState(false);
-  const { wallet } = useUserDataQuery();
+  const { wallet, refreshData } = useUserDataQuery();
   const { agents, isLoading: agentsLoading } = useAgents();
   const [serverMissions, setServerMissions] = useState<any[]>([]);
   const [serverMissionsLoading, setServerMissionsLoading] = useState(false);
@@ -723,6 +723,9 @@ export default function MissionsPage() {
           isOpen={!!selectedMissionForContribution}
           onClose={() => setSelectedMissionForContribution(null)}
           onSuccess={() => {
+            // Refresh user wallet/inventory data for header
+            refreshData();
+            
             // Refresh server missions after successful contribution
             const fetchServerMissions = async () => {
               try {
