@@ -26,6 +26,9 @@ interface RouteParams {
 
 // POST /api/server/missions/[missionId]/participate - Submit contribution
 export async function POST(request: NextRequest, { params }: RouteParams) {
+  let user: any = null;
+  let missionId: string = '';
+  
   try {
     // Try Bearer token first (from Authorization header)
     let token = request.headers.get('authorization')?.replace('Bearer ', '');
@@ -36,21 +39,30 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       token = cookieStore.get('sb-access-token')?.value;
     }
     
-    const { missionId } = await params;
+    const params_resolved = await params;
+    missionId = params_resolved.missionId;
 
     if (!token) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !authUser) {
       return NextResponse.json({ error: 'Invalid authentication' }, { status: 401 });
     }
+    user = authUser;
 
     const body = await request.json();
+    console.log('Participation request received:', {
+      missionId,
+      userId: user.id,
+      body
+    });
+    
     const { contribution } = body as { contribution: ContributionData };
 
     if (!contribution) {
+      console.error('No contribution data in request body');
       return NextResponse.json({ error: 'Contribution data required' }, { status: 400 });
     }
 
@@ -211,10 +223,18 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       }
     });
 
-  } catch (error) {
-    console.error('Error submitting participation:', error);
+  } catch (error: any) {
+    console.error('Error submitting participation:', {
+      error: error.message,
+      stack: error.stack,
+      missionId,
+      userId: user?.id
+    });
     return NextResponse.json(
-      { error: 'Failed to submit participation' },
+      { 
+        error: 'Failed to submit participation',
+        details: error.message || 'Unknown server error'
+      },
       { status: 500 }
     );
   }
