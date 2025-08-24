@@ -53,6 +53,16 @@ export default function ContributionModal({ mission, isOpen, onClose, onSuccess 
     return inventoryItem?.quantity || 0;
   };
 
+  const getSmartMaxContribution = (itemKey: string) => {
+    const inventoryAmount = getMaxContribution(itemKey);
+    const required = mission.globalRequirements[itemKey] || 0;
+    const currentProgress = mission.globalProgress[itemKey] || 0;
+    const remainingNeeded = Math.max(0, required - currentProgress);
+    
+    // Take the minimum of what we have and what's actually needed
+    return Math.min(inventoryAmount, remainingNeeded);
+  };
+
   const handleSubmit = async () => {
     const contributionItems = Object.entries(contributions).filter(([_, amount]) => amount > 0);
     
@@ -257,6 +267,7 @@ export default function ContributionModal({ mission, isOpen, onClose, onSuccess 
               <div style={{ display: 'grid', gap: '12px' }}>
                 {availableItems.map((item) => {
                   const maxContribution = getMaxContribution(item.itemKey);
+                  const smartMax = getSmartMaxContribution(item.itemKey);
                   const currentContribution = contributions[item.itemKey] || 0;
                   
                   return (
@@ -271,6 +282,9 @@ export default function ContributionModal({ mission, isOpen, onClose, onSuccess 
                           <strong>{item.itemName || item.itemKey.replace(/_/g, ' ')}</strong>
                           <div style={{ fontSize: '12px', color: '#9b8c70' }}>
                             Available: {maxContribution.toLocaleString()}
+                            {smartMax < maxContribution && (
+                              <span> • Need: {smartMax.toLocaleString()}</span>
+                            )}
                           </div>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -307,7 +321,9 @@ export default function ContributionModal({ mission, isOpen, onClose, onSuccess 
                           <GameButton
                             size="small"
                             variant="secondary"
-                            onClick={() => handleContributionChange(item.itemKey, maxContribution)}
+                            onClick={() => handleContributionChange(item.itemKey, getSmartMaxContribution(item.itemKey))}
+                            disabled={smartMax === 0}
+                            title={smartMax === 0 ? "Mission requirement already met" : `Contribute ${smartMax.toLocaleString()} (what's needed)`}
                           >
                             Max
                           </GameButton>
