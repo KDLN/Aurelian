@@ -86,7 +86,9 @@ export default function ContributionModal({ mission, isOpen, onClose, onSuccess 
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          contribution: Object.fromEntries(contributionItems)
+          contribution: {
+            items: Object.fromEntries(contributionItems)
+          }
         })
       });
 
