@@ -156,14 +156,50 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         }
       });
 
-      // Update mission progress
+      // Update mission progress - manual calculation to ensure it works
       try {
-        console.log('📊 Updating mission progress...', {
-          missionId,
-          contribution,
-          previousContribution
+        console.log('📊 Updating mission progress manually...');
+        
+        // Get all participants to recalculate global progress
+        const allParticipants = await tx.serverMissionParticipant.findMany({
+          where: { missionId },
+          select: { contribution: true }
         });
-        await updateMissionProgress(missionId, contribution, previousContribution);
+        
+        console.log(`Found ${allParticipants.length} participants`);
+        
+        // Calculate new global progress from all participants
+        const newGlobalProgress: Record<string, number> = {};
+        
+        for (const participant of allParticipants) {
+          const contrib = participant.contribution as any;
+          
+          // Handle both flat and nested structures
+          if (contrib?.items) {
+            // Nested: { items: { iron_ore: 25 } }
+            for (const [key, value] of Object.entries(contrib.items)) {
+              if (typeof value === 'number') {
+                newGlobalProgress[key] = (newGlobalProgress[key] || 0) + value;
+              }
+            }
+          }
+          
+          // Also check flat properties
+          for (const [key, value] of Object.entries(contrib || {})) {
+            if (typeof value === 'number' && key !== 'gold' && key !== 'trades') {
+              newGlobalProgress[key] = (newGlobalProgress[key] || 0) + value;
+            }
+          }
+        }
+        
+        console.log('Calculated global progress:', newGlobalProgress);
+        
+        // Update the mission with new global progress
+        await tx.serverMission.update({
+          where: { id: missionId },
+          data: { globalProgress: newGlobalProgress }
+        });
+        
         console.log('✅ Mission progress updated successfully');
       } catch (progressError) {
         console.error('❌ Failed to update mission progress:', progressError);

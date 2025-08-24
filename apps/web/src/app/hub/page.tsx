@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import GameLayout from '@/components/GameLayout';
 import { useUserDataQuery } from '@/hooks/useUserDataQuery';
 import { useAgents } from '@/hooks/useAgents';
@@ -28,6 +28,31 @@ export default function TradingHub() {
   const [dailyStats, setDailyStats] = useState<any>(null);
   const [gameNews, setGameNews] = useState<any[]>([]);
   const [serverMissions, setServerMissions] = useState<any[]>([]);
+
+  // Separate function for fetching server missions with polling
+  const fetchServerMissions = useCallback(async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        const response = await fetch('/api/server/missions?status=active', {
+          headers: { 'Authorization': `Bearer ${session.access_token}` },
+        });
+        if (response.ok) {
+          const result = await response.json();
+          setServerMissions(result.missions || []);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch server missions:', error);
+    }
+  }, []);
+
+  // Poll server missions every 30 seconds
+  useEffect(() => {
+    fetchServerMissions();
+    const interval = setInterval(fetchServerMissions, 30000);
+    return () => clearInterval(interval);
+  }, [fetchServerMissions]);
 
   useEffect(() => {
     const initializeHubData = async () => {
@@ -64,14 +89,10 @@ export default function TradingHub() {
         }).catch(() => null), // Stats is optional
         // Game news (public endpoint, no auth needed)
         fetch('/api/news?limit=6').catch(() => null),
-        // Server missions (authenticated endpoint for active missions)
-        fetch('/api/server/missions?status=active', {
-          headers: { 'Authorization': `Bearer ${session.access_token}` },
-        }).catch(() => null),
       ];
 
       try {
-        const [activitiesRes, profileRes, guildRes, craftingRes, statsRes, newsRes, serverMissionsRes] = await Promise.all(fetchPromises);
+        const [activitiesRes, profileRes, guildRes, craftingRes, statsRes, newsRes] = await Promise.all(fetchPromises);
 
         // Handle activities
         if (activitiesRes?.ok) {
@@ -107,12 +128,6 @@ export default function TradingHub() {
         if (newsRes?.ok) {
           const result = await newsRes.json();
           setGameNews(result.news || []);
-        }
-
-        // Handle server missions (optional)
-        if (serverMissionsRes?.ok) {
-          const result = await serverMissionsRes.json();
-          setServerMissions(result.missions || []);
         }
       } catch (error) {
         console.error('Error fetching hub data:', error);
