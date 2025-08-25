@@ -13,6 +13,7 @@ import { agentTypeInfo } from '@/lib/agents/generator';
 import { supabase } from '@/lib/supabaseClient';
 import HelpTooltip, { RiskTooltip, DurationTooltip } from '@/components/HelpTooltip';
 import ContributionModal from '@/components/server/ContributionModal';
+import { triggerGlobalServerMissionsRefresh } from '@/hooks/useServerMissions';
 
 export default function MissionsPage() {
   const { data, isLoading, error, refetch } = useMissions(); // Uses optimized 60s polling
@@ -726,7 +727,10 @@ export default function MissionsPage() {
             // Refresh user wallet/inventory data for header
             refreshData();
             
-            // Refresh server missions after successful contribution
+            // Trigger global server missions refresh to update all components
+            triggerGlobalServerMissionsRefresh();
+            
+            // Also refresh local missions data
             const fetchServerMissions = async () => {
               try {
                 const response = await fetch('/api/server/missions?status=active');

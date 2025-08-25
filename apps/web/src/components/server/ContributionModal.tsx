@@ -6,6 +6,7 @@ import GamePanel from '@/components/ui/GamePanel';
 import { useUserDataQuery, userKeys } from '@/hooks/useUserDataQuery';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
+import { triggerGlobalServerMissionsRefresh } from '@/hooks/useServerMissions';
 
 interface ContributionModalProps {
   mission: {
@@ -176,6 +177,9 @@ export default function ContributionModal({ mission, isOpen, onClose, onSuccess 
         queryClient.invalidateQueries({ queryKey: userKeys.wallet(user.id) });
         queryClient.invalidateQueries({ queryKey: userKeys.inventory(user.id) });
       }
+      
+      // Trigger global server missions refresh to update the event banner
+      triggerGlobalServerMissionsRefresh();
       
       onSuccess();
       onClose();

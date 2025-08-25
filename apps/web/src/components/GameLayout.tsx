@@ -7,6 +7,7 @@ import { useGameWorld } from '@/lib/game/world';
 import { useUserDataQuery } from '@/hooks/useUserDataQuery';
 import { useMissions } from '@/hooks/useMissionsQuery';
 import { useMobile } from '@/hooks/useMobile';
+import { useServerMissions, setGlobalServerMissionsRefetch } from '@/hooks/useServerMissions';
 import { ChatSystem } from '@/components/chat';
 import HelpTooltip from '@/components/HelpTooltip';
 import OnboardingTips from '@/components/OnboardingTips';
@@ -49,7 +50,7 @@ export default function GameLayout({
   const [username, setUsername] = useState<string>('Anonymous Trader');
   const [characterAppearance, setCharacterAppearance] = useState<CharacterAppearance | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [activeServerMissions, setActiveServerMissions] = useState<any[]>([]);
+  const { missions: activeServerMissions, refetch: refetchServerMissions } = useServerMissions();
   const [chatCollapsed, setChatCollapsed] = useState(isMobile);
   const [userGuildChannels, setUserGuildChannels] = useState<Array<{
     id: string;
@@ -94,30 +95,11 @@ export default function GameLayout({
     loadAppearance();
   }, []);
 
-  // Fetch active server missions
+  // Set up global refetch function for server missions
   useEffect(() => {
-    const fetchServerMissions = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.access_token) {
-          const response = await fetch('/api/server/missions?status=active', {
-            headers: { 'Authorization': `Bearer ${session.access_token}` },
-          });
-          if (response.ok) {
-            const result = await response.json();
-            setActiveServerMissions(result.missions || []);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to fetch server missions:', error);
-      }
-    };
-
-    fetchServerMissions();
-    // Refetch every 30 seconds for real-time updates
-    const interval = setInterval(fetchServerMissions, 30000);
-    return () => clearInterval(interval);
-  }, []);
+    setGlobalServerMissionsRefetch(refetchServerMissions);
+    return () => setGlobalServerMissionsRefetch(() => Promise.resolve());
+  }, [refetchServerMissions]);
 
   // Load username and guild info from profile
   useEffect(() => {
@@ -406,7 +388,7 @@ export default function GameLayout({
               <div style={{ marginBottom: '16px' }}>
                 {activeServerMissions.slice(0, 1).map((mission) => (
                   <EventBanner
-                    key={mission.id}
+                    key={`${mission.id}-${JSON.stringify(mission.globalProgress)}-${mission.participantCount}`}
                     mission={mission}
                     className="mb-4"
                   />

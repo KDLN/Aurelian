@@ -15,6 +15,7 @@ interface EventBannerProps {
     globalProgress: any;
     globalRequirements: any;
     userParticipation: any;
+    participantCount?: number;
   };
   className?: string;
 }
@@ -163,6 +164,13 @@ export default function EventBanner({ mission, className }: EventBannerProps) {
               style={{ width: `${Math.min(progressPercentage, 100)}%` }}
             />
           </div>
+          {/* Participation Count */}
+          {mission.participantCount !== undefined && (
+            <div className="flex justify-between text-xs text-white text-opacity-60 mt-1">
+              <span>Participants</span>
+              <span>{mission.participantCount.toLocaleString()}</span>
+            </div>
+          )}
         </div>
 
         {/* Participation Status */}
