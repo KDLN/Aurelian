@@ -114,8 +114,8 @@ export default function GameLayout({
     };
 
     fetchServerMissions();
-    // Refetch every 5 minutes
-    const interval = setInterval(fetchServerMissions, 5 * 60 * 1000);
+    // Refetch every 30 seconds for real-time updates
+    const interval = setInterval(fetchServerMissions, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -407,10 +407,7 @@ export default function GameLayout({
                 {activeServerMissions.slice(0, 1).map((mission) => (
                   <EventBanner
                     key={mission.id}
-                    mission={{
-                      ...mission,
-                      userParticipation: null // TODO: Fetch user participation status
-                    }}
+                    mission={mission}
                     className="mb-4"
                   />
                 ))}

@@ -219,10 +219,10 @@ export function useCompleteMission() {
           }
         );
         
-        // Invalidate wallet data for reward updates
+        // Invalidate user data (wallet and inventory) for reward updates
         setTimeout(() => {
           queryClient.invalidateQueries({ 
-            queryKey: ['user', 'wallet'],
+            queryKey: ['user'],
             exact: false
           });
         }, 1000);

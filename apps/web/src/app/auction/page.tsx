@@ -37,7 +37,7 @@ const DURATION_OPTIONS = [
 
 export default function AuctionPage() {
   const { world } = useGameWorld();
-  const { wallet, inventory } = useUserDataQuery();
+  const { wallet, inventory, refreshData } = useUserDataQuery();
   const [selectedItem, setSelectedItem] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [price, setPrice] = useState(10);
@@ -117,14 +117,20 @@ export default function AuctionPage() {
         auctionRoom.onMessage('listing_sold', (data: any) => {
           setListings(prev => prev.filter(l => l.id !== data.listingId));
           // Note: Item addition to inventory is handled on the server side
+          // Refresh user data to update gold (seller gets paid)
+          refreshData();
         });
 
         auctionRoom.onMessage('listing_cancelled', (data: any) => {
           setListings(prev => prev.filter(l => l.id !== data.listingId));
+          // Refresh user data to restore items to inventory
+          refreshData();
         });
 
         auctionRoom.onMessage('listing_expired', (data: any) => {
           setListings(prev => prev.filter(l => l.id !== data.listingId));
+          // Refresh user data to restore items to inventory
+          refreshData();
         });
 
         auctionRoom.onMessage('error', (data: any) => {
@@ -139,12 +145,16 @@ export default function AuctionPage() {
           setSelectedItem('');
           // Refresh listings to show the new one
           fetchListings();
+          // Refresh user data to remove items from inventory
+          refreshData();
         });
 
         auctionRoom.onMessage('purchase_success', (data: any) => {
           alert(data.message);
           // Refresh listings after purchase
           fetchListings();
+          // Refresh user data to update gold and inventory
+          refreshData();
         });
 
       } catch (error) {

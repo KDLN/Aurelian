@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import GameLayout from '@/components/GameLayout';
 import { useCrafting } from '@/hooks/useCrafting';
+import { useUserDataQuery } from '@/hooks/useUserDataQuery';
 
 interface Blueprint {
   id: string;
@@ -31,6 +32,7 @@ interface Blueprint {
 }
 
 export default function CraftingPage() {
+  const { refreshData } = useUserDataQuery();
   const {
     blueprints,
     activeJobs,
@@ -78,6 +80,8 @@ export default function CraftingPage() {
           setMessage(prev => `${prev}\n📜 Unlocked ${result.newBlueprints.length} new recipes!`);
         }
       }
+      // Refresh user data to update inventory and gold in header/sidebar
+      refreshData();
     } catch (err) {
       setMessage(`❌ ${err instanceof Error ? err.message : 'Failed to complete crafting'}`);
     }
