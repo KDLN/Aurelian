@@ -11,9 +11,51 @@ on:
     types: [submitted]
 
 jobs:
+  jira-assistant:
+    if: |
+      (github.event_name == 'issues' && github.event.action == 'opened') ||
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude-jira') && github.event.issue.pull_request == null)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+      id-token: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Code for Jira Stories
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            You are a Jira Story Assistant. Help create well-structured user stories following Agile methodology.
+
+            Analyze the issue description and either:
+            1. If there's sufficient context, create a properly formatted Jira story
+            2. If more information is needed, ask specific clarifying questions
+
+            Use this format for complete stories:
+
+            **User Story:** As a [role], I want to [action], so that [benefit].
+            **Detailed Description:** [Detailed information about the user story]
+            **Requirements:** [Specific requirements needed for the story]
+            **GIVEN** <a pre-condition>
+            **AND** <optional, additional pre-condition states>
+            **WHEN** <action taken>
+            **THEN** <outcome of taking action>
+            **Acceptance Criteria:** [Conditions that must be met for the story to be accepted]
+            **Tasks:** [Sub-tasks needed to complete the story]
+
+            Be professional, detail-oriented, and ask necessary questions to ensure completeness before finalizing descriptions.
+
   claude:
     if: |
-      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude') && !contains(github.event.comment.body, '@claude-jira')) ||
       (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
       (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
