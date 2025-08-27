@@ -68,7 +68,8 @@ jobs:
 
             Be professional, detail-oriented, and ask necessary questions to ensure completeness before finalizing descriptions.
             {% endif %}
-          timeout_minutes: "60"
+          claude_args: |
+            --max-turns 10
           # Optional: Restrict network access to specific domains only
           # experimental_allowed_domains: |
           #   .anthropic.com
