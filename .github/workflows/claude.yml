@@ -1,6 +1,8 @@
 name: Claude PR Assistant
 
 on:
+  pull_request:
+    types: [opened, synchronize]
   issue_comment:
     types: [created]
   pull_request_review_comment:
@@ -13,10 +15,11 @@ on:
 jobs:
   claude-code-action:
     if: |
+      (github.event_name == 'pull_request') ||
+      (github.event_name == 'issues' && github.event.action == 'opened') ||
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
-      (github.event_name == 'issues' && contains(github.event.issue.body, '@claude'))
+      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude'))
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -30,13 +33,42 @@ jobs:
           fetch-depth: 1
 
       - name: Run Claude PR Action
-        uses: anthropics/claude-code-action@beta
+        uses: anthropics/claude-code-action@v1
         with:
-          #anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          # Or use OAuth token instead:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            {% if github.event_name == 'pull_request' %}
+            Please review this pull request for:
+            - Code quality and best practices
+            - Security vulnerabilities
+            - Performance issues
+            - TypeScript type safety
+            - Database migration safety
+            - Following project architecture patterns
+            
+            Focus on the changed files and provide constructive feedback.
+            {% elif github.event_name == 'issues' %}
+            You are a Jira Story Assistant. Help create well-structured user stories following Agile methodology.
+
+            Analyze the issue description and either:
+            1. If there's sufficient context, create a properly formatted Jira story
+            2. If more information is needed, ask specific clarifying questions
+
+            Use this format for complete stories:
+
+            **User Story:** As a [role], I want to [action], so that [benefit].
+            **Detailed Description:** [Detailed information about the user story]
+            **Requirements:** [Specific requirements needed for the story]
+            **GIVEN** <a pre-condition>
+            **AND** <optional, additional pre-condition states>
+            **WHEN** <action taken>
+            **THEN** <outcome of taking action>
+            **Acceptance Criteria:** [Conditions that must be met for the story to be accepted]
+            **Tasks:** [Sub-tasks needed to complete the story]
+
+            Be professional, detail-oriented, and ask necessary questions to ensure completeness before finalizing descriptions.
+            {% endif %}
           timeout_minutes: "60"
-          # mode: tag  # Default: responds to @claude mentions
           # Optional: Restrict network access to specific domains only
           # experimental_allowed_domains: |
           #   .anthropic.com
