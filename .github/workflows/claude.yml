@@ -48,7 +48,9 @@ jobs:
             --max-turns 10
 
   jira-assistant:
-    if: github.event_name == 'issues' && github.event.action == 'opened'
+    if: |
+      (github.event_name == 'issues' && github.event.action == 'opened') ||
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude') && github.event.issue.pull_request == null)
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -93,7 +95,7 @@ jobs:
 
   interactive-claude:
     if: |
-      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude') && github.event.issue.pull_request != null) ||
       (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude'))
     runs-on: ubuntu-latest
