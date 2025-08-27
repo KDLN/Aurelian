@@ -26,26 +26,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
 
       - name: Claude PR Review
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          additional_permissions: |
-            actions: read
-          prompt: |
-            Please review this pull request for:
-            - Code quality and best practices
-            - Security vulnerabilities  
-            - Performance issues
-            - TypeScript type safety
-            - Database migration safety
-            - Following project architecture patterns
-            
-            Focus on the changed files and provide constructive feedback.
-          claude_args: |
-            --max-turns 10
+          prompt: "/review"
+          claude_args: "--max-turns 5"
 
   jira-assistant:
     if: |
@@ -62,14 +50,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
 
       - name: Jira Story Assistant
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          additional_permissions: |
-            actions: read
           prompt: |
             You are a Jira Story Assistant. Help create well-structured user stories following Agile methodology.
 
@@ -90,8 +76,7 @@ jobs:
             **Tasks:** [Sub-tasks needed to complete the story]
 
             Be professional, detail-oriented, and ask necessary questions to ensure completeness before finalizing descriptions.
-          claude_args: |
-            --max-turns 10
+          claude_args: "--max-turns 10"
 
   interactive-claude:
     if: |
@@ -109,13 +94,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
 
       - name: Interactive Claude
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          additional_permissions: |
-            actions: read
-          claude_args: |
-            --max-turns 10
+          claude_args: "--max-turns 10"
