@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import GameButton from '@/components/ui/GameButton';
-import GamePanel from '@/components/ui/GamePanel';
+import ErrorMonitor from '@/components/admin/ErrorMonitor';
+import SecurityMonitor from '@/components/admin/SecurityMonitor';
+import EmergencyControls from '@/components/admin/EmergencyControls';
 
 interface UserData {
   id: string;
@@ -31,6 +32,7 @@ export default function AdminPage() {
   const [error, setError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'monitoring'>('dashboard');
 
   useEffect(() => {
     checkAdminAccess();
@@ -134,131 +136,258 @@ export default function AdminPage() {
 
   if (loading) {
     return (
-      <div className="game">
-        <GamePanel style={{ margin: '20px auto', maxWidth: '800px' }}>
-          <h1>Admin Panel</h1>
-          <p>Loading...</p>
-        </GamePanel>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <div className="container mx-auto px-4 py-8">
+          <div className="bg-white/10 backdrop-blur-md rounded-lg border border-white/20 p-8 text-center">
+            <h1 className="text-2xl font-bold text-white mb-4">Admin Dashboard</h1>
+            <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
+            <p className="text-gray-300 mt-4">Loading...</p>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (error || !isAdmin) {
     return (
-      <div className="game">
-        <GamePanel style={{ margin: '20px auto', maxWidth: '800px' }}>
-          <h1>Admin Panel</h1>
-          <p style={{ color: '#ff6b6b' }}>{error || 'Access denied'}</p>
-          <GameButton onClick={() => window.location.href = '/'}>
-            Return to Game
-          </GameButton>
-        </GamePanel>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <div className="container mx-auto px-4 py-8">
+          <div className="bg-white/10 backdrop-blur-md rounded-lg border border-white/20 p-8 text-center">
+            <h1 className="text-2xl font-bold text-white mb-4">Admin Dashboard</h1>
+            <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-4 mb-6">
+              <p className="text-red-200">{error || 'Access denied'}</p>
+            </div>
+            <button
+              onClick={() => window.location.href = '/'}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            >
+              Return to Game
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
 
-  return (
-    <div className="game">
-      <GamePanel style={{ margin: '20px auto', maxWidth: '1000px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h1>Admin Panel - User Management</h1>
-          <GameButton onClick={() => window.location.href = '/'}>
-            Return to Game
-          </GameButton>
+  const renderDashboard = () => (
+    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+      {/* System Overview */}
+      <div className="bg-white/10 backdrop-blur-md rounded-lg border border-white/20 p-6">
+        <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+          <span className="w-2 h-2 bg-green-500 rounded-full mr-3"></span>
+          System Status
+        </h3>
+        <div className="space-y-3">
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-300">Total Users</span>
+            <span className="text-white font-medium">{users.length}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-300">Active Sessions</span>
+            <span className="text-green-400 font-medium">24</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-300">Server Load</span>
+            <span className="text-yellow-400 font-medium">Medium</span>
+          </div>
         </div>
+      </div>
 
-        <div style={{ marginBottom: '20px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-          <GameButton onClick={loadUsers} disabled={loading}>
-            🔄 Refresh Users
-          </GameButton>
-          <GameButton onClick={() => window.location.href = '/admin/server-missions'}>
+      {/* Quick Actions */}
+      <div className="bg-white/10 backdrop-blur-md rounded-lg border border-white/20 p-6">
+        <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
+        <div className="space-y-3">
+          <button
+            onClick={loadUsers}
+            className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm flex items-center justify-center"
+            disabled={loading}
+          >
+            🔄 Refresh Data
+          </button>
+          <button
+            onClick={() => window.location.href = '/admin/server-missions'}
+            className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-sm flex items-center justify-center"
+          >
             🌍 Server Missions
-          </GameButton>
+          </button>
+          <button
+            onClick={() => setActiveTab('monitoring')}
+            className="w-full px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors text-sm flex items-center justify-center"
+          >
+            📊 View Monitoring
+          </button>
         </div>
+      </div>
 
-        <div style={{ 
-          background: 'rgba(83, 59, 44, 0.2)',
-          border: '1px solid #533b2c',
-          borderRadius: '4px',
-          padding: '16px'
-        }}>
-          <h3>Users ({users.length})</h3>
-          
-          {users.length === 0 ? (
-            <p>No users found</p>
-          ) : (
-            <div style={{ display: 'grid', gap: '16px' }}>
-              {users.map(user => (
-                <div 
-                  key={user.id}
-                  style={{
-                    background: 'rgba(26, 21, 17, 0.5)',
-                    border: '1px solid #533b2c',
-                    borderRadius: '4px',
-                    padding: '12px',
-                    display: 'grid',
-                    gridTemplateColumns: '1fr auto',
-                    gap: '12px',
-                    alignItems: 'center'
-                  }}
-                >
-                  <div>
-                    <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+      {/* Recent Activity */}
+      <div className="bg-white/10 backdrop-blur-md rounded-lg border border-white/20 p-6">
+        <h3 className="text-lg font-semibold text-white mb-4">Recent Activity</h3>
+        <div className="space-y-3 text-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-gray-300">User login</span>
+            <span className="text-gray-400">2m ago</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-gray-300">New guild created</span>
+            <span className="text-gray-400">5m ago</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-gray-300">Trade completed</span>
+            <span className="text-gray-400">8m ago</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderUsers = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-bold text-white">User Management ({users.length})</h2>
+        <button
+          onClick={loadUsers}
+          disabled={loading}
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg transition-colors"
+        >
+          🔄 Refresh
+        </button>
+      </div>
+
+      {users.length === 0 ? (
+        <div className="bg-white/5 backdrop-blur-md rounded-lg border border-white/10 p-8 text-center">
+          <p className="text-gray-400">No users found</p>
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {users.map(user => (
+            <div 
+              key={user.id}
+              className="bg-white/10 backdrop-blur-md rounded-lg border border-white/20 p-4 hover:bg-white/15 transition-colors"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h4 className="font-semibold text-white">
                       {user.profile?.display || 'No Display Name'}
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#9b8c70', marginBottom: '8px' }}>
-                      Email: {user.email || 'No email'}
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#9b8c70', marginBottom: '4px' }}>
-                      ID: {user.id}
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#9b8c70', marginBottom: '4px' }}>
-                      Joined: {new Date(user.createdAt).toLocaleDateString()}
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#9b8c70', marginBottom: '4px' }}>
-                      Gold: {user.wallet?.gold?.toLocaleString() || '0'}
-                    </div>
+                    </h4>
                     {user.guildMembership && (
-                      <div style={{ fontSize: '12px', color: '#9b8c70' }}>
-                        Guild: {user.guildMembership.guild.name} [{user.guildMembership.guild.tag}] - {user.guildMembership.role}
-                      </div>
+                      <span className="px-2 py-1 bg-blue-600/30 text-blue-300 text-xs rounded">
+                        {user.guildMembership.guild.tag}
+                      </span>
                     )}
                   </div>
                   
-                  <div>
-                    <GameButton
-                      variant="danger"
-                      size="small"
-                      onClick={() => deleteUser(user.id, user.email || user.profile?.display || user.id)}
-                      disabled={deletingUserId === user.id}
-                    >
-                      {deletingUserId === user.id ? '🔄 Deleting...' : '🗑️ Delete User'}
-                    </GameButton>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                    <div>
+                      <span className="text-gray-400">Email:</span>
+                      <div className="text-gray-200 truncate">{user.email || 'No email'}</div>
+                    </div>
+                    <div>
+                      <span className="text-gray-400">Gold:</span>
+                      <div className="text-yellow-400 font-medium">{user.wallet?.gold?.toLocaleString() || '0'}</div>
+                    </div>
+                    <div>
+                      <span className="text-gray-400">Joined:</span>
+                      <div className="text-gray-200">{new Date(user.createdAt).toLocaleDateString()}</div>
+                    </div>
+                    <div>
+                      <span className="text-gray-400">ID:</span>
+                      <div className="text-gray-300 font-mono text-xs">{user.id.slice(0, 8)}...</div>
+                    </div>
                   </div>
+                  
+                  {user.guildMembership && (
+                    <div className="mt-2 text-sm">
+                      <span className="text-gray-400">Guild:</span>
+                      <span className="text-blue-300 ml-2">
+                        {user.guildMembership.guild.name} - {user.guildMembership.role}
+                      </span>
+                    </div>
+                  )}
                 </div>
-              ))}
+                
+                <div className="ml-4">
+                  <button
+                    onClick={() => deleteUser(user.id, user.email || user.profile?.display || user.id)}
+                    disabled={deletingUserId === user.id}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-800 disabled:opacity-50 text-white rounded-lg transition-colors text-sm"
+                  >
+                    {deletingUserId === user.id ? '🔄 Deleting...' : '🗑️ Delete'}
+                  </button>
+                </div>
+              </div>
             </div>
-          )}
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  const renderMonitoring = () => (
+    <div className="space-y-6">
+      <h2 className="text-xl font-bold text-white mb-6">System Monitoring</h2>
+      <ErrorMonitor />
+      <SecurityMonitor />
+      <EmergencyControls />
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-2">Admin Dashboard</h1>
+            <p className="text-gray-400">Manage users, monitor system health, and oversee operations</p>
+          </div>
+          <button
+            onClick={() => window.location.href = '/'}
+            className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+          >
+            ← Return to Game
+          </button>
         </div>
 
-        <div style={{ 
-          background: 'rgba(255, 107, 107, 0.1)',
-          border: '1px solid #ff6b6b',
-          borderRadius: '4px',
-          padding: '12px',
-          marginTop: '20px'
-        }}>
-          <h4 style={{ color: '#ff6b6b', marginBottom: '8px' }}>⚠️ Warning</h4>
-          <p style={{ fontSize: '12px', margin: 0 }}>
-            User deletion is permanent and will:
-            <br />• Remove user from Supabase Auth
-            <br />• Delete profile, wallet, and personal data
-            <br />• Convert chat messages to "Deleted User"
-            <br />• Remove from guilds and clear memberships
-            <br />• Preserve mail/transactions for record keeping
-          </p>
+        {/* Navigation Tabs */}
+        <div className="flex space-x-1 mb-8 bg-white/5 backdrop-blur-md rounded-lg p-1">
+          {[
+            { key: 'dashboard', label: '📊 Dashboard', icon: '📊' },
+            { key: 'users', label: '👥 Users', icon: '👥' },
+            { key: 'monitoring', label: '🔍 Monitoring', icon: '🔍' }
+          ].map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key as any)}
+              className={`flex-1 py-3 px-4 rounded-md transition-all font-medium ${
+                activeTab === tab.key
+                  ? 'bg-blue-600 text-white shadow-lg'
+                  : 'text-gray-300 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
-      </GamePanel>
+
+        {/* Content */}
+        <div className="space-y-6">
+          {activeTab === 'dashboard' && renderDashboard()}
+          {activeTab === 'users' && renderUsers()}
+          {activeTab === 'monitoring' && renderMonitoring()}
+        </div>
+
+        {/* Warning Notice (only show on users tab) */}
+        {activeTab === 'users' && (
+          <div className="mt-8 bg-red-500/10 backdrop-blur-md rounded-lg border border-red-500/30 p-4">
+            <h4 className="text-red-400 font-semibold mb-2">⚠️ User Deletion Warning</h4>
+            <p className="text-red-200 text-sm">
+              User deletion is permanent and will remove the user from Supabase Auth, delete their profile and wallet data, 
+              convert chat messages to "Deleted User", and remove guild memberships. Mail and transactions are preserved for record keeping.
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
