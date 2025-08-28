@@ -15,7 +15,7 @@ export class DirectMessageRoom extends ChatRoom {
   participants: string[] = []; // User IDs of the two participants
   
   onCreate(options: any) {
-    console.log('DirectMessageRoom created with options:', options);
+    // DirectMessageRoom created
     
     // Validate that we have exactly 2 participants
     if (!options.participants || options.participants.length !== 2) {
@@ -83,15 +83,16 @@ export class DirectMessageRoom extends ChatRoom {
         guildTag: user.guildMembership?.guild.tag
       };
     } catch (error) {
-      console.error('DirectMessage auth error:', error);
+      // DirectMessage auth error
       throw error;
     }
   }
 
   async onJoin(client: Client, options: any) {
-    console.log(`User ${client.auth.displayName} joined DM room ${this.roomId}`);
+    // User joined DM room
     
     const chatUser: ChatUser = {
+      id: client.id,
       sessionId: client.sessionId,
       userId: client.auth.userId,
       displayName: client.auth.displayName,
@@ -161,7 +162,7 @@ export class DirectMessageRoom extends ChatRoom {
       });
 
     } catch (error) {
-      console.error('Error loading DM history:', error);
+      // Error loading DM history
     }
 
     // Broadcast user joined
@@ -169,7 +170,7 @@ export class DirectMessageRoom extends ChatRoom {
   }
 
   async onLeave(client: Client, consented: boolean) {
-    console.log(`User ${client.auth?.displayName} left DM room ${this.roomId}`);
+    // User left DM room
     
     const user = this.users.get(client.sessionId);
     if (user) {
@@ -201,7 +202,7 @@ export class DirectMessageRoom extends ChatRoom {
       if (!user) return;
 
       // Rate limiting check
-      if (!this.checkRateLimit(user.userId)) {
+      if (!this.checkRateLimit(client)) {
         client.send('error', { message: 'Rate limit exceeded. Please slow down.' });
         return;
       }
@@ -253,7 +254,7 @@ export class DirectMessageRoom extends ChatRoom {
       this.broadcast('new_message', chatMessage);
 
     } catch (error) {
-      console.error('Error handling direct message:', error);
+      // Error handling direct message
       client.send('error', { message: 'Failed to send message' });
     }
   }
@@ -282,11 +283,11 @@ export class DirectMessageRoom extends ChatRoom {
       this.broadcast('message_read', { mailId, userId: user.userId }, { except: client });
 
     } catch (error) {
-      console.error('Error marking message as read:', error);
+      // Error marking message as read
     }
   }
 
-  handleTypingStart(client: Client, data: any) {
+  handleTypingStart(client: Client) {
     const user = this.users.get(client.sessionId);
     if (!user) return;
 
@@ -296,7 +297,7 @@ export class DirectMessageRoom extends ChatRoom {
     }, { except: client });
   }
 
-  handleTypingStop(client: Client, data: any) {
+  handleTypingStop(client: Client) {
     const user = this.users.get(client.sessionId);
     if (!user) return;
 
@@ -304,4 +305,94 @@ export class DirectMessageRoom extends ChatRoom {
       userId: user.userId 
     }, { except: client });
   }
+
+  // Implement abstract methods from ChatRoom
+  protected async saveMessage(user: ChatUser, message: any): Promise<ChatMessage> {
+    // Find the other participant
+    const otherParticipantId = this.participants.find(id => id !== user.userId);
+    if (!otherParticipantId) {
+      throw new Error('No other participant found');
+    }
+
+    // Save to database as Mail
+    const mail = await prisma.mail.create({
+      data: {
+        senderId: user.userId,
+        recipientId: otherParticipantId,
+        subject: message.subject || 'Direct Message',
+        content: message.content.trim(),
+        priority: 'NORMAL'
+      }
+    });
+
+    // Return as ChatMessage
+    return {
+      id: mail.id,
+      content: message.content.trim(),
+      userId: user.userId,
+      displayName: user.displayName,
+      timestamp: Date.now(),
+      channelType: 'DIRECT',
+      metadata: {
+        mailId: mail.id,
+        subject: mail.subject,
+        isDirect: true
+      }
+    };
+  }
+
+  protected async broadcastMessage(message: ChatMessage): Promise<void> {
+    this.broadcast('new_message', message);
+  }
+
+  protected async getMessageHistory(user: ChatUser, before?: string, limit: number = 50): Promise<ChatMessage[]> {
+    try {
+      const recentMails = await prisma.mail.findMany({
+        where: {
+          OR: [
+            {
+              senderId: this.participants[0],
+              recipientId: this.participants[1]
+            },
+            {
+              senderId: this.participants[1],
+              recipientId: this.participants[0]
+            }
+          ],
+          status: { not: 'DELETED' },
+          ...(before && { createdAt: { lt: new Date(before) } })
+        },
+        include: {
+          sender: {
+            include: {
+              profile: true
+            }
+          }
+        },
+        orderBy: {
+          createdAt: 'desc'
+        },
+        take: limit
+      });
+
+      return recentMails.reverse().map(mail => ({
+        id: mail.id,
+        content: mail.content,
+        userId: mail.senderId,
+        displayName: mail.sender.profile?.display || 'Unknown',
+        timestamp: mail.createdAt.getTime(),
+        channelType: 'DIRECT',
+        metadata: {
+          mailId: mail.id,
+          subject: mail.subject,
+          priority: mail.priority,
+          isStarred: mail.isStarred
+        }
+      }));
+    } catch (error) {
+      // Error loading DM history
+      return [];
+    }
+  }
+
 }

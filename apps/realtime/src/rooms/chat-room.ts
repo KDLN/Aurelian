@@ -181,7 +181,7 @@ export abstract class ChatRoom extends Room {
     }
   }
 
-  private checkRateLimit(client: Client): boolean {
+  protected checkRateLimit(client: Client): boolean {
     const now = Date.now();
     const limit = this.rateLimits.get(client.sessionId) || {
       messages: 0,
@@ -262,7 +262,7 @@ export abstract class ChatRoom extends Room {
 
   protected abstract getMessageHistory(user: ChatUser, before?: string, limit?: number): Promise<ChatMessage[]>;
 
-  private handleTypingStart(client: Client) {
+  protected handleTypingStart(client: Client) {
     const user = this.users.get(client.sessionId);
     if (!user) return;
 
@@ -272,7 +272,7 @@ export abstract class ChatRoom extends Room {
     }, { except: client });
   }
 
-  private handleTypingStop(client: Client) {
+  protected handleTypingStop(client: Client) {
     const user = this.users.get(client.sessionId);
     if (!user) return;
 

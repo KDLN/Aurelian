@@ -108,7 +108,7 @@ export default function ContributionModal({ mission, isOpen, onClose, onSuccess 
           })
         });
       } catch (error) {
-        console.warn('Full participation failed, trying simplified approach:', error);
+        // Full participation failed, trying simplified approach
         
         // Fallback to simplified endpoint
         response = await fetch(`/api/server/missions/${mission.id}/contribute-simple`, {
@@ -127,11 +127,11 @@ export default function ContributionModal({ mission, isOpen, onClose, onSuccess 
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('Contribution failed:', errorData);
+        // Contribution failed
         
         // If this was the full endpoint and it failed, try the simple one
         if (response.url.includes('/participate')) {
-          console.warn('Full participation failed, trying simplified approach');
+          // Full participation failed, trying simplified approach
           try {
             const simpleResponse = await fetch(`/api/server/missions/${mission.id}/contribute-simple`, {
               method: 'POST',
@@ -147,13 +147,13 @@ export default function ContributionModal({ mission, isOpen, onClose, onSuccess 
             });
             
             if (simpleResponse.ok) {
-              console.log('Simplified contribution succeeded');
+              // Simplified contribution succeeded
               response = simpleResponse;
             } else {
               throw new Error('Both full and simple contribution failed');
             }
           } catch (simpleError) {
-            console.error('Simple contribution also failed:', simpleError);
+            // Simple contribution also failed
           }
         }
         
@@ -184,7 +184,7 @@ export default function ContributionModal({ mission, isOpen, onClose, onSuccess 
       onSuccess();
       onClose();
     } catch (err) {
-      console.error('Contribution error:', err);
+      // Contribution error
       setError(err instanceof Error ? err.message : 'Failed to contribute');
     } finally {
       setIsSubmitting(false);

@@ -67,7 +67,7 @@ export default function AdminPage() {
         setLoading(false);
       }
     } catch (error) {
-      console.error('Admin check failed:', error);
+      // Admin access check failed
       setError('Failed to verify admin access');
       setLoading(false);
     }
@@ -91,7 +91,7 @@ export default function AdminPage() {
         setError('Failed to load users');
       }
     } catch (error) {
-      console.error('Failed to load users:', error);
+      // Failed to load users
       setError('Failed to load users');
     } finally {
       setLoading(false);
@@ -125,7 +125,7 @@ export default function AdminPage() {
         alert(`Failed to delete user: ${errorData.error}`);
       }
     } catch (error) {
-      console.error('Failed to delete user:', error);
+      // Failed to delete user
       alert('Failed to delete user');
     } finally {
       setDeletingUserId(null);

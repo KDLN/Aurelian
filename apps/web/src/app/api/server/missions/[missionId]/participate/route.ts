@@ -54,16 +54,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     user = authUser;
 
     const body = await request.json();
-    console.log('Participation request received:', {
-      missionId,
-      userId: user.id,
-      body
-    });
+    // Participation request received
     
     const { contribution } = body as { contribution: ContributionData };
 
     if (!contribution) {
-      console.error('No contribution data in request body');
+      // Missing contribution data
       return NextResponse.json({ error: 'Contribution data required' }, { status: 400 });
     }
 
@@ -92,12 +88,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Validate the contribution
     const validation = await validateContribution(contribution, user.id, missionId);
     if (!validation.valid) {
-      console.error('Validation failed for mission participation:', {
-        missionId,
-        userId: user.id,
-        contribution,
-        errors: validation.errors
-      });
+      // Contribution validation failed
       return NextResponse.json({ 
         error: 'Invalid contribution', 
         details: validation.errors 
@@ -158,7 +149,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
       // Update mission progress - manual calculation to ensure it works
       try {
-        console.log('📊 Updating mission progress manually...');
+        // Updating mission progress manually
         
         // Get all participants to recalculate global progress
         const allParticipants = await tx.serverMissionParticipant.findMany({
@@ -166,7 +157,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           select: { contribution: true }
         });
         
-        console.log(`Found ${allParticipants.length} participants`);
+        // Found participants
         
         // Calculate new global progress from all participants
         const newGlobalProgress: Record<string, number> = {};
@@ -192,7 +183,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           }
         }
         
-        console.log('Calculated global progress:', newGlobalProgress);
+        // Calculated global progress
         
         // Update the mission with new global progress
         await tx.serverMission.update({
@@ -200,9 +191,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           data: { globalProgress: newGlobalProgress }
         });
         
-        console.log('✅ Mission progress updated successfully');
+        // Mission progress updated successfully
       } catch (progressError) {
-        console.error('❌ Failed to update mission progress:', progressError);
+        // Failed to update mission progress
         // Continue with the transaction - don't fail the contribution
       }
 
@@ -279,12 +270,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     });
 
   } catch (error: any) {
-    console.error('Error submitting participation:', {
-      error: error.message,
-      stack: error.stack,
-      missionId,
-      userId: user?.id
-    });
+    // Error submitting participation
     return NextResponse.json(
       { 
         error: 'Failed to submit participation',
