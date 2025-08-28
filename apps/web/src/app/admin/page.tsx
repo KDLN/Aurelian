@@ -33,6 +33,8 @@ export default function AdminPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'monitoring'>('dashboard');
+  const [editingUser, setEditingUser] = useState<UserData | null>(null);
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
 
   useEffect(() => {
     checkAdminAccess();
@@ -97,6 +99,58 @@ export default function AdminPage() {
       setError('Failed to load users');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const updateUser = async (userId: string, updates: { display?: string; gold?: number }) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const response = await fetch('/api/admin/update-user', {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ userId, ...updates })
+      });
+
+      if (response.ok) {
+        await loadUsers(); // Refresh the list
+        setEditingUser(null);
+        alert('User updated successfully');
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to update user: ${errorData.error}`);
+      }
+    } catch (error) {
+      alert('Failed to update user');
+    }
+  };
+
+  const toggleMaintenanceMode = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const response = await fetch('/api/admin/maintenance', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ enabled: !maintenanceMode })
+      });
+
+      if (response.ok) {
+        setMaintenanceMode(!maintenanceMode);
+        alert(`Maintenance mode ${!maintenanceMode ? 'enabled' : 'disabled'}`);
+      } else {
+        alert('Failed to toggle maintenance mode');
+      }
+    } catch (error) {
+      alert('Failed to toggle maintenance mode');
     }
   };
 
@@ -190,6 +244,12 @@ export default function AdminPage() {
             <span className="text-gray-300">Server Load</span>
             <span className="text-yellow-400 font-medium">Medium</span>
           </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-300">Maintenance Mode</span>
+            <span className={`font-medium ${maintenanceMode ? 'text-red-400' : 'text-green-400'}`}>
+              {maintenanceMode ? 'ENABLED' : 'Disabled'}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -215,6 +275,12 @@ export default function AdminPage() {
             className="w-full px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors text-sm flex items-center justify-center"
           >
             📊 View Monitoring
+          </button>
+          <button
+            onClick={toggleMaintenanceMode}
+            className={`w-full px-4 py-2 ${maintenanceMode ? 'bg-red-600 hover:bg-red-700' : 'bg-yellow-600 hover:bg-yellow-700'} text-white rounded-lg transition-colors text-sm flex items-center justify-center`}
+          >
+            {maintenanceMode ? '🚫 Disable Maintenance' : '⚠️ Enable Maintenance'}
           </button>
         </div>
       </div>
@@ -306,7 +372,13 @@ export default function AdminPage() {
                   )}
                 </div>
                 
-                <div className="ml-4">
+                <div className="ml-4 flex gap-2">
+                  <button
+                    onClick={() => setEditingUser(user)}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
+                  >
+                    ✏️ Edit
+                  </button>
                   <button
                     onClick={() => deleteUser(user.id, user.email || user.profile?.display || user.id)}
                     disabled={deletingUserId === user.id}
@@ -320,15 +392,82 @@ export default function AdminPage() {
           ))}
         </div>
       )}
+      
+      {/* User Edit Modal */}
+      {editingUser && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-800 rounded-lg border border-white/20 p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold text-white mb-4">Edit User</h3>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              const display = formData.get('display') as string;
+              const gold = parseInt(formData.get('gold') as string);
+              updateUser(editingUser.id, { display, gold });
+            }}>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Display Name
+                  </label>
+                  <input
+                    name="display"
+                    type="text"
+                    defaultValue={editingUser.profile?.display || ''}
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
+                    placeholder="Enter display name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Gold Amount
+                  </label>
+                  <input
+                    name="gold"
+                    type="number"
+                    defaultValue={editingUser.wallet?.gold || 0}
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
+                    placeholder="Enter gold amount"
+                    min="0"
+                  />
+                </div>
+                <div className="pt-4 border-t border-slate-600">
+                  <p className="text-xs text-gray-400 mb-3">
+                    User ID: {editingUser.id}
+                  </p>
+                  <p className="text-xs text-gray-400 mb-4">
+                    Email: {editingUser.email || 'No email'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setEditingUser(null)}
+                  className="flex-1 px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 
   const renderMonitoring = () => (
     <div className="space-y-6">
       <h2 className="text-xl font-bold text-white mb-6">System Monitoring</h2>
-      <ErrorMonitor />
-      <SecurityMonitor />
-      <EmergencyControls />
+      <ErrorMonitor isAdmin={isAdmin} />
+      <SecurityMonitor isAdmin={isAdmin} />
+      <EmergencyControls isAdmin={isAdmin} />
     </div>
   );
 

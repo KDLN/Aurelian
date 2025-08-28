@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import GamePanel from '@/components/ui/GamePanel';
-import GameButton from '@/components/ui/GameButton';
 
 interface SecurityAlert {
   id: string;
@@ -40,10 +38,32 @@ export default function SecurityMonitor({ isAdmin }: SecurityMonitorProps) {
     try {
       setIsLoading(true);
       // TODO: Implement API endpoint for security alerts
-      // For now, show the structure needed
-      setAlerts([]);
+      // For now, show mock data for demonstration
+      const mockAlerts: SecurityAlert[] = [
+        {
+          id: '1',
+          type: 'suspicious_login',
+          severity: 'high',
+          timestamp: new Date(Date.now() - 120000).toISOString(),
+          message: 'Multiple failed login attempts from same IP',
+          ipAddress: '192.168.1.100',
+          userAgent: 'Chrome/91.0 (automated)',
+          acknowledged: false
+        },
+        {
+          id: '2',
+          type: 'rate_limit_exceeded',
+          severity: 'medium',
+          timestamp: new Date(Date.now() - 300000).toISOString(),
+          message: 'API rate limit exceeded',
+          userId: 'user-abc123',
+          ipAddress: '10.0.0.1',
+          acknowledged: true
+        }
+      ];
+      setAlerts(mockAlerts);
     } catch (error) {
-      // Error loading security alerts
+      console.error('Error loading security alerts:', error);
     } finally {
       setIsLoading(false);
     }
@@ -51,36 +71,24 @@ export default function SecurityMonitor({ isAdmin }: SecurityMonitorProps) {
 
   const acknowledgeAlert = async (alertId: string) => {
     try {
+      // TODO: Implement API to acknowledge alert
       setAlerts(prev => prev.map(alert => 
         alert.id === alertId 
           ? { ...alert, acknowledged: true }
           : alert
       ));
     } catch (error) {
-      // Error acknowledging alert
-    }
-  };
-
-  const acknowledgeAll = async () => {
-    try {
-      setAlerts(prev => prev.map(alert => ({ ...alert, acknowledged: true })));
-    } catch (error) {
-      // Error acknowledging all alerts
+      console.error('Error acknowledging alert:', error);
     }
   };
 
   if (!isAdmin) return null;
 
   const filteredAlerts = alerts.filter(alert => {
-    switch (filter) {
-      case 'unacknowledged':
-        return !alert.acknowledged;
-      case 'critical':
-        return alert.severity === 'critical';
-      case 'all':
-      default:
-        return true;
-    }
+    if (filter === 'all') return true;
+    if (filter === 'critical') return alert.severity === 'critical';
+    if (filter === 'unacknowledged') return !alert.acknowledged;
+    return true;
   });
 
   const criticalCount = alerts.filter(alert => !alert.acknowledged && alert.severity === 'critical').length;
@@ -88,11 +96,11 @@ export default function SecurityMonitor({ isAdmin }: SecurityMonitorProps) {
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case 'critical': return '#dc3545';
-      case 'high': return '#fd7e14';
-      case 'medium': return '#ffc107';
-      case 'low': return '#28a745';
-      default: return '#6c757d';
+      case 'critical': return 'text-red-400 bg-red-500/10 border-red-500/30';
+      case 'high': return 'text-orange-400 bg-orange-500/10 border-orange-500/30';
+      case 'medium': return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30';
+      case 'low': return 'text-blue-400 bg-blue-500/10 border-blue-500/30';
+      default: return 'text-gray-400 bg-gray-500/10 border-gray-500/30';
     }
   };
 
@@ -101,245 +109,147 @@ export default function SecurityMonitor({ isAdmin }: SecurityMonitorProps) {
       case 'critical': return '🔴';
       case 'high': return '🟠';
       case 'medium': return '🟡';
-      case 'low': return '🟢';
+      case 'low': return '🔵';
       default: return '⚪';
     }
   };
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'suspicious_login': return '🔐';
-      case 'rate_limit_exceeded': return '⚡';
-      case 'admin_access': return '👑';
-      case 'data_breach_attempt': return '🛡️';
-      case 'unusual_activity': return '👀';
-      default: return '⚠️';
-    }
-  };
-
   return (
-    <GamePanel style={{ margin: '20px 0' }}>
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        marginBottom: '16px'
-      }}>
-        <h3>🔒 Security Monitor</h3>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+    <div className="bg-white/10 backdrop-blur-md rounded-lg border border-white/20 p-6">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold text-white flex items-center">
+          🛡️ Security Monitor
+        </h3>
+        <div className="flex gap-3 items-center">
           {criticalCount > 0 && (
-            <span style={{ 
-              background: '#dc3545',
-              color: 'white',
-              padding: '4px 8px',
-              borderRadius: '12px',
-              fontSize: '12px',
-              fontWeight: 'bold',
-              animation: 'pulse 2s infinite'
-            }}>
-              {criticalCount} CRITICAL
+            <span className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold animate-pulse">
+              {criticalCount} critical
             </span>
           )}
           {unacknowledgedCount > 0 && (
-            <span style={{ 
-              background: '#ffc107',
-              color: '#000',
-              padding: '4px 8px',
-              borderRadius: '12px',
-              fontSize: '12px',
-              fontWeight: 'bold'
-            }}>
-              {unacknowledgedCount} new
+            <span className="bg-orange-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+              {unacknowledgedCount} unacknowledged
             </span>
           )}
           <select 
             value={filter}
             onChange={(e) => setFilter(e.target.value as any)}
-            style={{
-              background: '#1a1511',
-              border: '1px solid #533b2c',
-              color: '#f1e5c8',
-              padding: '4px 8px',
-              borderRadius: '4px'
-            }}
+            className="bg-slate-700 border border-slate-600 text-white px-3 py-1 rounded-lg text-sm focus:outline-none focus:border-blue-500"
           >
-            <option value="unacknowledged">New Alerts</option>
+            <option value="unacknowledged">Unacknowledged</option>
             <option value="critical">Critical Only</option>
             <option value="all">All Alerts</option>
           </select>
-          {unacknowledgedCount > 0 && (
-            <GameButton 
-              size="small" 
-              variant="primary"
-              onClick={acknowledgeAll}
-            >
-              ✓ Ack All
-            </GameButton>
-          )}
-          <GameButton 
-            size="small" 
+          <button 
             onClick={loadSecurityAlerts}
             disabled={isLoading}
+            className="px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 text-white rounded-lg transition-colors text-sm"
           >
             {isLoading ? '🔄' : '🔄 Refresh'}
-          </GameButton>
+          </button>
         </div>
       </div>
 
-      <div style={{
-        background: 'rgba(83, 59, 44, 0.2)',
-        border: '1px solid #533b2c',
-        borderRadius: '4px',
-        padding: '16px',
-        maxHeight: '500px',
-        overflowY: 'auto'
-      }}>
+      <div className="bg-slate-800/50 rounded-lg p-4 max-h-96 overflow-y-auto">
         {isLoading ? (
-          <p style={{ textAlign: 'center', color: '#9b8c70' }}>
+          <p className="text-center text-gray-400 py-8">
             Loading security alerts...
           </p>
         ) : filteredAlerts.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '20px' }}>
-            <p style={{ color: '#28a745', marginBottom: '8px', fontSize: '18px' }}>
-              🛡️ All Secure
+          <div className="text-center py-8">
+            <p className="text-gray-300 mb-2">
+              {filter === 'critical' ? '✅ No critical alerts' : 
+               filter === 'unacknowledged' ? '✅ No unacknowledged alerts' : 
+               '📊 No security alerts'}
             </p>
-            <p style={{ color: '#9b8c70', marginBottom: '8px' }}>
+            <p className="text-sm text-gray-400">
               {filter === 'unacknowledged' 
-                ? 'No new security alerts'
-                : filter === 'critical'
-                  ? 'No critical security issues'
-                  : 'No security alerts found'
+                ? 'All security alerts have been acknowledged!'
+                : 'Security monitoring is active and ready.'
               }
-            </p>
-            <p style={{ fontSize: '12px', color: '#7a6b5a' }}>
-              Security monitoring is active and protecting your application.
             </p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div className="space-y-3">
             {filteredAlerts.map(alert => (
               <div
                 key={alert.id}
-                style={{
-                  background: alert.acknowledged 
-                    ? 'rgba(26, 21, 17, 0.3)' 
-                    : alert.severity === 'critical'
-                      ? 'rgba(220, 53, 69, 0.1)'
-                      : alert.severity === 'high'
-                        ? 'rgba(253, 126, 20, 0.1)'
-                        : 'rgba(255, 193, 7, 0.1)',
-                  border: `2px solid ${
-                    alert.acknowledged 
-                      ? '#533b2c'
-                      : getSeverityColor(alert.severity)
-                  }`,
-                  borderRadius: '4px',
-                  padding: '12px',
-                  ...(alert.severity === 'critical' && !alert.acknowledged && {
-                    boxShadow: `0 0 10px ${getSeverityColor(alert.severity)}40`
-                  })
-                }}
+                className={`rounded-lg p-4 border ${
+                  alert.acknowledged 
+                    ? 'bg-slate-700/30 border-slate-600' 
+                    : getSeverityColor(alert.severity)
+                }`}
               >
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between',
-                  alignItems: 'flex-start',
-                  marginBottom: '8px'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '18px' }}>
-                      {getTypeIcon(alert.type)}
-                    </span>
-                    <span style={{ fontSize: '16px' }}>
-                      {getSeverityIcon(alert.severity)}
-                    </span>
-                    <span style={{ 
-                      fontWeight: 'bold',
-                      color: alert.acknowledged ? '#7a6b5a' : getSeverityColor(alert.severity)
-                    }}>
-                      {alert.severity.toUpperCase()}
-                    </span>
-                    {alert.acknowledged && (
-                      <span style={{
-                        background: '#28a745',
-                        color: 'white',
-                        padding: '2px 6px',
-                        borderRadius: '10px',
-                        fontSize: '10px',
-                        fontWeight: 'bold'
-                      }}>
-                        ACKNOWLEDGED
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-lg">
+                        {getSeverityIcon(alert.severity)}
                       </span>
-                    )}
+                      <span className={`font-bold text-sm ${
+                        alert.acknowledged ? 'text-gray-400' : 
+                        alert.severity === 'critical' ? 'text-red-400' :
+                        alert.severity === 'high' ? 'text-orange-400' :
+                        alert.severity === 'medium' ? 'text-yellow-400' : 'text-blue-400'
+                      }`}>
+                        {alert.severity.toUpperCase()}
+                      </span>
+                      <span className="text-xs text-gray-400 font-mono">
+                        {alert.type.replace('_', ' ').toUpperCase()}
+                      </span>
+                      {alert.acknowledged && (
+                        <span className="bg-green-600 text-white px-2 py-0.5 rounded-full text-xs font-bold">
+                          ACKNOWLEDGED
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-400 mb-2">
+                      {new Date(alert.timestamp).toLocaleString()}
+                    </div>
                   </div>
                   {!alert.acknowledged && (
-                    <GameButton
-                      size="small"
-                      variant="primary"
+                    <button
                       onClick={() => acknowledgeAlert(alert.id)}
+                      className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm"
                     >
                       ✓ Acknowledge
-                    </GameButton>
+                    </button>
                   )}
                 </div>
 
-                <div style={{ 
-                  fontSize: '12px', 
-                  color: '#9b8c70',
-                  marginBottom: '8px'
-                }}>
-                  {new Date(alert.timestamp).toLocaleString()} • {alert.type.replace('_', ' ')}
-                </div>
-
-                <div style={{ 
-                  marginBottom: '8px',
-                  color: alert.acknowledged ? '#7a6b5a' : '#f1e5c8',
-                  fontWeight: alert.severity === 'critical' ? 'bold' : 'normal'
-                }}>
+                <div className={`mb-3 ${alert.acknowledged ? 'text-gray-400' : 'text-gray-200'}`}>
                   {alert.message}
                 </div>
 
-                {(alert.userId || alert.ipAddress || alert.userAgent) && (
-                  <div style={{ 
-                    fontSize: '12px',
-                    color: '#9b8c70',
-                    background: 'rgba(0, 0, 0, 0.2)',
-                    padding: '8px',
-                    borderRadius: '4px',
-                    marginTop: '8px'
-                  }}>
-                    {alert.userId && <div>User ID: {alert.userId}</div>}
-                    {alert.ipAddress && <div>IP: {alert.ipAddress}</div>}
-                    {alert.userAgent && <div>User Agent: {alert.userAgent.substring(0, 50)}...</div>}
-                    {alert.action && <div>Action: {alert.action}</div>}
-                  </div>
-                )}
+                <div className="text-xs text-gray-400 bg-black/20 p-3 rounded border border-slate-600">
+                  {alert.userId && (
+                    <div className="mb-1">User: <span className="font-mono">{alert.userId}</span></div>
+                  )}
+                  {alert.ipAddress && (
+                    <div className="mb-1">IP: <span className="font-mono">{alert.ipAddress}</span></div>
+                  )}
+                  {alert.userAgent && (
+                    <div className="mb-1">User Agent: <span className="font-mono text-xs">{alert.userAgent}</span></div>
+                  )}
+                  {alert.action && (
+                    <div>Action: <span className="font-mono">{alert.action}</span></div>
+                  )}
+                </div>
               </div>
             ))}
           </div>
         )}
       </div>
 
-      <div style={{
-        marginTop: '16px',
-        padding: '12px',
-        background: 'rgba(220, 53, 69, 0.1)',
-        border: '1px solid #dc3545',
-        borderRadius: '4px',
-        fontSize: '12px'
-      }}>
-        <h4 style={{ color: '#dc3545', margin: '0 0 8px 0' }}>🚨 Security Alert Types</h4>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px', color: '#9b8c70' }}>
-          <div>🔐 Suspicious Logins</div>
-          <div>⚡ Rate Limit Violations</div>
-          <div>👑 Admin Access Attempts</div>
-          <div>🛡️ Data Breach Attempts</div>
-          <div>👀 Unusual User Activity</div>
-        </div>
-        <p style={{ margin: '8px 0 0 0', color: '#9b8c70', fontSize: '11px' }}>
-          Critical alerts require immediate attention. Acknowledge alerts once investigated.
-        </p>
+      <div className="mt-4 p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg">
+        <h4 className="text-orange-400 text-sm font-semibold mb-2">🛡️ Security Monitoring Info</h4>
+        <ul className="text-xs text-gray-400 space-y-1">
+          <li>• Alerts are generated automatically for suspicious activities</li>
+          <li>• Critical alerts require immediate attention and investigation</li>
+          <li>• Acknowledge alerts after reviewing and taking appropriate action</li>
+          <li>• Alert history is kept for 30 days for security auditing</li>
+        </ul>
       </div>
-    </GamePanel>
+    </div>
   );
 }

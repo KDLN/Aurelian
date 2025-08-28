@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import GamePanel from '@/components/ui/GamePanel';
-import GameButton from '@/components/ui/GameButton';
 
 interface ErrorLog {
   id: string;
@@ -46,10 +44,38 @@ export default function ErrorMonitor({ isAdmin }: ErrorMonitorProps) {
     try {
       setIsLoading(true);
       // TODO: Implement API endpoint to fetch recent errors from logs
-      // For now, show mock data structure
-      setErrors([]);
+      // For now, show mock data for demonstration
+      const mockErrors: ErrorLog[] = [
+        {
+          id: '1',
+          timestamp: new Date(Date.now() - 300000).toISOString(),
+          level: 'error',
+          message: 'Database connection timeout',
+          context: {
+            action: 'user_login',
+            resource: 'database',
+            error: {
+              name: 'TimeoutError',
+              message: 'Connection timed out after 5000ms'
+            }
+          },
+          resolved: false
+        },
+        {
+          id: '2',
+          timestamp: new Date(Date.now() - 600000).toISOString(),
+          level: 'warn',
+          message: 'High memory usage detected',
+          context: {
+            resource: 'server',
+            action: 'memory_check'
+          },
+          resolved: true
+        }
+      ];
+      setErrors(mockErrors);
     } catch (error) {
-      // Error loading errors
+      console.error('Error loading errors:', error);
     } finally {
       setIsLoading(false);
     }
@@ -64,7 +90,7 @@ export default function ErrorMonitor({ isAdmin }: ErrorMonitorProps) {
           : error
       ));
     } catch (error) {
-      // Error updating error status
+      console.error('Error updating error status:', error);
     }
   };
 
@@ -77,69 +103,46 @@ export default function ErrorMonitor({ isAdmin }: ErrorMonitorProps) {
   const unresolvedCount = errors.filter(error => !error.resolved).length;
 
   return (
-    <GamePanel style={{ margin: '20px 0' }}>
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        marginBottom: '16px'
-      }}>
-        <h3>🚨 Error Monitor</h3>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+    <div className="bg-white/10 backdrop-blur-md rounded-lg border border-white/20 p-6">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold text-white flex items-center">
+          🚨 Error Monitor
+        </h3>
+        <div className="flex gap-3 items-center">
           {unresolvedCount > 0 && (
-            <span style={{ 
-              background: '#ff6b6b',
-              color: 'white',
-              padding: '4px 8px',
-              borderRadius: '12px',
-              fontSize: '12px',
-              fontWeight: 'bold'
-            }}>
+            <span className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
               {unresolvedCount} unresolved
             </span>
           )}
           <select 
             value={filter}
             onChange={(e) => setFilter(e.target.value as 'all' | 'unresolved')}
-            style={{
-              background: '#1a1511',
-              border: '1px solid #533b2c',
-              color: '#f1e5c8',
-              padding: '4px 8px',
-              borderRadius: '4px'
-            }}
+            className="bg-slate-700 border border-slate-600 text-white px-3 py-1 rounded-lg text-sm focus:outline-none focus:border-blue-500"
           >
             <option value="unresolved">Unresolved Only</option>
             <option value="all">All Errors</option>
           </select>
-          <GameButton 
-            size="small" 
+          <button 
             onClick={loadRecentErrors}
             disabled={isLoading}
+            className="px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 text-white rounded-lg transition-colors text-sm"
           >
             {isLoading ? '🔄' : '🔄 Refresh'}
-          </GameButton>
+          </button>
         </div>
       </div>
 
-      <div style={{
-        background: 'rgba(83, 59, 44, 0.2)',
-        border: '1px solid #533b2c',
-        borderRadius: '4px',
-        padding: '16px',
-        maxHeight: '400px',
-        overflowY: 'auto'
-      }}>
+      <div className="bg-slate-800/50 rounded-lg p-4 max-h-96 overflow-y-auto">
         {isLoading ? (
-          <p style={{ textAlign: 'center', color: '#9b8c70' }}>
+          <p className="text-center text-gray-400 py-8">
             Loading error logs...
           </p>
         ) : filteredErrors.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '20px' }}>
-            <p style={{ color: '#9b8c70', marginBottom: '8px' }}>
+          <div className="text-center py-8">
+            <p className="text-gray-300 mb-2">
               {filter === 'unresolved' ? '✅ No unresolved errors' : '📊 No errors found'}
             </p>
-            <p style={{ fontSize: '12px', color: '#7a6b5a' }}>
+            <p className="text-sm text-gray-400">
               {filter === 'unresolved' 
                 ? 'Your application is running smoothly!'
                 : 'Error monitoring is active and ready.'
@@ -147,113 +150,69 @@ export default function ErrorMonitor({ isAdmin }: ErrorMonitorProps) {
             </p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div className="space-y-3">
             {filteredErrors.map(error => (
               <div
                 key={error.id}
-                style={{
-                  background: error.resolved 
-                    ? 'rgba(26, 21, 17, 0.3)' 
+                className={`rounded-lg p-4 border ${
+                  error.resolved 
+                    ? 'bg-slate-700/30 border-slate-600' 
                     : error.level === 'error' 
-                      ? 'rgba(255, 107, 107, 0.1)'
-                      : 'rgba(255, 193, 7, 0.1)',
-                  border: `1px solid ${
-                    error.resolved 
-                      ? '#533b2c'
-                      : error.level === 'error' 
-                        ? '#ff6b6b'
-                        : '#ffc107'
-                  }`,
-                  borderRadius: '4px',
-                  padding: '12px'
-                }}
+                      ? 'bg-red-500/10 border-red-500/30'
+                      : 'bg-yellow-500/10 border-yellow-500/30'
+                }`}
               >
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between',
-                  alignItems: 'flex-start',
-                  marginBottom: '8px'
-                }}>
+                <div className="flex justify-between items-start mb-3">
                   <div>
-                    <div style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: '8px',
-                      marginBottom: '4px'
-                    }}>
-                      <span style={{ 
-                        fontSize: '16px',
-                        color: error.level === 'error' ? '#ff6b6b' : '#ffc107'
-                      }}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-lg">
                         {error.level === 'error' ? '🚨' : '⚠️'}
                       </span>
-                      <span style={{ 
-                        fontWeight: 'bold',
-                        color: error.resolved ? '#7a6b5a' : '#f1e5c8'
-                      }}>
+                      <span className={`font-bold text-sm ${
+                        error.resolved ? 'text-gray-400' : 
+                        error.level === 'error' ? 'text-red-400' : 'text-yellow-400'
+                      }`}>
                         {error.level.toUpperCase()}
                       </span>
                       {error.resolved && (
-                        <span style={{
-                          background: '#28a745',
-                          color: 'white',
-                          padding: '2px 6px',
-                          borderRadius: '10px',
-                          fontSize: '10px',
-                          fontWeight: 'bold'
-                        }}>
+                        <span className="bg-green-600 text-white px-2 py-0.5 rounded-full text-xs font-bold">
                           RESOLVED
                         </span>
                       )}
                     </div>
-                    <div style={{ 
-                      fontSize: '12px', 
-                      color: '#9b8c70',
-                      marginBottom: '8px'
-                    }}>
+                    <div className="text-xs text-gray-400 mb-2">
                       {new Date(error.timestamp).toLocaleString()}
                     </div>
                   </div>
                   {!error.resolved && (
-                    <GameButton
-                      size="small"
-                      variant="primary"
+                    <button
                       onClick={() => markAsResolved(error.id)}
+                      className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm"
                     >
                       ✓ Resolve
-                    </GameButton>
+                    </button>
                   )}
                 </div>
 
-                <div style={{ 
-                  marginBottom: '8px',
-                  color: error.resolved ? '#7a6b5a' : '#f1e5c8'
-                }}>
+                <div className={`mb-3 ${error.resolved ? 'text-gray-400' : 'text-gray-200'}`}>
                   {error.message}
                 </div>
 
                 {error.context && (
-                  <div style={{ 
-                    fontSize: '12px',
-                    color: '#9b8c70',
-                    background: 'rgba(0, 0, 0, 0.2)',
-                    padding: '8px',
-                    borderRadius: '4px',
-                    marginTop: '8px'
-                  }}>
+                  <div className="text-xs text-gray-400 bg-black/20 p-3 rounded border border-slate-600">
                     {error.context.userId && (
-                      <div>User: {error.context.userId}</div>
+                      <div className="mb-1">User: <span className="font-mono">{error.context.userId}</span></div>
                     )}
                     {error.context.action && (
-                      <div>Action: {error.context.action}</div>
+                      <div className="mb-1">Action: <span className="font-mono">{error.context.action}</span></div>
                     )}
                     {error.context.resource && (
-                      <div>Resource: {error.context.resource}</div>
+                      <div className="mb-1">Resource: <span className="font-mono">{error.context.resource}</span></div>
                     )}
                     {error.context.error && (
                       <div>
-                        <div>Error: {error.context.error.name}</div>
-                        <div>Message: {error.context.error.message}</div>
+                        <div className="mb-1">Error: <span className="font-mono">{error.context.error.name}</span></div>
+                        <div>Message: <span className="font-mono">{error.context.error.message}</span></div>
                       </div>
                     )}
                   </div>
@@ -264,22 +223,15 @@ export default function ErrorMonitor({ isAdmin }: ErrorMonitorProps) {
         )}
       </div>
 
-      <div style={{
-        marginTop: '16px',
-        padding: '12px',
-        background: 'rgba(0, 123, 255, 0.1)',
-        border: '1px solid #007bff',
-        borderRadius: '4px',
-        fontSize: '12px'
-      }}>
-        <h4 style={{ color: '#007bff', margin: '0 0 8px 0' }}>💡 Error Monitoring Info</h4>
-        <ul style={{ margin: 0, paddingLeft: '20px', color: '#9b8c70' }}>
-          <li>Errors are automatically captured from API routes and components</li>
-          <li>Critical errors appear immediately - warnings every 30 seconds</li>
-          <li>Mark errors as resolved once you've investigated and fixed them</li>
-          <li>Resolved errors remain visible for 24 hours for reference</li>
+      <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+        <h4 className="text-blue-400 text-sm font-semibold mb-2">💡 Error Monitoring Info</h4>
+        <ul className="text-xs text-gray-400 space-y-1">
+          <li>• Errors are automatically captured from API routes and components</li>
+          <li>• Critical errors appear immediately - warnings refresh every 30 seconds</li>
+          <li>• Mark errors as resolved once you've investigated and fixed them</li>
+          <li>• Resolved errors remain visible for 24 hours for reference</li>
         </ul>
       </div>
-    </GamePanel>
+    </div>
   );
 }

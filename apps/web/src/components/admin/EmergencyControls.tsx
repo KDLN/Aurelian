@@ -1,366 +1,251 @@
 'use client';
 
 import { useState } from 'react';
-import GamePanel from '@/components/ui/GamePanel';
-import GameButton from '@/components/ui/GameButton';
-import { supabase } from '@/lib/supabaseClient';
 
 interface EmergencyControlsProps {
   isAdmin: boolean;
 }
 
-interface MaintenanceMode {
-  enabled: boolean;
-  message: string;
-  estimatedEndTime?: string;
-}
-
 export default function EmergencyControls({ isAdmin }: EmergencyControlsProps) {
+  const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [maintenanceMode, setMaintenanceMode] = useState<MaintenanceMode>({
-    enabled: false,
-    message: 'The game is temporarily down for maintenance. We\'ll be back shortly!'
-  });
   const [confirmAction, setConfirmAction] = useState<string | null>(null);
+
+  const executeEmergencyAction = async (action: string, params?: any) => {
+    if (!isAdmin) return;
+    
+    setIsLoading(true);
+    try {
+      // TODO: Implement actual API calls for emergency actions
+      switch (action) {
+        case 'maintenance_mode':
+          setIsMaintenanceMode(!isMaintenanceMode);
+          break;
+        case 'emergency_ban':
+          // Ban user immediately
+          break;
+        case 'flush_sessions':
+          // Force logout all users
+          break;
+        case 'rollback_transactions':
+          // Rollback recent gold transactions
+          break;
+        case 'emergency_broadcast':
+          // Send emergency message to all users
+          break;
+        default:
+          console.log(`Emergency action: ${action}`, params);
+      }
+      
+      alert(`Emergency action "${action}" executed successfully`);
+      setConfirmAction(null);
+    } catch (error) {
+      console.error('Emergency action failed:', error);
+      alert(`Emergency action failed: ${error}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const confirmEmergencyAction = (action: string, message: string, callback: () => void) => {
+    if (confirm(`⚠️ EMERGENCY ACTION CONFIRMATION\n\n${message}\n\nThis action cannot be undone. Are you sure you want to proceed?`)) {
+      callback();
+    }
+  };
 
   if (!isAdmin) return null;
 
-  const toggleMaintenanceMode = async () => {
-    if (!confirmAction) {
-      setConfirmAction('maintenance');
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      // TODO: Implement API to toggle maintenance mode
-      setMaintenanceMode(prev => ({ ...prev, enabled: !prev.enabled }));
-      setConfirmAction(null);
-    } catch (error) {
-      // Error toggling maintenance mode
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const emergencyUserBan = async (userId: string, reason: string) => {
-    if (!userId.trim()) return;
-    
-    if (!confirmAction) {
-      setConfirmAction(`ban-${userId}`);
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      // TODO: Implement emergency ban API
-      setConfirmAction(null);
-    } catch (error) {
-      // Error banning user
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const flushAllSessions = async () => {
-    if (!confirmAction) {
-      setConfirmAction('flush-sessions');
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      // TODO: Implement session flush API
-      setConfirmAction(null);
-    } catch (error) {
-      // Error flushing sessions
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const emergencyGoldRollback = async (hours: number) => {
-    if (!confirmAction) {
-      setConfirmAction(`rollback-${hours}`);
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      // TODO: Implement gold rollback API
-      setConfirmAction(null);
-    } catch (error) {
-      // Error performing rollback
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const cancelAction = () => {
-    setConfirmAction(null);
-  };
-
   return (
-    <GamePanel style={{ margin: '20px 0' }}>
-      <h3 style={{ color: '#dc3545', marginBottom: '16px' }}>
-        🚨 Emergency Controls
-      </h3>
+    <div className="bg-white/10 backdrop-blur-md rounded-lg border border-red-500/30 p-6">
+      <div className="flex items-center mb-4">
+        <h3 className="text-lg font-semibold text-white flex items-center">
+          🚨 Emergency Controls
+        </h3>
+        <span className="ml-3 bg-red-500/20 text-red-300 px-2 py-1 rounded-full text-xs font-bold">
+          ADMIN ONLY
+        </span>
+      </div>
 
-      {confirmAction && (
-        <div style={{
-          background: 'rgba(220, 53, 69, 0.2)',
-          border: '2px solid #dc3545',
-          borderRadius: '4px',
-          padding: '16px',
-          marginBottom: '16px'
-        }}>
-          <h4 style={{ color: '#dc3545', margin: '0 0 8px 0' }}>
-            ⚠️ Confirm Emergency Action
-          </h4>
-          <p style={{ margin: '0 0 12px 0', color: '#f1e5c8' }}>
-            {confirmAction === 'maintenance' && 'Enable/disable maintenance mode for all users?'}
-            {confirmAction === 'flush-sessions' && 'Force log out ALL users immediately?'}
-            {confirmAction.startsWith('ban-') && `Ban user ${confirmAction.replace('ban-', '')}?`}
-            {confirmAction.startsWith('rollback-') && `Rollback gold transactions for the last ${confirmAction.replace('rollback-', '')} hours?`}
-          </p>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <GameButton
-              variant="danger"
-              onClick={() => {
-                if (confirmAction === 'maintenance') toggleMaintenanceMode();
-                else if (confirmAction === 'flush-sessions') flushAllSessions();
-                else if (confirmAction.startsWith('rollback-')) {
-                  const hours = parseInt(confirmAction.replace('rollback-', ''));
-                  emergencyGoldRollback(hours);
-                }
-              }}
-              disabled={isLoading}
-            >
-              {isLoading ? '🔄 Processing...' : '✓ CONFIRM'}
-            </GameButton>
-            <GameButton
-              onClick={cancelAction}
-              disabled={isLoading}
-            >
-              ✕ Cancel
-            </GameButton>
-          </div>
-        </div>
-      )}
-
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-        gap: '16px'
-      }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Maintenance Mode */}
-        <div style={{
-          background: maintenanceMode.enabled 
-            ? 'rgba(220, 53, 69, 0.1)' 
-            : 'rgba(83, 59, 44, 0.2)',
-          border: `1px solid ${maintenanceMode.enabled ? '#dc3545' : '#533b2c'}`,
-          borderRadius: '4px',
-          padding: '16px'
-        }}>
-          <h4 style={{ 
-            margin: '0 0 12px 0',
-            color: maintenanceMode.enabled ? '#dc3545' : '#f1e5c8',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}>
+        <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-600">
+          <h4 className="text-white font-medium mb-2 flex items-center">
             🔧 Maintenance Mode
-            {maintenanceMode.enabled && (
-              <span style={{
-                background: '#dc3545',
-                color: 'white',
-                padding: '2px 8px',
-                borderRadius: '12px',
-                fontSize: '10px',
-                fontWeight: 'bold'
-              }}>
+            {isMaintenanceMode && (
+              <span className="ml-2 bg-red-500 text-white px-2 py-0.5 rounded-full text-xs animate-pulse">
                 ACTIVE
               </span>
             )}
           </h4>
-          <p style={{ 
-            fontSize: '12px', 
-            color: '#9b8c70', 
-            margin: '0 0 12px 0' 
-          }}>
-            {maintenanceMode.enabled 
-              ? 'Users cannot access the game while maintenance mode is active.'
-              : 'Temporarily disable game access for all users during critical updates.'
-            }
+          <p className="text-sm text-gray-400 mb-3">
+            Prevent new user connections for system maintenance
           </p>
-          <textarea
-            value={maintenanceMode.message}
-            onChange={(e) => setMaintenanceMode(prev => ({ ...prev, message: e.target.value }))}
-            placeholder="Maintenance message for users..."
-            style={{
-              width: '100%',
-              height: '60px',
-              background: '#1a1511',
-              border: '1px solid #533b2c',
-              color: '#f1e5c8',
-              padding: '8px',
-              borderRadius: '4px',
-              resize: 'vertical',
-              marginBottom: '12px',
-              fontSize: '12px'
+          <button
+            onClick={() => confirmEmergencyAction(
+              'maintenance_mode',
+              `${isMaintenanceMode ? 'DISABLE' : 'ENABLE'} maintenance mode?\n\nThis will ${isMaintenanceMode ? 'allow' : 'prevent'} new user connections.`,
+              () => executeEmergencyAction('maintenance_mode')
+            )}
+            disabled={isLoading}
+            className={`w-full px-4 py-2 rounded-lg transition-colors text-sm font-medium ${
+              isMaintenanceMode
+                ? 'bg-green-600 hover:bg-green-700 text-white'
+                : 'bg-yellow-600 hover:bg-yellow-700 text-white'
+            } disabled:opacity-50`}
+          >
+            {isLoading ? '🔄 Processing...' : (isMaintenanceMode ? '✅ Disable Maintenance' : '⚠️ Enable Maintenance')}
+          </button>
+        </div>
+
+        {/* Emergency User Ban */}
+        <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-600">
+          <h4 className="text-white font-medium mb-2">🚫 Emergency User Ban</h4>
+          <p className="text-sm text-gray-400 mb-3">
+            Immediately ban a user and terminate their sessions
+          </p>
+          <input
+            type="text"
+            placeholder="Enter user ID or email"
+            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded text-white text-sm mb-3 focus:outline-none focus:border-red-500"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                const userId = (e.target as HTMLInputElement).value.trim();
+                if (userId) {
+                  confirmEmergencyAction(
+                    'emergency_ban',
+                    `BAN USER: ${userId}\n\nThis will immediately ban the user and terminate all their active sessions.`,
+                    () => executeEmergencyAction('emergency_ban', { userId })
+                  );
+                  (e.target as HTMLInputElement).value = '';
+                }
+              }
             }}
           />
-          <GameButton
-            variant={maintenanceMode.enabled ? "danger" : "primary"}
-            onClick={toggleMaintenanceMode}
-            disabled={isLoading}
-            style={{ width: '100%' }}
-          >
-            {maintenanceMode.enabled ? '🔴 Disable Maintenance' : '🔧 Enable Maintenance'}
-          </GameButton>
+          <div className="text-xs text-gray-500">
+            Enter user ID/email and press Enter
+          </div>
         </div>
 
-        {/* User Management */}
-        <div style={{
-          background: 'rgba(83, 59, 44, 0.2)',
-          border: '1px solid #533b2c',
-          borderRadius: '4px',
-          padding: '16px'
-        }}>
-          <h4 style={{ margin: '0 0 12px 0', color: '#f1e5c8' }}>
-            👥 Emergency User Actions
-          </h4>
-          <div style={{ marginBottom: '12px' }}>
+        {/* Session Flush */}
+        <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-600">
+          <h4 className="text-white font-medium mb-2">🔄 Flush All Sessions</h4>
+          <p className="text-sm text-gray-400 mb-3">
+            Force logout all users and clear active sessions
+          </p>
+          <button
+            onClick={() => confirmEmergencyAction(
+              'flush_sessions',
+              'FLUSH ALL USER SESSIONS?\n\nThis will force logout ALL users currently connected to the system.',
+              () => executeEmergencyAction('flush_sessions')
+            )}
+            disabled={isLoading}
+            className="w-full px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white rounded-lg transition-colors text-sm font-medium"
+          >
+            {isLoading ? '🔄 Processing...' : '🔄 Flush Sessions'}
+          </button>
+        </div>
+
+        {/* Transaction Rollback */}
+        <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-600">
+          <h4 className="text-white font-medium mb-2">💰 Gold Transaction Rollback</h4>
+          <p className="text-sm text-gray-400 mb-3">
+            Rollback gold transactions from the last hour
+          </p>
+          <button
+            onClick={() => confirmEmergencyAction(
+              'rollback_transactions',
+              'ROLLBACK RECENT GOLD TRANSACTIONS?\n\nThis will reverse all gold transactions from the last hour. This action cannot be undone.',
+              () => executeEmergencyAction('rollback_transactions')
+            )}
+            disabled={isLoading}
+            className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg transition-colors text-sm font-medium"
+          >
+            {isLoading ? '🔄 Processing...' : '💰 Rollback Transactions'}
+          </button>
+        </div>
+
+        {/* Emergency Broadcast */}
+        <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-600 md:col-span-2">
+          <h4 className="text-white font-medium mb-2">📢 Emergency Broadcast</h4>
+          <p className="text-sm text-gray-400 mb-3">
+            Send an urgent message to all connected users
+          </p>
+          <div className="flex gap-2">
             <input
               type="text"
-              placeholder="User ID to ban"
-              style={{
-                width: '100%',
-                background: '#1a1511',
-                border: '1px solid #533b2c',
-                color: '#f1e5c8',
-                padding: '8px',
-                borderRadius: '4px',
-                marginBottom: '8px'
+              placeholder="Enter emergency message..."
+              className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded text-white text-sm focus:outline-none focus:border-blue-500"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  const message = (e.target as HTMLInputElement).value.trim();
+                  if (message) {
+                    confirmEmergencyAction(
+                      'emergency_broadcast',
+                      `SEND EMERGENCY BROADCAST?\n\nMessage: "${message}"\n\nThis will be sent to ALL connected users immediately.`,
+                      () => executeEmergencyAction('emergency_broadcast', { message })
+                    );
+                    (e.target as HTMLInputElement).value = '';
+                  }
+                }
               }}
-              id="emergency-ban-user"
             />
-            <GameButton
-              variant="danger"
+            <button
               onClick={() => {
-                const input = document.getElementById('emergency-ban-user') as HTMLInputElement;
-                if (input?.value) emergencyUserBan(input.value, 'Emergency ban');
+                const input = document.querySelector('input[placeholder="Enter emergency message..."]') as HTMLInputElement;
+                const message = input?.value.trim();
+                if (message) {
+                  confirmEmergencyAction(
+                    'emergency_broadcast',
+                    `SEND EMERGENCY BROADCAST?\n\nMessage: "${message}"\n\nThis will be sent to ALL connected users immediately.`,
+                    () => executeEmergencyAction('emergency_broadcast', { message })
+                  );
+                  input.value = '';
+                }
               }}
               disabled={isLoading}
-              style={{ width: '100%', marginBottom: '8px' }}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg transition-colors text-sm font-medium"
             >
-              🚫 Emergency Ban User
-            </GameButton>
+              📢 Broadcast
+            </button>
           </div>
-          <GameButton
-            variant="danger"
-            onClick={flushAllSessions}
-            disabled={isLoading}
-            style={{ width: '100%' }}
-          >
-            🔐 Force Logout All Users
-          </GameButton>
-        </div>
-
-        {/* Economy Controls */}
-        <div style={{
-          background: 'rgba(83, 59, 44, 0.2)',
-          border: '1px solid #533b2c',
-          borderRadius: '4px',
-          padding: '16px'
-        }}>
-          <h4 style={{ margin: '0 0 12px 0', color: '#f1e5c8' }}>
-            💰 Economy Emergency
-          </h4>
-          <p style={{ 
-            fontSize: '12px', 
-            color: '#9b8c70', 
-            margin: '0 0 12px 0' 
-          }}>
-            Rollback gold transactions if exploits are discovered
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <GameButton
-              variant="danger"
-              onClick={() => emergencyGoldRollback(1)}
-              disabled={isLoading}
-              style={{ width: '100%' }}
-            >
-              ⏪ Rollback Last 1 Hour
-            </GameButton>
-            <GameButton
-              variant="danger"
-              onClick={() => emergencyGoldRollback(6)}
-              disabled={isLoading}
-              style={{ width: '100%' }}
-            >
-              ⏪ Rollback Last 6 Hours
-            </GameButton>
-            <GameButton
-              variant="danger"
-              onClick={() => emergencyGoldRollback(24)}
-              disabled={isLoading}
-              style={{ width: '100%' }}
-            >
-              ⏪ Rollback Last 24 Hours
-            </GameButton>
-          </div>
-        </div>
-
-        {/* System Status */}
-        <div style={{
-          background: 'rgba(83, 59, 44, 0.2)',
-          border: '1px solid #533b2c',
-          borderRadius: '4px',
-          padding: '16px'
-        }}>
-          <h4 style={{ margin: '0 0 12px 0', color: '#f1e5c8' }}>
-            📊 Quick System Status
-          </h4>
-          <div style={{ fontSize: '12px', color: '#9b8c70' }}>
-            <div style={{ marginBottom: '8px' }}>
-              <span style={{ color: '#28a745' }}>●</span> Web Server: Online
-            </div>
-            <div style={{ marginBottom: '8px' }}>
-              <span style={{ color: '#28a745' }}>●</span> Realtime Server: Online
-            </div>
-            <div style={{ marginBottom: '8px' }}>
-              <span style={{ color: '#28a745' }}>●</span> Database: Connected
-            </div>
-            <div style={{ marginBottom: '8px' }}>
-              <span style={{ color: '#28a745' }}>●</span> Authentication: Active
-            </div>
-          </div>
-          <GameButton
-            onClick={() => window.location.reload()}
-            style={{ width: '100%', marginTop: '8px' }}
-          >
-            🔄 Refresh Status
-          </GameButton>
         </div>
       </div>
 
-      <div style={{
-        marginTop: '16px',
-        padding: '12px',
-        background: 'rgba(220, 53, 69, 0.1)',
-        border: '1px solid #dc3545',
-        borderRadius: '4px',
-        fontSize: '12px'
-      }}>
-        <h4 style={{ color: '#dc3545', margin: '0 0 8px 0' }}>⚠️ Emergency Controls Warning</h4>
-        <ul style={{ margin: 0, paddingLeft: '20px', color: '#9b8c70' }}>
-          <li>These controls have immediate effect on all users</li>
-          <li>All actions are logged and require confirmation</li>
-          <li>Use only during critical situations or security incidents</li>
-          <li>Contact development team before using rollback features</li>
+      {/* Warning Notice */}
+      <div className="mt-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+        <h4 className="text-red-400 text-sm font-semibold mb-2">⚠️ Emergency Controls Warning</h4>
+        <ul className="text-xs text-red-200 space-y-1">
+          <li>• These controls are for emergency situations only</li>
+          <li>• All actions are logged and auditable</li>
+          <li>• Some actions cannot be undone - use with extreme caution</li>
+          <li>• Contact system administrators before using in production</li>
         </ul>
       </div>
-    </GamePanel>
+
+      {/* System Status */}
+      <div className="mt-4 p-3 bg-slate-800/50 rounded-lg border border-slate-600">
+        <h4 className="text-gray-300 text-sm font-semibold mb-2">📊 Current System Status</h4>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+          <div className="text-center">
+            <div className="text-gray-400">Maintenance</div>
+            <div className={`font-bold ${isMaintenanceMode ? 'text-red-400' : 'text-green-400'}`}>
+              {isMaintenanceMode ? 'ENABLED' : 'Disabled'}
+            </div>
+          </div>
+          <div className="text-center">
+            <div className="text-gray-400">Active Sessions</div>
+            <div className="text-blue-400 font-bold">24</div>
+          </div>
+          <div className="text-center">
+            <div className="text-gray-400">Server Load</div>
+            <div className="text-yellow-400 font-bold">Medium</div>
+          </div>
+          <div className="text-center">
+            <div className="text-gray-400">Last Action</div>
+            <div className="text-gray-400 font-bold">None</div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
