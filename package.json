@@ -32,10 +32,10 @@
     "typecheck:web": "npm --prefix apps/web run typecheck",
     "typecheck:realtime": "npm --prefix apps/realtime run typecheck",
     "typecheck:worker": "npm --prefix apps/worker run typecheck",
-    "prisma:generate": "npx prisma generate",
-    "prisma:migrate": "npx prisma migrate dev",
-    "prisma:migrate:deploy": "npx prisma migrate deploy",
-    "postinstall": "npx prisma generate",
+    "prisma:generate": "npm --prefix packages/database run generate",
+    "prisma:migrate": "npm --prefix packages/database run migrate",
+    "prisma:migrate:deploy": "npm --prefix packages/database run migrate:deploy",
+    "postinstall": "npm --prefix packages/database run generate",
     "prisma:seed": "tsx prisma/seed.ts"
   },
   "prisma": {
