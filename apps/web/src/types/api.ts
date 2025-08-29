@@ -463,11 +463,11 @@ export interface CreateFeedbackRequest {
 export type FeedbackResponse = ApiResponse<Feedback>;
 
 // Next.js API Route Handler Types
-export type NextApiHandler<T = any> = (
+export type NextApiHandler = (
   request: Request
 ) => Promise<Response>;
 
-export type AuthenticatedApiHandler<T = any> = (
+export type AuthenticatedApiHandler = (
   request: Request,
   user: AuthUser
 ) => Promise<Response>;

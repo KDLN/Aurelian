@@ -1,14 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import GameLayout from '@/components/GameLayout';
 import { useUserData } from '@/hooks/useUserData';
 
+type HelpSectionKey = 'getting-started' | 'trading' | 'missions' | 'guilds' | 'crafting' | 'inventory' | 'shortcuts';
+
 export default function HelpPage() {
   const { user } = useUserData();
-  const [selectedSection, setSelectedSection] = useState('getting-started');
+  const [selectedSection, setSelectedSection] = useState<HelpSectionKey>('getting-started');
 
-  const helpSections = {
+  const helpSections: Record<HelpSectionKey, { title: string; icon: string; content: React.JSX.Element }> = {
     'getting-started': {
       title: 'Getting Started',
       icon: '🌟',
@@ -251,7 +253,7 @@ export default function HelpPage() {
         {Object.entries(helpSections).map(([key, section]) => (
           <button
             key={key}
-            onClick={() => setSelectedSection(key)}
+            onClick={() => setSelectedSection(key as HelpSectionKey)}
             className={`game-btn ${selectedSection === key ? 'game-btn-primary' : ''}`}
             style={{ 
               textAlign: 'left', 

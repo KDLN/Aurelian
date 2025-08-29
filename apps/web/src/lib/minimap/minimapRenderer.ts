@@ -153,7 +153,7 @@ export class MinimapRenderer {
   }
 
   render() {
-    const { ctx, canvas, config, areas, players } = this;
+    const { ctx, canvas, config } = this;
     
     // Clear canvas
     ctx.fillStyle = '#1a1511';

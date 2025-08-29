@@ -92,8 +92,8 @@ export class GameRenderer {
       
       // Stop moving animation after a short delay
       if (player.isMoving) {
-        const timeSinceMove = Date.now(); // This would need proper time tracking
         // For now, we'll rely on position updates to determine movement
+        // TODO: Implement proper time tracking for movement animation
       }
     });
   }

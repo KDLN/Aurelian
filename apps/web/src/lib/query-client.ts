@@ -1,4 +1,4 @@
-import { QueryClient } from '@tanstack/react-query';
+import { QueryClient, QueryCache, MutationCache } from '@tanstack/react-query';
 
 // Global error handler for React Query
 const globalErrorHandler = (error: unknown) => {
@@ -23,6 +23,12 @@ const globalErrorHandler = (error: unknown) => {
 };
 
 export const queryClient = new QueryClient({
+  queryCache: new QueryCache({
+    onError: globalErrorHandler,
+  }),
+  mutationCache: new MutationCache({
+    onError: globalErrorHandler,
+  }),
   defaultOptions: {
     queries: {
       staleTime: 2 * 60 * 1000, // 2 minutes - shorter for more responsive updates
@@ -39,7 +45,6 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: 'always', // Always refetch when user returns to tab
       refetchOnMount: true, // Only refetch if stale
       refetchOnReconnect: true, // Refetch when network reconnects
-      onError: globalErrorHandler, // Global error handling for queries
     },
     mutations: {
       retry: (failureCount, error: any) => {
@@ -50,7 +55,6 @@ export const queryClient = new QueryClient({
         return failureCount < 1; // Only retry once
       },
       retryDelay: 1000, // Quick retry for mutations
-      onError: globalErrorHandler, // Global error handling for mutations
     },
   },
 });

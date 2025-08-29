@@ -93,7 +93,7 @@ export class CharacterSprite {
     const frameDurations = this.getFrameDurations();
     const currentFrameDuration = frameDurations[this.currentFrame];
 
-    if (this.animationTime >= currentFrameDuration) {
+    if (currentFrameDuration && this.animationTime >= currentFrameDuration) {
       this.animationTime -= currentFrameDuration;
       this.currentFrame = (this.currentFrame + 1) % frameDurations.length;
     }
@@ -152,6 +152,7 @@ export class CharacterSprite {
       if (!sheet || !sheet.image.complete) return;
 
       const frame = spriteLoader.getFrame(sheet, col, row);
+      if (!frame) return;
       
       // Mana Seed sprites are designed to be drawn directly on top of each other
       // No offset calculations needed - just center the 64x64 frame
