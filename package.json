@@ -12,7 +12,7 @@
     "dev:worker": "npm --prefix apps/worker run dev",
     "build": "npm run prisma:generate && npm run typecheck && npm run lint && npm run build:all",
     "build:all": "npm run build:web && npm run build:realtime && npm run build:worker",
-    "build:web": "npm run prisma:generate && npm --prefix apps/web run build",
+    "build:web": "npm --prefix packages/database run build && npm --prefix apps/web run build",
     "build:realtime": "npm run prisma:generate && npm --prefix apps/realtime run build",
     "build:worker": "npm run prisma:generate && npm --prefix apps/worker run build",
     "test": "npm run test:web && npm run test:realtime && npm run test:worker",
@@ -35,7 +35,7 @@
     "prisma:generate": "npm --prefix packages/database run generate",
     "prisma:migrate": "npm --prefix packages/database run migrate",
     "prisma:migrate:deploy": "npm --prefix packages/database run migrate:deploy",
-    "postinstall": "npm --prefix packages/database run generate",
+    "postinstall": "npm --prefix packages/database run build",
     "prisma:seed": "tsx prisma/seed.ts"
   },
   "prisma": {

@@ -5,13 +5,14 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "npm run generate && tsc",
     "dev": "tsc --watch",
     "generate": "prisma generate",
     "migrate": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
     "migrate:status": "prisma migrate status",
-    "studio": "prisma studio"
+    "studio": "prisma studio",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@prisma/client": "^6.14.0",
