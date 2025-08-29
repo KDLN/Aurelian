@@ -82,14 +82,37 @@ export default function AdminDashboard() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      // TODO: Implement dashboard stats API
-      // For now, show mock data structure
+      const response = await fetch('/api/admin/dashboard/stats', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+
+      if (response.ok) {
+        const { data: statsData } = await response.json();
+        setStats({
+          totalUsers: statsData.totalUsers,
+          activeUsers: statsData.activeUsers,
+          totalErrors: statsData.totalErrors,
+          criticalAlerts: statsData.criticalAlerts,
+          serverUptime: statsData.serverUptime,
+          lastUpdated: new Date(statsData.lastUpdated).toLocaleTimeString()
+        });
+      } else {
+        console.error('Failed to load dashboard stats');
+        // Keep existing stats if API call fails
+        setStats(prev => ({
+          ...prev,
+          lastUpdated: new Date().toLocaleTimeString()
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading dashboard stats:', error);
+      // Keep existing stats if API call fails
       setStats(prev => ({
         ...prev,
         lastUpdated: new Date().toLocaleTimeString()
       }));
-    } catch (error) {
-      // Error loading dashboard stats
     }
   };
 

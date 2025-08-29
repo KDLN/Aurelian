@@ -1,6 +1,18 @@
 
 import express, { Request, Response } from 'express';
+import { workerEnv } from './env';
 import { guildCleanupService } from './services/guildCleanup';
+
+// Validate environment variables at startup
+console.log('🔧 Validating environment variables...');
+try {
+  const env = workerEnv;
+  console.log('✅ Environment validation successful');
+  console.log(`🚀 Starting worker service on port ${env.PORT}`);
+} catch (error) {
+  console.error('❌ Environment validation failed:', error);
+  process.exit(1);
+}
 
 const app = express();
 app.use(express.json());
@@ -41,9 +53,8 @@ setInterval(() => {
   console.log('[tick] world updated'); 
 }, 5000);
 
-const port = Number(process.env.PORT || 8080);
-app.listen(port, () => {
-  console.log(`✅ Worker listening on port ${port}`);
+app.listen(workerEnv.PORT, workerEnv.HOST, () => {
+  console.log(`✅ Worker service ready on ${workerEnv.HOST}:${workerEnv.PORT}`);
   console.log('🧹 Guild cleanup service started');
 });
 

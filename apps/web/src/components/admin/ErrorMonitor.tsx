@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabaseClient';
 
 interface ErrorLog {
   id: string;
@@ -43,39 +44,25 @@ export default function ErrorMonitor({ isAdmin }: ErrorMonitorProps) {
   const loadRecentErrors = async () => {
     try {
       setIsLoading(true);
-      // TODO: Implement API endpoint to fetch recent errors from logs
-      // For now, show mock data for demonstration
-      const mockErrors: ErrorLog[] = [
-        {
-          id: '1',
-          timestamp: new Date(Date.now() - 300000).toISOString(),
-          level: 'error',
-          message: 'Database connection timeout',
-          context: {
-            action: 'user_login',
-            resource: 'database',
-            error: {
-              name: 'TimeoutError',
-              message: 'Connection timed out after 5000ms'
-            }
-          },
-          resolved: false
-        },
-        {
-          id: '2',
-          timestamp: new Date(Date.now() - 600000).toISOString(),
-          level: 'warn',
-          message: 'High memory usage detected',
-          context: {
-            resource: 'server',
-            action: 'memory_check'
-          },
-          resolved: true
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const response = await fetch(`/api/admin/logs/errors?filter=${filter}&limit=50`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
         }
-      ];
-      setErrors(mockErrors);
+      });
+
+      if (response.ok) {
+        const { data } = await response.json();
+        setErrors(data.errors || []);
+      } else {
+        console.error('Failed to load error logs');
+        setErrors([]);
+      }
     } catch (error) {
       console.error('Error loading errors:', error);
+      setErrors([]);
     } finally {
       setIsLoading(false);
     }
@@ -83,12 +70,28 @@ export default function ErrorMonitor({ isAdmin }: ErrorMonitorProps) {
 
   const markAsResolved = async (errorId: string) => {
     try {
-      // TODO: Implement API to mark error as resolved
-      setErrors(prev => prev.map(error => 
-        error.id === errorId 
-          ? { ...error, resolved: true }
-          : error
-      ));
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const response = await fetch('/api/admin/logs/errors', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ errorId, resolved: true })
+      });
+
+      if (response.ok) {
+        // Update local state optimistically
+        setErrors(prev => prev.map(error => 
+          error.id === errorId 
+            ? { ...error, resolved: true }
+            : error
+        ));
+      } else {
+        console.error('Failed to mark error as resolved');
+      }
     } catch (error) {
       console.error('Error updating error status:', error);
     }

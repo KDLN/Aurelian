@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabaseClient';
 
 interface EmergencyControlsProps {
   isAdmin: boolean;
@@ -10,34 +11,77 @@ export default function EmergencyControls({ isAdmin }: EmergencyControlsProps) {
   const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [confirmAction, setConfirmAction] = useState<string | null>(null);
+  const [systemStatus, setSystemStatus] = useState({
+    activeSessions: 0,
+    serverLoad: 'unknown',
+    lastAction: 'None'
+  });
+
+  useEffect(() => {
+    if (isAdmin) {
+      loadSystemStatus();
+    }
+  }, [isAdmin]);
+
+  const loadSystemStatus = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const response = await fetch('/api/admin/emergency', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+
+      if (response.ok) {
+        const { data } = await response.json();
+        setIsMaintenanceMode(data.maintenanceMode || false);
+        setSystemStatus({
+          activeSessions: data.activeSessions || 0,
+          serverLoad: data.serverLoad || 'unknown',
+          lastAction: data.lastEmergencyAction || 'None'
+        });
+      }
+    } catch (error) {
+      console.error('Error loading system status:', error);
+    }
+  };
 
   const executeEmergencyAction = async (action: string, params?: any) => {
     if (!isAdmin) return;
     
     setIsLoading(true);
     try {
-      // TODO: Implement actual API calls for emergency actions
-      switch (action) {
-        case 'maintenance_mode':
-          setIsMaintenanceMode(!isMaintenanceMode);
-          break;
-        case 'emergency_ban':
-          // Ban user immediately
-          break;
-        case 'flush_sessions':
-          // Force logout all users
-          break;
-        case 'rollback_transactions':
-          // Rollback recent gold transactions
-          break;
-        case 'emergency_broadcast':
-          // Send emergency message to all users
-          break;
-        default:
-          console.log(`Emergency action: ${action}`, params);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const response = await fetch('/api/admin/emergency', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ action, params })
+      });
+
+      if (response.ok) {
+        const { data } = await response.json();
+        
+        // Update local state based on action
+        if (action === 'maintenance_mode') {
+          setIsMaintenanceMode(data.result.maintenanceMode);
+        }
+        
+        alert(`Emergency action "${action}" executed successfully`);
+        
+        // Refresh system status
+        loadSystemStatus();
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Emergency action failed');
       }
       
-      alert(`Emergency action "${action}" executed successfully`);
       setConfirmAction(null);
     } catch (error) {
       console.error('Emergency action failed:', error);
@@ -234,15 +278,18 @@ export default function EmergencyControls({ isAdmin }: EmergencyControlsProps) {
           </div>
           <div className="text-center">
             <div className="text-gray-400">Active Sessions</div>
-            <div className="text-blue-400 font-bold">24</div>
+            <div className="text-blue-400 font-bold">{systemStatus.activeSessions}</div>
           </div>
           <div className="text-center">
             <div className="text-gray-400">Server Load</div>
-            <div className="text-yellow-400 font-bold">Medium</div>
+            <div className={`font-bold ${
+              systemStatus.serverLoad === 'high' ? 'text-red-400' :
+              systemStatus.serverLoad === 'medium' ? 'text-yellow-400' : 'text-green-400'
+            }`}>{systemStatus.serverLoad}</div>
           </div>
           <div className="text-center">
             <div className="text-gray-400">Last Action</div>
-            <div className="text-gray-400 font-bold">None</div>
+            <div className="text-gray-400 font-bold">{systemStatus.lastAction}</div>
           </div>
         </div>
       </div>

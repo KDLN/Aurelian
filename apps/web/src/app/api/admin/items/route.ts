@@ -1,43 +1,44 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { apiSuccess, apiError, withErrorHandler, validateRequestBody } from '@/lib/api/server-utils';
+import { CreateItemSchema } from '@/lib/api/schemas';
+import type { ItemsResponse, ItemResponse, CreateItemRequest } from '@/types/api';
 
-export async function GET() {
-  try {
-    const items = await prisma.itemDef.findMany({
-      orderBy: { name: 'asc' },
-    });
+export const GET = withErrorHandler(async (): Promise<NextResponse<ItemsResponse>> => {
+  const items = await prisma.itemDef.findMany({
+    orderBy: { name: 'asc' },
+  });
 
-    return NextResponse.json(items);
-  } catch (error) {
-    console.error('Admin items GET error:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch items' },
-      { status: 500 }
-    );
+  return apiSuccess(items);
+});
+
+export const POST = withErrorHandler(async (request: NextRequest): Promise<NextResponse<ItemResponse>> => {
+  const validation = await validateRequestBody(request, CreateItemSchema);
+  
+  if ('error' in validation) {
+    return validation.error;
   }
-}
 
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const { key, name, rarity, stack, meta } = body;
+  const { key, name, rarity, stack, meta } = validation.data;
 
-    const item = await prisma.itemDef.create({
-      data: {
-        key,
-        name,
-        rarity,
-        stack: stack || 1,
-        meta: meta || undefined,
-      },
-    });
+  // Check if item key already exists
+  const existingItem = await prisma.itemDef.findFirst({
+    where: { key }
+  });
 
-    return NextResponse.json(item);
-  } catch (error) {
-    console.error('Admin items POST error:', error);
-    return NextResponse.json(
-      { error: 'Failed to create item' },
-      { status: 500 }
-    );
+  if (existingItem) {
+    return apiError('Item with this key already exists', 400);
   }
-}
+
+  const item = await prisma.itemDef.create({
+    data: {
+      key,
+      name,
+      rarity,
+      stack,
+      meta,
+    },
+  });
+
+  return apiSuccess(item, 'Item created successfully');
+});

@@ -1,50 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { prisma } from '@/lib/prisma';
+import { apiSuccess, apiError, withAuth } from '@/lib/api/server-utils';
+import type { ProfileResponse, AuthUser } from '@/types/api';
 
 export const dynamic = 'force-dynamic';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
 // GET - Get user profile
-export async function GET(request: NextRequest) {
-  try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    
-    if (!token) {
-      return NextResponse.json({ error: 'No token provided' }, { status: 401 });
+export const GET = withAuth(async (request: NextRequest, user: AuthUser): Promise<NextResponse<ProfileResponse>> => {
+  // Get user profile
+  const profile = await prisma.profile.findUnique({
+    where: { userId: user.id },
+    select: {
+      id: true,
+      display: true,
+      avatar: true,
+      createdAt: true
     }
+  });
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
+  // Return default profile if none exists
+  const profileData = profile || {
+    id: '',
+    display: 'Trader',
+    avatar: null,
+    createdAt: new Date().toISOString()
+  };
 
-    // Get user profile
-    const profile = await prisma.profile.findUnique({
-      where: { userId: user.id },
-      select: {
-        id: true,
-        display: true,
-        avatar: true,
-        createdAt: true
-      }
-    });
-
-    return NextResponse.json({
-      success: true,
-      profile: profile || { display: 'Trader', avatar: null }
-    });
-
-  } catch (error) {
-    console.error('Error fetching profile:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch profile' },
-      { status: 500 }
-    );
-  }
-}
+  return apiSuccess({ profile: profileData });
+});

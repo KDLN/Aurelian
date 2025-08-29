@@ -20,7 +20,7 @@
     "express": "^4.19.2",
     "ws": "^8.18.0",
     "jose": "^5.9.6",
-    "@prisma/client": "^6.13.0",
+    "@aurelian/database": "file:../../packages/database",
     "@supabase/supabase-js": "^2.48.1"
   },
   "devDependencies": {

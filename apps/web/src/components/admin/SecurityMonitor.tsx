@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabaseClient';
 
 interface SecurityAlert {
   id: string;
@@ -37,33 +38,25 @@ export default function SecurityMonitor({ isAdmin }: SecurityMonitorProps) {
   const loadSecurityAlerts = async () => {
     try {
       setIsLoading(true);
-      // TODO: Implement API endpoint for security alerts
-      // For now, show mock data for demonstration
-      const mockAlerts: SecurityAlert[] = [
-        {
-          id: '1',
-          type: 'suspicious_login',
-          severity: 'high',
-          timestamp: new Date(Date.now() - 120000).toISOString(),
-          message: 'Multiple failed login attempts from same IP',
-          ipAddress: '192.168.1.100',
-          userAgent: 'Chrome/91.0 (automated)',
-          acknowledged: false
-        },
-        {
-          id: '2',
-          type: 'rate_limit_exceeded',
-          severity: 'medium',
-          timestamp: new Date(Date.now() - 300000).toISOString(),
-          message: 'API rate limit exceeded',
-          userId: 'user-abc123',
-          ipAddress: '10.0.0.1',
-          acknowledged: true
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const response = await fetch(`/api/admin/security/alerts?filter=${filter}&limit=50`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
         }
-      ];
-      setAlerts(mockAlerts);
+      });
+
+      if (response.ok) {
+        const { data } = await response.json();
+        setAlerts(data.alerts || []);
+      } else {
+        console.error('Failed to load security alerts');
+        setAlerts([]);
+      }
     } catch (error) {
       console.error('Error loading security alerts:', error);
+      setAlerts([]);
     } finally {
       setIsLoading(false);
     }
@@ -71,12 +64,28 @@ export default function SecurityMonitor({ isAdmin }: SecurityMonitorProps) {
 
   const acknowledgeAlert = async (alertId: string) => {
     try {
-      // TODO: Implement API to acknowledge alert
-      setAlerts(prev => prev.map(alert => 
-        alert.id === alertId 
-          ? { ...alert, acknowledged: true }
-          : alert
-      ));
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const response = await fetch('/api/admin/security/alerts', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ alertId, acknowledged: true })
+      });
+
+      if (response.ok) {
+        // Update local state optimistically
+        setAlerts(prev => prev.map(alert => 
+          alert.id === alertId 
+            ? { ...alert, acknowledged: true }
+            : alert
+        ));
+      } else {
+        console.error('Failed to acknowledge alert');
+      }
     } catch (error) {
       console.error('Error acknowledging alert:', error);
     }
