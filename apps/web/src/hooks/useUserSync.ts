@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { logger } from '@/lib/logger';
 
 export function useUserSync() {
   const [user, setUser] = useState<any>(null);
@@ -52,7 +53,7 @@ export function useUserSync() {
       const result = await response.json();
       
       if (result.success) {
-        console.log('User synced successfully:', result.message);
+        logger.info('User synced successfully', { message: result.message });
         setIsSynced(true);
       } else {
         console.error('Sync failed:', result.error);

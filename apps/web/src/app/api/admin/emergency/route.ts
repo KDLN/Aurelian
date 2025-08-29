@@ -17,10 +17,10 @@ export const GET = withAuth(async (request: NextRequest, user: AuthUser): Promis
     // Check admin access first
     const adminUser = await prisma.user.findUnique({
       where: { id: user.id },
-      select: { role: true }
+      select: { isAdmin: true }
     });
 
-    if (!adminUser || adminUser.role !== 'ADMIN') {
+    if (!adminUser || !adminUser.isAdmin) {
       return apiError('Admin access required', 403);
     }
 
@@ -46,10 +46,10 @@ export const POST = withAuth(async (request: NextRequest, user: AuthUser): Promi
     // Check admin access first
     const adminUser = await prisma.user.findUnique({
       where: { id: user.id },
-      select: { role: true }
+      select: { isAdmin: true }
     });
 
-    if (!adminUser || adminUser.role !== 'ADMIN') {
+    if (!adminUser || !adminUser.isAdmin) {
       return apiError('Admin access required', 403);
     }
 

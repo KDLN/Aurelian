@@ -20,20 +20,20 @@ export const GET = withAuth(async (request: NextRequest, user: AuthUser): Promis
     // Check admin access first
     const adminUser = await prisma.user.findUnique({
       where: { id: user.id },
-      select: { role: true }
+      select: { isAdmin: true }
     });
 
-    if (!adminUser || adminUser.role !== 'ADMIN') {
+    if (!adminUser || !adminUser.isAdmin) {
       return apiError('Admin access required', 403);
     }
 
     // Get total users count
     const totalUsers = await prisma.user.count();
 
-    // Get active users (users who logged in within last 24 hours)
+    // Get active users (users who have updated recently - approximation for activity)
     const activeUsers = await prisma.user.count({
       where: {
-        lastActiveAt: {
+        updatedAt: {
           gte: new Date(Date.now() - 24 * 60 * 60 * 1000) // Last 24 hours
         }
       }

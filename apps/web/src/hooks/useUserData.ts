@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { logger } from '@/lib/logger';
 
 interface WalletData {
   gold: number;
@@ -99,10 +100,11 @@ export function useUserData() {
       const walletData = await walletResponse.json();
       const inventoryData = await inventoryResponse.json();
 
-      console.log('useUserData: wallet response:', walletData);
-      console.log('useUserData: inventory response:', inventoryData);
-      console.log('useUserData: inventory.inventory array:', inventoryData?.inventory);
-      console.log('useUserData: inventory total items:', inventoryData?.totalItems);
+      logger.debug('User data loaded', {
+        walletExists: !!walletData,
+        inventoryItems: inventoryData?.totalItems || 0,
+        inventoryArrayLength: inventoryData?.inventory?.length || 0
+      });
 
       setWallet(walletData);
       setInventory(inventoryData);

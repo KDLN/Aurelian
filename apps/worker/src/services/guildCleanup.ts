@@ -1,22 +1,23 @@
 import { prisma } from '../utils/prisma';
+import { logger } from '../utils/logger';
 
 export class GuildCleanupService {
   private isRunning = false;
   private intervalId?: NodeJS.Timeout;
 
   constructor() {
-    console.log('Guild Cleanup Service initialized');
+    logger.info('Guild Cleanup Service initialized');
   }
 
   // Start the cleanup service
   start() {
     if (this.isRunning) {
-      console.log('Guild cleanup service is already running');
+      logger.info('Guild cleanup service is already running');
       return;
     }
 
     this.isRunning = true;
-    console.log('Starting guild cleanup service...');
+    logger.info('Starting guild cleanup service...');
 
     // Run immediately on start
     this.runCleanup().catch(error => {
@@ -42,19 +43,19 @@ export class GuildCleanupService {
       clearInterval(this.intervalId);
       this.intervalId = undefined;
     }
-    console.log('Guild cleanup service stopped');
+    logger.info('Guild cleanup service stopped');
   }
 
   // Main cleanup method
   private async runCleanup() {
     const startTime = Date.now();
-    console.log('🧹 Starting guild cleanup tasks...');
+    logger.cleanup('Starting guild cleanup tasks...');
 
     try {
       const results = await this.performCleanupTasks();
       
       const duration = Date.now() - startTime;
-      console.log(`✅ Guild cleanup completed in ${duration}ms:`, results);
+      logger.cleanup('Guild cleanup completed', { duration, results });
 
       // Log cleanup results to database
       await this.logCleanupResults(results, duration);
@@ -274,8 +275,8 @@ export class GuildCleanupService {
   private async logCleanupResults(results: Record<string, any>, duration: number) {
     try {
       // Log to a system log table or external service
-      // For now, we'll just use console logging
-      console.log('Cleanup completed:', {
+      // For now, we'll just use structured logging
+      logger.info('Cleanup results logged', {
         timestamp: new Date().toISOString(),
         duration,
         results

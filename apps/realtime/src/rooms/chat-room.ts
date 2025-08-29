@@ -2,6 +2,7 @@ import { Room, Client } from 'colyseus';
 import { jwtVerify } from 'jose';
 import { prisma } from '../utils/prisma';
 import { createClient } from '@supabase/supabase-js';
+import { logger } from '../utils/logger';
 
 export interface ChatUser {
   id: string;
@@ -46,7 +47,7 @@ export abstract class ChatRoom extends Room {
   readonly MESSAGE_MAX_LENGTH = 500;
 
   onCreate(options: any) {
-    console.log(`${this.constructor.name} created with options:`, options);
+    logger.room(`${this.constructor.name} created`, { options });
     
     // Set up rate limit cleanup interval
     this.clock.setInterval(() => {
@@ -105,7 +106,7 @@ export abstract class ChatRoom extends Room {
   }
 
   onJoin(client: Client, options: any, auth: any) {
-    console.log(`User ${auth.displayName} joined ${this.constructor.name}`);
+    logger.connection(`User joined ${this.constructor.name}`, { displayName: auth.displayName, roomType: this.constructor.name });
     
     const chatUser: ChatUser = {
       id: client.id,
@@ -133,7 +134,7 @@ export abstract class ChatRoom extends Room {
     
     // Clean up rate limit data
     this.rateLimits.delete(client.sessionId);
-    console.log(`User left ${this.constructor.name}`);
+    logger.connection(`User left ${this.constructor.name}`, { roomType: this.constructor.name });
   }
 
   private setupMessageHandlers() {

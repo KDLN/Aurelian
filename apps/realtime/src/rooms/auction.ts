@@ -1,6 +1,7 @@
 import { Room } from 'colyseus';
 import type { Client } from 'colyseus';
 import { PrismaClient } from '@prisma/client';
+import { logger } from '../utils/logger';
 let prisma: PrismaClient | null = null;
 
 // Lazy initialization function for Prisma
@@ -9,7 +10,7 @@ function initPrisma(): PrismaClient | null {
   
   try {
     if (process.env.DATABASE_URL) {
-      console.log('Initializing Prisma client...');
+      logger.debug('Initializing Prisma client for auction room');
       prisma = new PrismaClient();
       return prisma;
     } else {
@@ -60,7 +61,7 @@ export class AuctionRoom extends Room {
   marketPrices: Map<string, number> = new Map();
   
   async onCreate() {
-    console.log('AuctionRoom created');
+    logger.room('AuctionRoom created');
     
     // Initialize Prisma client lazily
     prisma = initPrisma();
@@ -424,7 +425,7 @@ export class AuctionRoom extends Room {
   }
   
   async onJoin(client: Client, options: any) {
-    console.log(`Client ${client.sessionId} joined AuctionRoom`);
+    logger.connection('Client joined AuctionRoom', { sessionId: client.sessionId });
     
     // Send current state to new client
     client.send('listings', Array.from(this.listings.values()));
@@ -432,12 +433,12 @@ export class AuctionRoom extends Room {
   }
   
   onLeave(client: Client) {
-    console.log(`Client ${client.sessionId} left AuctionRoom`);
+    logger.connection('Client left AuctionRoom', { sessionId: client.sessionId });
   }
   
   async loadListings() {
     if (!prisma) {
-      console.log('No database connection, skipping listing load');
+      logger.debug('No database connection, skipping listing load');
       return;
     }
     

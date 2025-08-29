@@ -2,6 +2,7 @@ import { Room, Client } from 'colyseus';
 import { PrismaClient } from '@prisma/client';
 import { MarketPriceCalculator } from '../utils/market-price-calculator';
 import { MarketDataService } from '../services/market-data-service';
+import { logger } from '../utils/logger';
 
 interface PriceUpdate {
   itemId: string;
@@ -29,14 +30,14 @@ export class EnhancedTickerRoom extends Room {
   private isUpdatingPrices = false; // Race condition prevention
 
   async onCreate() {
-    console.log('Enhanced ticker room created');
+    logger.room('Enhanced ticker room created');
     
     // Initialize Prisma client
     try {
       if (process.env.DATABASE_URL) {
         this.prisma = new PrismaClient();
         this.marketService = new MarketDataService(this.prisma);
-        console.log('✅ Market data service initialized');
+        logger.info('Market data service initialized');
       } else {
         console.warn('⚠️  No DATABASE_URL found, running without database');
       }
@@ -62,7 +63,7 @@ export class EnhancedTickerRoom extends Room {
   }
 
   async onJoin(client: Client, options: any) {
-    console.log(`Client ${client.sessionId} joined enhanced ticker`);
+    logger.connection('Client joined enhanced ticker', { sessionId: client.sessionId });
     
     // Send current market state to new client
     const marketSummary = await this.getMarketSummary();
@@ -70,7 +71,7 @@ export class EnhancedTickerRoom extends Room {
   }
 
   onLeave(client: Client) {
-    console.log(`Client ${client.sessionId} left enhanced ticker`);
+    logger.connection('Client left enhanced ticker', { sessionId: client.sessionId });
   }
 
   private async loadInitialPrices() {
@@ -105,7 +106,7 @@ export class EnhancedTickerRoom extends Room {
         this.priceCache.set(item.id, currentPrice);
       }
       
-      console.log(`📊 Loaded initial prices for ${items.length} items`);
+      logger.info('Loaded initial prices', { itemCount: items.length });
     } catch (error) {
       console.error('Failed to load initial prices:', error);
     }
@@ -114,7 +115,7 @@ export class EnhancedTickerRoom extends Room {
   private async updateMarketPrices() {
     // Prevent race conditions with concurrent updates
     if (this.isUpdatingPrices) {
-      console.log('Price update already in progress, skipping...');
+      logger.debug('Price update already in progress, skipping');
       return;
     }
 
@@ -195,7 +196,7 @@ export class EnhancedTickerRoom extends Room {
       // Broadcast price updates
       if (updates.length > 0) {
         this.broadcast('price_updates', updates);
-        console.log(`📈 Broadcasted ${updates.length} price updates`);
+        logger.debug('Broadcasted price updates', { updateCount: updates.length });
       }
 
     } catch (error) {
@@ -287,6 +288,6 @@ export class EnhancedTickerRoom extends Room {
       await this.prisma.$disconnect();
     }
     
-    console.log('Enhanced ticker room disposed');
+    logger.room('Enhanced ticker room disposed');
   }
 }

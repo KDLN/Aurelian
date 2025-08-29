@@ -2,6 +2,7 @@
 import express, { Request, Response } from 'express';
 import { workerEnv } from './env';
 import { guildCleanupService } from './services/guildCleanup';
+import { logger } from './utils/logger';
 
 // Validate environment variables at startup
 console.log('🔧 Validating environment variables...');
@@ -50,7 +51,7 @@ guildCleanupService.start();
 
 // World simulation tick
 setInterval(() => { 
-  console.log('[tick] world updated'); 
+  logger.tick('World simulation updated');
 }, 5000);
 
 app.listen(workerEnv.PORT, workerEnv.HOST, () => {

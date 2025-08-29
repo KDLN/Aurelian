@@ -1,6 +1,7 @@
 import { Client } from 'colyseus';
 import { ChatRoom, ChatUser, ChatMessage } from './chat-room';
 import { prisma } from '../utils/prisma';
+import { logger } from '../utils/logger';
 
 export type PublicChannelType = 'GENERAL' | 'TRADE';
 
@@ -9,7 +10,7 @@ export class PublicChatRoom extends ChatRoom {
   
   onCreate(options: any) {
     this.channelType = options.channelType || 'GENERAL';
-    console.log(`PublicChatRoom created for channel: ${this.channelType}`);
+    logger.room('PublicChatRoom created', { channelType: this.channelType });
     
     // Call parent onCreate
     super.onCreate(options);
@@ -77,7 +78,11 @@ export class PublicChatRoom extends ChatRoom {
     this.broadcast('chat_message', message);
     
     // Log for debugging
-    console.log(`Broadcasting ${this.channelType} message from ${message.displayName}: ${message.content}`);
+    logger.debug('Broadcasting message', {
+      channelType: this.channelType,
+      displayName: message.displayName,
+      messageLength: message.content.length
+    });
   }
 
   protected async getMessageHistory(user: ChatUser, before?: string, limit: number = 50): Promise<ChatMessage[]> {

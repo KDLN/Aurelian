@@ -1,5 +1,6 @@
 import colyseus from 'colyseus';
 import type { Client } from 'colyseus';
+import { logger } from '../utils/logger';
 
 const { Room } = colyseus;
 
@@ -21,7 +22,7 @@ export class SimpleAuctionRoom extends Room {
   marketPrices: Map<string, number> = new Map();
   
   async onCreate() {
-    console.log('SimpleAuctionRoom created (no database)');
+    logger.room('SimpleAuctionRoom created (no database)');
     
     // Set up market price updates
     this.clock.setInterval(() => {
@@ -128,7 +129,7 @@ export class SimpleAuctionRoom extends Room {
   }
   
   async onJoin(client: Client, options: any) {
-    console.log(`Client ${client.sessionId} joined SimpleAuctionRoom`);
+    logger.connection('Client joined SimpleAuctionRoom', { sessionId: client.sessionId });
     
     // Send current state to new client
     client.send('listings', Array.from(this.listings.values()));
@@ -136,7 +137,7 @@ export class SimpleAuctionRoom extends Room {
   }
   
   onLeave(client: Client) {
-    console.log(`Client ${client.sessionId} left SimpleAuctionRoom`);
+    logger.connection('Client left SimpleAuctionRoom', { sessionId: client.sessionId });
   }
   
   updateMarketPrices() {
