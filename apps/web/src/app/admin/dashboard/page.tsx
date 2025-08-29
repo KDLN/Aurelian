@@ -54,7 +54,7 @@ export default function AdminDashboard() {
         return;
       }
 
-      const response = await fetch('/api/admin/check-access', {
+      const response = await fetch('/api/v2/admin/check-access', {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }
@@ -83,7 +83,7 @@ export default function AdminDashboard() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const response = await fetch('/api/admin/dashboard/stats', {
+      const response = await fetch('/api/v2/admin/stats', {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }

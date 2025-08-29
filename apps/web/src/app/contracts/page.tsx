@@ -32,7 +32,7 @@ export default function ContractsPage() {
       
       if (!token) return;
 
-      const response = await fetch('/api/contracts', {
+      const response = await fetch('/api/v2/trading/contracts', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -85,7 +85,7 @@ export default function ContractsPage() {
         'Relic Fragment': 'relic_fragment'
       };
 
-      const response = await fetch('/api/contracts', {
+      const response = await fetch('/api/v2/trading/contracts', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

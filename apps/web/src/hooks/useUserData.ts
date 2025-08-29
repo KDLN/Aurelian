@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { logger } from '@/lib/logger';
+import { api } from '@/lib/api/client';
 
 interface WalletData {
   gold: number;
@@ -73,32 +74,11 @@ export function useUserData() {
         throw new Error('No access token available');
       }
 
-      // Fetch wallet and inventory in parallel
-      const [walletResponse, inventoryResponse] = await Promise.all([
-        fetch('/api/user/wallet', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }),
-        fetch('/api/user/inventory?location=warehouse', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        })
+      // Fetch wallet and inventory in parallel using v2 API
+      const [walletData, inventoryData] = await Promise.all([
+        api.user.getWallet(),
+        api.user.getInventory('warehouse')
       ]);
-
-      if (!walletResponse.ok) {
-        const walletError = await walletResponse.json();
-        throw new Error(`Wallet fetch failed: ${walletError.error}`);
-      }
-      
-      if (!inventoryResponse.ok) {
-        const inventoryError = await inventoryResponse.json();
-        throw new Error(`Inventory fetch failed: ${inventoryError.error}`);
-      }
-
-      const walletData = await walletResponse.json();
-      const inventoryData = await inventoryResponse.json();
 
       logger.debug('User data loaded', {
         walletExists: !!walletData,

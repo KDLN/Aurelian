@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
+import { api } from '@/lib/api/client';
 
 interface WalletData {
   gold: number;
@@ -35,45 +36,11 @@ export const userKeys = {
 } as const;
 
 async function fetchUserWallet(): Promise<WalletData> {
-  const { data: { session }, error: authError } = await supabase.auth.getSession();
-  
-  if (authError || !session?.access_token) {
-    throw new Error('Not authenticated');
-  }
-
-  const response = await fetch('/api/user/wallet', {
-    headers: {
-      'Authorization': `Bearer ${session.access_token}`
-    }
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Failed to fetch wallet');
-  }
-
-  return response.json();
+  return api.user.getWallet();
 }
 
 async function fetchUserInventory(location: string = 'warehouse'): Promise<InventoryData> {
-  const { data: { session }, error: authError } = await supabase.auth.getSession();
-  
-  if (authError || !session?.access_token) {
-    throw new Error('Not authenticated');
-  }
-
-  const response = await fetch(`/api/user/inventory?location=${location}`, {
-    headers: {
-      'Authorization': `Bearer ${session.access_token}`
-    }
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Failed to fetch inventory');
-  }
-
-  return response.json();
+  return api.user.getInventory(location);
 }
 
 // Centralized auth query to avoid duplicates

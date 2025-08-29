@@ -187,23 +187,35 @@ class APIClient {
   };
 
   /**
-   * User-related API calls
+   * User-related API calls (v2)
    */
   user = {
     getProfile: () =>
-      this.get('/api/user/profile'),
+      this.get('/api/v2/user/profile'),
+    
+    updateProfile: (profileData: any) =>
+      this.put('/api/v2/user/profile', profileData),
     
     updateAvatar: (avatarData: any) =>
-      this.post('/api/user/avatar', avatarData),
+      this.put('/api/v2/user/avatar', avatarData),
     
-    getInventory: () =>
-      this.get('/api/user/inventory'),
+    getInventory: (location?: string) =>
+      this.get(location ? `/api/v2/user/inventory?location=${location}` : '/api/v2/user/inventory'),
     
     getWallet: () =>
-      this.get('/api/user/wallet'),
+      this.get('/api/v2/user/wallet'),
     
     createWallet: () =>
-      this.post('/api/user/wallet/create'),
+      this.post('/api/v2/user/wallet'),
+    
+    getStats: (period?: string) =>
+      this.get(period ? `/api/v2/user/stats?period=${period}` : '/api/v2/user/stats'),
+    
+    searchUsers: (query: string, limit?: number) =>
+      this.get(`/api/v2/user/search?q=${encodeURIComponent(query)}${limit ? `&limit=${limit}` : ''}`),
+    
+    populateStarter: () =>
+      this.post('/api/v2/user/populate-starter'),
     
     updateOnboarding: (step: string) =>
       this.post('/api/user/onboarding', { step }),
@@ -272,25 +284,63 @@ class APIClient {
   };
 
   /**
-   * Auction/Trading API calls
+   * Trading API calls (v2 - consolidated)
    */
-  auction = {
-    list: (itemKey: string, quantity: number, pricePerUnit: number) =>
-      this.post('/api/auction/list', { itemKey, quantity, pricePerUnit }),
+  trading = {
+    // Auction listings
+    getListings: (params?: { page?: number; limit?: number; itemType?: string; sortBy?: string; sortOrder?: 'asc' | 'desc' }) => {
+      const searchParams = new URLSearchParams();
+      if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined) searchParams.append(key, String(value));
+        });
+      }
+      return this.get(`/api/v2/trading/listings${searchParams.toString() ? `?${searchParams}` : ''}`);
+    },
     
-    buy: (listingId: string) =>
-      this.post('/api/auction/buy', { listingId }),
+    createListing: (listing: { itemIds: string[]; pricePerUnit: number; duration?: string }) =>
+      this.post('/api/v2/trading/listings', listing),
+    
+    // Purchase items
+    buyItem: (purchase: { listingId: string; quantity: number }) =>
+      this.post('/api/v2/trading/buy', purchase),
+    
+    // Market data
+    getMarketSummary: () =>
+      this.get('/api/v2/trading/market'),
+    
+    // Contracts
+    getContracts: (type?: 'PURCHASE' | 'SALE', status?: string) => {
+      const params = new URLSearchParams();
+      if (type) params.append('type', type);
+      if (status) params.append('status', status);
+      return this.get(`/api/v2/trading/contracts${params.toString() ? `?${params}` : ''}`);
+    },
+    
+    createContract: (contract: { type: 'PURCHASE' | 'SALE'; itemDefId: string; quantity: number; pricePerUnit: number; expiresAt: string }) =>
+      this.post('/api/v2/trading/contracts', contract),
   };
 
   /**
-   * Contract API calls
+   * @deprecated Use trading.getContracts() instead
    */
   contracts = {
     list: () =>
-      this.get('/api/contracts'),
+      this.trading.getContracts(),
     
     create: (contract: any) =>
-      this.post('/api/contracts', contract),
+      this.trading.createContract(contract),
+  };
+
+  /**
+   * @deprecated Use trading methods instead
+   */
+  auction = {
+    list: (itemKey: string, quantity: number, pricePerUnit: number) =>
+      this.trading.createListing({ itemIds: [itemKey], pricePerUnit, duration: '24h' }),
+    
+    buy: (listingId: string) =>
+      this.trading.buyItem({ listingId, quantity: 1 }),
   };
 
   /**
@@ -324,6 +374,37 @@ class APIClient {
   };
 
   /**
+   * Admin API calls (v2 - consolidated)
+   */
+  admin = {
+    // Access control
+    checkAccess: () =>
+      this.get('/api/v2/admin/check-access'),
+    
+    // Dashboard stats
+    getStats: () =>
+      this.get('/api/v2/admin/stats'),
+    
+    // User management
+    getUsers: (params?: { page?: number; limit?: number; filter?: string }) => {
+      const searchParams = new URLSearchParams();
+      if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined) searchParams.append(key, String(value));
+        });
+      }
+      return this.get(`/api/v2/admin/users${searchParams.toString() ? `?${searchParams}` : ''}`);
+    },
+    
+    deleteUser: (userId: string, reason?: string) =>
+      this.post('/api/v2/admin/delete-user', { userId, reason }),
+    
+    // Emergency actions
+    emergency: (action: string, params?: any) =>
+      this.post('/api/v2/admin/emergency', { action, ...params }),
+  };
+
+  /**
    * Inventory API calls
    */
   inventory = {
@@ -331,7 +412,7 @@ class APIClient {
       this.get('/api/inventory'),
     
     populateStarter: () =>
-      this.post('/api/user/inventory/populate-starter'),
+      this.post('/api/v2/user/populate-starter'),
   };
 
   /**

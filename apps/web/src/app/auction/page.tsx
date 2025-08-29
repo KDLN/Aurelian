@@ -52,7 +52,7 @@ export default function AuctionPage() {
   // Fetch listings from database API
   const fetchListings = async () => {
     try {
-      const response = await fetch('/api/auction/listings');
+      const response = await fetch('/api/v2/trading/listings');
       if (response.ok) {
         const data = await response.json();
         setListings(data.listings || []);
