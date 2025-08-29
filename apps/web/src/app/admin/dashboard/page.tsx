@@ -7,6 +7,7 @@ import GamePanel from '@/components/ui/GamePanel';
 import ErrorMonitor from '@/components/admin/ErrorMonitor';
 import SecurityMonitor from '@/components/admin/SecurityMonitor';
 import EmergencyControls from '@/components/admin/EmergencyControls';
+import PageErrorBoundary from '@/components/PageErrorBoundary';
 
 interface DashboardStats {
   totalUsers: number;
@@ -142,8 +143,9 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="game">
-      <div style={{ maxWidth: '1400px', margin: '20px auto', padding: '0 20px' }}>
+    <PageErrorBoundary pageName="Admin Dashboard">
+      <div className="game">
+        <div style={{ maxWidth: '1400px', margin: '20px auto', padding: '0 20px' }}>
         {/* Header */}
         <div style={{ 
           display: 'flex', 
@@ -287,6 +289,7 @@ export default function AdminDashboard() {
           Aurelian Admin Dashboard • Use responsibly • All actions are logged
         </div>
       </div>
-    </div>
+      </div>
+    </PageErrorBoundary>
   );
 }

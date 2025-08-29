@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { GameRenderer } from '../../lib/sprites/gameRenderer';
 import { loadCharacterAppearance } from '../../lib/sprites/characterOptions';
 import { FloatingChatWidget } from '@/components/chat';
+import PageErrorBoundary from '@/components/PageErrorBoundary';
 
 type P = { id:string; x:number; y:number; color?:string; name?:string };
 
@@ -118,23 +119,25 @@ export default function Play(){
   }, [players]);
 
   return (
-    <div style={{padding:16, background: '#1a1511', minHeight: '100vh', color: '#f1e5c8'}}>
-      <h1>Aurelian Trading World</h1>
-      <div style={{marginBottom: 10}}>
-        Status: <b style={{color: status === 'connected' ? '#68b06e' : '#d4621d'}}>{status}</b> — Use Arrow Keys to move
+    <PageErrorBoundary pageName="Play Game">
+      <div style={{padding:16, background: '#1a1511', minHeight: '100vh', color: '#f1e5c8'}}>
+        <h1>Aurelian Trading World</h1>
+        <div style={{marginBottom: 10}}>
+          Status: <b style={{color: status === 'connected' ? '#68b06e' : '#d4621d'}}>{status}</b> — Use Arrow Keys to move
+        </div>
+        <canvas 
+          ref={canvasRef} 
+          style={{
+            border:'4px solid #533b2c', 
+            borderRadius:8, 
+            imageRendering: 'pixelated',
+            background: '#231913'
+          }} 
+        />
+        
+        {/* Floating Chat Widget */}
+        <FloatingChatWidget />
       </div>
-      <canvas 
-        ref={canvasRef} 
-        style={{
-          border:'4px solid #533b2c', 
-          borderRadius:8, 
-          imageRendering: 'pixelated',
-          background: '#231913'
-        }} 
-      />
-      
-      {/* Floating Chat Widget */}
-      <FloatingChatWidget />
-    </div>
+    </PageErrorBoundary>
   );
 }

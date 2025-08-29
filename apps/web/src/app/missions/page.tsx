@@ -14,6 +14,7 @@ import { supabase } from '@/lib/supabaseClient';
 import HelpTooltip, { RiskTooltip, DurationTooltip } from '@/components/HelpTooltip';
 import ContributionModal from '@/components/server/ContributionModal';
 import { triggerGlobalServerMissionsRefresh } from '@/hooks/useServerMissions';
+import PageErrorBoundary from '@/components/PageErrorBoundary';
 
 export default function MissionsPage() {
   const { data, isLoading, error, refetch } = useMissions(); // Uses optimized 60s polling
@@ -310,10 +311,11 @@ export default function MissionsPage() {
   }
 
   return (
-    <GameLayout 
-      title="Mission Control" 
-      sidebar={sidebar}
-    >
+    <PageErrorBoundary pageName="Missions">
+      <GameLayout 
+        title="Mission Control" 
+        sidebar={sidebar}
+      >
       <div className="game-flex-col">
         {completionMessage && (
           <div className="game-card" style={{ backgroundColor: '#2a4d32', borderColor: '#68b06e' }}>
@@ -747,5 +749,6 @@ export default function MissionsPage() {
         />
       )}
     </GameLayout>
+    </PageErrorBoundary>
   );
 }

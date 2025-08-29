@@ -1,5 +1,27 @@
 import { QueryClient } from '@tanstack/react-query';
 
+// Global error handler for React Query
+const globalErrorHandler = (error: unknown) => {
+  if (process.env.NODE_ENV === 'development') {
+    console.error('React Query Error:', error);
+  }
+
+  // TODO: Send to error tracking service
+  // Example: Sentry.captureException(error, { tags: { source: 'react-query' } });
+
+  // Handle specific error types
+  if (error && typeof error === 'object' && 'status' in error) {
+    const status = (error as any).status;
+    
+    if (status === 401) {
+      // Redirect to login or refresh token
+      if (typeof window !== 'undefined') {
+        window.location.href = '/auth/login';
+      }
+    }
+  }
+};
+
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -17,6 +39,7 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: 'always', // Always refetch when user returns to tab
       refetchOnMount: true, // Only refetch if stale
       refetchOnReconnect: true, // Refetch when network reconnects
+      onError: globalErrorHandler, // Global error handling for queries
     },
     mutations: {
       retry: (failureCount, error: any) => {
@@ -27,6 +50,7 @@ export const queryClient = new QueryClient({
         return failureCount < 1; // Only retry once
       },
       retryDelay: 1000, // Quick retry for mutations
+      onError: globalErrorHandler, // Global error handling for mutations
     },
   },
 });
