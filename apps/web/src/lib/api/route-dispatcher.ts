@@ -57,9 +57,20 @@ async function handleRequest(
     // This handles both direct routes and parameterized routes
     const routePath = extractRoutePath(pathname);
     
+    // DEBUG LOGGING
+    console.log('🔍 Route Dispatcher Debug:', {
+      originalUrl: request.url,
+      pathname,
+      extractedPath: routePath,
+      method,
+      availableRoutes: Object.keys(routes[method] || {}),
+      hasMethodRoutes: !!routes[method]
+    });
+    
     // Find matching handler
     const methodRoutes = routes[method];
     if (!methodRoutes) {
+      console.log('❌ No method routes for', method);
       return NextResponse.json(
         { error: `Method ${method} not allowed` },
         { status: 405 }
@@ -68,10 +79,12 @@ async function handleRequest(
 
     // Try exact match first
     let handler = methodRoutes[routePath];
+    console.log('🎯 Exact match result:', { routePath, found: !!handler });
     
     // If no exact match, try pattern matching for parameterized routes
     if (!handler) {
       for (const [pattern, patternHandler] of Object.entries(methodRoutes)) {
+        console.log('🔄 Trying pattern match:', { pattern, routePath, matches: matchesPattern(routePath, pattern) });
         if (matchesPattern(routePath, pattern)) {
           handler = patternHandler;
           break;
@@ -80,16 +93,19 @@ async function handleRequest(
     }
 
     if (!handler) {
+      console.log('❌ No handler found for:', { method, routePath, availableRoutes: Object.keys(methodRoutes) });
       return NextResponse.json(
         { error: 'Endpoint not found' },
         { status: 404 }
       );
     }
 
+    console.log('✅ Handler found, calling...');
     // Call the handler with context
     return await handler(request, context);
 
   } catch (error) {
+    console.error('💥 Route dispatcher error:', error);
     return handleApiError(error, 'Route dispatcher error');
   }
 }
