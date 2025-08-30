@@ -209,8 +209,10 @@ jest.mock('@prisma/client', () => ({
   }
 }));
 
-// Mock timers globally to prevent real setInterval/setTimeout from running
-jest.useFakeTimers();
+// Use real timers by default so tests relying on actual timing
+// behavior (e.g. setTimeout in async flows) function correctly.
+// Individual tests can still switch to fake timers when needed.
+jest.useRealTimers();
 
 // Setup test cleanup to prevent async leaks
 beforeEach(() => {
