@@ -266,15 +266,19 @@ export function checkRateLimit(
   return { allowed: true };
 }
 
-// Clean up expired rate limit entries
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, value] of rateLimitStore.entries()) {
-    if (now > value.resetTime) {
-      rateLimitStore.delete(key);
+// Clean up expired rate limit entries.
+// Avoid running this interval during tests to prevent open handles
+// that keep Jest from exiting.
+if (process.env.NODE_ENV !== 'test') {
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, value] of rateLimitStore.entries()) {
+      if (now > value.resetTime) {
+        rateLimitStore.delete(key);
+      }
     }
-  }
-}, 60000); // Clean up every minute
+  }, 60000); // Clean up every minute
+}
 
 // Common guild member formatting
 export function formatGuildMember(member: any) {
