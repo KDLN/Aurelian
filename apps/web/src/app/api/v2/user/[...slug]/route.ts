@@ -1,4 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  userGetWallet,
+  userGetInventory,
+  userGetProfile
+} from '@/lib/api/services/user.service';
 
 /**
  * Consolidated User API v2
@@ -31,33 +36,34 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
   const { slug } = params;
   const endpoint = '/' + (slug?.join('/') || '');
   
-  console.log('🔍 V2 User API Debug:', {
-    slug,
-    endpoint,
-    url: request.url
-  });
   
-  // Simple test for wallet endpoint
-  if (endpoint === '/wallet') {
-    return NextResponse.json({ 
-      success: true, 
-      data: { gold: 2500, userId: 'test-user' },
-      message: 'Wallet endpoint working!'
-    });
+  try {
+    // Route to appropriate handler based on endpoint
+    switch (endpoint) {
+      case '/wallet':
+        return await userGetWallet(request);
+      
+      case '/inventory':
+        const location = new URL(request.url).searchParams.get('location') || 'warehouse';
+        // Create a new request with location parameter for the service
+        const inventoryRequest = new NextRequest(request.url, request);
+        return await userGetInventory(inventoryRequest);
+      
+      case '/profile':
+        return await userGetProfile(request);
+      
+      default:
+        return NextResponse.json({ 
+          message: 'V2 User API working!', 
+          endpoint,
+          available: ['/wallet', '/inventory', '/profile']
+        });
+    }
+  } catch (error) {
+    console.error('V2 User API Error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
-  
-  if (endpoint === '/inventory') {
-    return NextResponse.json({ 
-      success: true, 
-      data: { inventory: [], totalItems: 0, location: 'warehouse' },
-      message: 'Inventory endpoint working!'
-    });
-  }
-  
-  return NextResponse.json({ 
-    message: 'V2 User API working!', 
-    endpoint,
-    slug,
-    available: ['/wallet', '/inventory', '/profile']
-  });
 }
