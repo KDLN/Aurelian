@@ -26,18 +26,43 @@ jobs:
         run: |
           npm install
           npx prisma generate
-      - name: Build & push
+      - name: Build & push optimized image
         env:
           REGION: ${{ secrets.GCP_REGION }}
           PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
         run: |
           IMAGE_URI="$REGION-docker.pkg.dev/$PROJECT_ID/aurelian/worker:${GITHUB_SHA::7}"
-          docker build -f apps/worker/Dockerfile -t "$IMAGE_URI" .
+          
+          # Build with BuildKit for better caching and smaller images
+          DOCKER_BUILDKIT=1 docker build \
+            -f apps/worker/Dockerfile \
+            --target runner \
+            --cache-from "$REGION-docker.pkg.dev/$PROJECT_ID/aurelian/worker:cache" \
+            --build-arg BUILDKIT_INLINE_CACHE=1 \
+            -t "$IMAGE_URI" \
+            -t "$REGION-docker.pkg.dev/$PROJECT_ID/aurelian/worker:cache" \
+            .
+          
           docker push "$IMAGE_URI"
+          docker push "$REGION-docker.pkg.dev/$PROJECT_ID/aurelian/worker:cache"
           echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
-      - name: Deploy
+          
+      - name: Deploy with optimized configuration
         env:
           REGION: ${{ secrets.GCP_REGION }}
           SERVICE: ${{ secrets.WORKER_SERVICE }}
           IMAGE_URI: ${{ env.IMAGE_URI }}
-        run: gcloud run deploy "$SERVICE" --image "$IMAGE_URI" --region "$REGION" --allow-unauthenticated --min-instances=1 --port=8080
+        run: |
+          gcloud run deploy "$SERVICE" \
+            --image "$IMAGE_URI" \
+            --region "$REGION" \
+            --allow-unauthenticated \
+            --port=8080 \
+            --min-instances=0 \
+            --max-instances=3 \
+            --memory=256Mi \
+            --cpu=0.5 \
+            --concurrency=50 \
+            --timeout=600s \
+            --set-env-vars="NODE_ENV=production,DATABASE_POOL_SIZE=10,DATABASE_POOL_TIMEOUT=20" \
+            --execution-environment=gen2

@@ -1,0 +1,84 @@
+name: deploy-web-cloudrun
+
+on:
+  push:
+    branches: [ master ]
+    paths:
+      - 'apps/web/**'
+      - 'packages/database/**'
+      - '.github/workflows/web-cloudrun.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions: { contents: read, id-token: write }
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with: 
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          
+      - name: Setup gcloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+        with: 
+          version: '>= 471.0.0'
+          
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ secrets.GCP_REGION }}-docker.pkg.dev
+        
+      - name: Install dependencies and generate Prisma
+        run: |
+          npm install
+          npx prisma generate
+          
+      - name: Build & push optimized web image
+        env:
+          REGION: ${{ secrets.GCP_REGION }}
+          PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+        run: |
+          IMAGE_URI="$REGION-docker.pkg.dev/$PROJECT_ID/aurelian/web:${GITHUB_SHA::7}"
+          
+          # Build with BuildKit for better caching and smaller images
+          DOCKER_BUILDKIT=1 docker build \
+            -f apps/web/Dockerfile \
+            --target runner \
+            --cache-from "$REGION-docker.pkg.dev/$PROJECT_ID/aurelian/web:cache" \
+            --build-arg BUILDKIT_INLINE_CACHE=1 \
+            -t "$IMAGE_URI" \
+            -t "$REGION-docker.pkg.dev/$PROJECT_ID/aurelian/web:cache" \
+            .
+          
+          docker push "$IMAGE_URI"
+          docker push "$REGION-docker.pkg.dev/$PROJECT_ID/aurelian/web:cache"
+          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
+          
+      - name: Deploy to Cloud Run with production configuration
+        env:
+          REGION: ${{ secrets.GCP_REGION }}
+          SERVICE: ${{ secrets.WEB_SERVICE }}
+          IMAGE_URI: ${{ env.IMAGE_URI }}
+        run: |
+          gcloud run deploy "$SERVICE" \
+            --image "$IMAGE_URI" \
+            --region "$REGION" \
+            --allow-unauthenticated \
+            --port=3000 \
+            --min-instances=1 \
+            --max-instances=20 \
+            --memory=1Gi \
+            --cpu=1 \
+            --concurrency=100 \
+            --timeout=300s \
+            --set-env-vars="NODE_ENV=production,DATABASE_POOL_SIZE=50,DATABASE_POOL_TIMEOUT=15,NEXT_TELEMETRY_DISABLED=1" \
+            --execution-environment=gen2
