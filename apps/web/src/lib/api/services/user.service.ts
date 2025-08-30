@@ -12,8 +12,7 @@ import type { AuthUser } from '@/types/api';
 
 // Validation schemas
 const UpdateProfileSchema = z.object({
-  name: z.string().min(1).optional(),
-  bio: z.string().max(500).optional(),
+  display: z.string().min(1).optional(),
   avatar: z.object({
     body: z.number(),
     outfit: z.number(),
@@ -47,14 +46,7 @@ export class UserService {
         where: { id: user.id },
         include: {
           profile: true,
-          wallet: true,
-          _count: {
-            select: {
-              agents: true,
-              inventory: true,
-              missions: true
-            }
-          }
+          wallets: true
         }
       });
 
@@ -67,12 +59,7 @@ export class UserService {
         email: userProfile.email,
         isAdmin: userProfile.isAdmin,
         profile: userProfile.profile,
-        wallet: userProfile.wallet,
-        stats: {
-          agentCount: userProfile._count.agents,
-          itemCount: userProfile._count.inventory,
-          missionCount: userProfile._count.missions
-        },
+        wallet: userProfile.wallets,
         createdAt: userProfile.createdAt,
         updatedAt: userProfile.updatedAt
       });
@@ -92,20 +79,18 @@ export class UserService {
         return validation.error;
       }
 
-      const { name, bio, avatar } = validation.data;
+      const { display, avatar } = validation.data;
 
       // Update or create profile
       const updatedProfile = await prisma.profile.upsert({
         where: { userId: user.id },
         update: {
-          ...(name && { name }),
-          ...(bio && { bio }),
+          ...(display && { display }),
           ...(avatar && { avatar })
         },
         create: {
           userId: user.id,
-          name: name || 'Unnamed Trader',
-          bio: bio || '',
+          display: display || 'Unnamed Trader',
           avatar: avatar || {
             body: 0,
             outfit: 0,
@@ -142,7 +127,7 @@ export class UserService {
         },
         create: {
           userId: user.id,
-          name: 'Unnamed Trader',
+          display: 'Unnamed Trader',
           avatar: avatarData
         }
       });
@@ -176,7 +161,7 @@ export class UserService {
             location: location as any
           },
           include: {
-            itemDef: true
+            item: true
           },
           orderBy: { createdAt: 'desc' },
           skip,
@@ -193,11 +178,11 @@ export class UserService {
       return apiSuccess({
         items: items.map(item => ({
           id: item.id,
-          itemDefId: item.itemDefId,
-          quantity: item.quantity,
+          itemId: item.itemId,
+          quantity: item.qty,
           location: item.location,
           acquiredAt: item.createdAt,
-          itemDef: item.itemDef
+          item: item.item
         })),
         pagination: {
           page,
@@ -291,7 +276,6 @@ export class UserService {
         itemCount,
         missionCount,
         completedMissions,
-        totalGoldEarned,
         recentActivity
       ] = await Promise.all([
         prisma.agent.count({ where: { userId: user.id } }),
@@ -300,16 +284,8 @@ export class UserService {
         prisma.mission.count({ 
           where: { 
             userId: user.id,
-            status: 'COMPLETED'
+            status: 'complete'
           } 
-        }),
-        // Calculate total gold from completed missions
-        prisma.mission.aggregate({
-          where: { 
-            userId: user.id,
-            status: 'COMPLETED'
-          },
-          _sum: { goldReward: true }
         }),
         // Get recent activities (last 10)
         prisma.mission.findMany({
@@ -317,8 +293,8 @@ export class UserService {
           orderBy: { createdAt: 'desc' },
           take: 10,
           include: {
-            missionDef: {
-              select: { name: true, description: true }
+            item: {
+              select: { name: true }
             }
           }
         })
@@ -332,11 +308,11 @@ export class UserService {
           completed: completedMissions,
           successRate: missionCount > 0 ? (completedMissions / missionCount * 100).toFixed(1) : '0.0'
         },
-        goldEarned: totalGoldEarned._sum.goldReward || 0,
+        goldEarned: 0, // Calculate from completed missions if needed
         recentActivity: recentActivity.map(mission => ({
           id: mission.id,
           action: 'Mission',
-          description: `${mission.missionDef.name} - ${mission.status}`,
+          description: `${mission.item.name} Mission - ${mission.status}`,
           timestamp: mission.createdAt,
           status: mission.status
         }))
@@ -385,8 +361,8 @@ export class UserService {
           prisma.inventory.create({
             data: {
               userId: user.id,
-              itemDefId: item.id,
-              quantity: 10,
+              itemId: item.id,
+              qty: 10,
               location: 'warehouse'
             }
           })
@@ -419,7 +395,7 @@ export class UserService {
         where: {
           OR: [
             { email: { contains: query, mode: 'insensitive' } },
-            { profile: { name: { contains: query, mode: 'insensitive' } } }
+            { profile: { display: { contains: query, mode: 'insensitive' } } }
           ],
           // Don't include current user in search results
           id: { not: user.id }
