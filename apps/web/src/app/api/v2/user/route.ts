@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteDispatcher } from '@/lib/api/route-dispatcher';
+import { securityMiddleware } from '@/lib/api/middleware/security';
 import {
   userGetProfile,
   userUpdateProfile,
@@ -57,6 +58,10 @@ const routes = {
   }
 };
 
-const { GET, POST, PUT, DELETE } = createRouteDispatcher(routes);
+const { GET: _GET, POST: _POST, PUT: _PUT, DELETE: _DELETE } = createRouteDispatcher(routes);
 
-export { GET, POST, PUT, DELETE };
+// Apply standard security middleware to all routes
+export const GET = securityMiddleware.standard(_GET);
+export const POST = securityMiddleware.standard(_POST);
+export const PUT = securityMiddleware.standard(_PUT);
+export const DELETE = securityMiddleware.standard(_DELETE);

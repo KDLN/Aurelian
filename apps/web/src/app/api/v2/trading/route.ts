@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteDispatcher } from '@/lib/api/route-dispatcher';
+import { securityMiddleware } from '@/lib/api/middleware/security';
 import {
   tradingGetListings,
   tradingCreateListing,
@@ -45,6 +46,10 @@ const routes = {
   }
 };
 
-const { GET, POST, PUT, DELETE } = createRouteDispatcher(routes);
+const { GET: _GET, POST: _POST, PUT: _PUT, DELETE: _DELETE } = createRouteDispatcher(routes);
 
-export { GET, POST, PUT, DELETE };
+// Apply trading security middleware to all routes
+export const GET = securityMiddleware.trading(_GET);
+export const POST = securityMiddleware.trading(_POST);
+export const PUT = securityMiddleware.trading(_PUT);
+export const DELETE = securityMiddleware.trading(_DELETE);

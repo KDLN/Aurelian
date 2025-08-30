@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteDispatcher } from '@/lib/api/route-dispatcher';
+import { securityMiddleware } from '@/lib/api/middleware/security';
 import { 
   adminCheckAccess,
   adminDashboardStats,
@@ -41,6 +42,10 @@ const routes = {
   }
 };
 
-const { GET, POST, PUT, DELETE } = createRouteDispatcher(routes);
+const { GET: _GET, POST: _POST, PUT: _PUT, DELETE: _DELETE } = createRouteDispatcher(routes);
 
-export { GET, POST, PUT, DELETE };
+// Apply admin security middleware to all routes
+export const GET = securityMiddleware.admin(_GET);
+export const POST = securityMiddleware.admin(_POST);
+export const PUT = securityMiddleware.admin(_PUT);
+export const DELETE = securityMiddleware.admin(_DELETE);
