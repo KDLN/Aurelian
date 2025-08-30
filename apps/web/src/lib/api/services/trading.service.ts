@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma, DatabaseOptimizer } from '@/lib/prisma';
 import { withAuth, apiSuccess, apiError, validateRequestBody, getQueryParam } from '@/lib/api/server-utils';
 import { handleApiError } from '@/lib/api/error-handler';
 import { z } from 'zod';
@@ -360,17 +360,21 @@ export class TradingService {
   }
 
   /**
-   * Get market summary and trends
+   * Get market summary and trends (cached for performance)
    */
   static async getMarketSummary(request: NextRequest, user: AuthUser): Promise<NextResponse> {
     try {
-      // Get market statistics
-      const [
-        activeListings,
-        recentSales,
-        priceData,
-        topItems
-      ] = await Promise.all([
+      // Cache market summary for 2 minutes since it's expensive to compute
+      const summary = await DatabaseOptimizer.cachedQuery(
+        'market-summary',
+        async () => {
+          // Get market statistics
+          const [
+            activeListings,
+            recentSales,
+            priceData,
+            topItems
+          ] = await Promise.all([
         // Active listings count
         prisma.listing.count({
           where: {
@@ -426,26 +430,30 @@ export class TradingService {
         where: { id: { in: topItemIds } }
       });
 
-      const summary = {
-        activeListings,
-        recentSales,
-        marketData: {
-          totalItems: priceData.length,
-          averagePrice: priceData.reduce((sum, item) => sum + (item._avg.pricePerUnit || 0), 0) / priceData.length || 0,
-          priceRanges: priceData.map(item => ({
-            itemDefId: item.itemDefId,
-            averagePrice: item._avg.pricePerUnit,
-            listings: item._count.id
-          }))
-        },
-        topItems: topItems.map(item => {
-          const itemDef = itemDetails.find(def => def.id === item.itemDefId);
-          return {
-            itemDef,
-            totalQuantity: item._sum.quantity
+          const marketSummary = {
+            activeListings,
+            recentSales,
+            marketData: {
+              totalItems: priceData.length,
+              averagePrice: priceData.reduce((sum, item) => sum + (item._avg.pricePerUnit || 0), 0) / priceData.length || 0,
+              priceRanges: priceData.map(item => ({
+                itemDefId: item.itemDefId,
+                averagePrice: item._avg.pricePerUnit,
+                listings: item._count.id
+              }))
+            },
+            topItems: topItems.map(item => {
+              const itemDef = itemDetails.find(def => def.id === item.itemDefId);
+              return {
+                itemDef,
+                totalQuantity: item._sum.quantity
+              };
+            })
           };
-        })
-      };
+
+          return marketSummary;
+        }
+      );
 
       return apiSuccess(summary);
 
