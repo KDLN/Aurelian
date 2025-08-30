@@ -26,11 +26,13 @@ export default function EmergencyControls({ isAdmin }: EmergencyControlsProps) {
   const loadSystemStatus = async () => {
     try {
       const response = await api.admin.emergency('get_status');
-      setIsMaintenanceMode(response.maintenanceMode || false);
+      // Extract data from API response structure { success: true, data: {...} }
+      const data = response.data || response;
+      setIsMaintenanceMode(data.maintenanceMode || false);
       setSystemStatus({
-        activeSessions: response.activeSessions || 0,
-        serverLoad: response.serverLoad || 'unknown',
-        lastAction: response.lastEmergencyAction || 'None'
+        activeSessions: data.activeSessions || 0,
+        serverLoad: data.serverLoad || 'unknown',
+        lastAction: data.lastEmergencyAction || 'None'
       });
     } catch (error) {
       console.error('Error loading system status:', error);
@@ -43,10 +45,12 @@ export default function EmergencyControls({ isAdmin }: EmergencyControlsProps) {
     setIsLoading(true);
     try {
       const response = await api.admin.emergency(action, params);
+      // Extract data from API response structure { success: true, data: {...} }
+      const data = response.data || response;
       
       // Update local state based on action
       if (action === 'maintenance_mode') {
-        setIsMaintenanceMode(response.result?.maintenanceMode);
+        setIsMaintenanceMode(data.result?.maintenanceMode);
       }
       
       alert(`Emergency action "${action}" executed successfully`);

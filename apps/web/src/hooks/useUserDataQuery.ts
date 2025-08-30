@@ -36,11 +36,15 @@ export const userKeys = {
 } as const;
 
 async function fetchUserWallet(): Promise<WalletData> {
-  return api.user.getWallet();
+  const response = await api.user.getWallet();
+  // Extract data from API response structure { success: true, data: {...} }
+  return response.data || response;
 }
 
 async function fetchUserInventory(location: string = 'warehouse'): Promise<InventoryData> {
-  return api.user.getInventory(location);
+  const response = await api.user.getInventory(location);
+  // Extract data from API response structure { success: true, data: {...} }
+  return response.data || response;
 }
 
 // Centralized auth query to avoid duplicates

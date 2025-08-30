@@ -39,7 +39,9 @@ export default function SecurityMonitor({ isAdmin }: SecurityMonitorProps) {
     try {
       setIsLoading(true);
       const response = await api.admin.getSecurityAlerts(filter as any, 50);
-      setAlerts(response.alerts || []);
+      // Extract data from API response structure { success: true, data: {...} }
+      const data = response.data || response;
+      setAlerts(data.alerts || []);
     } catch (error) {
       console.error('Error loading security alerts:', error);
       setAlerts([]);

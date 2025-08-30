@@ -75,15 +75,20 @@ export function useUserData() {
       }
 
       // Fetch wallet and inventory in parallel using v2 API
-      const [walletData, inventoryData] = await Promise.all([
+      const [walletResponse, inventoryResponse] = await Promise.all([
         api.user.getWallet(),
         api.user.getInventory('warehouse')
       ]);
 
+      // Extract data from API response structure { success: true, data: {...} }
+      const walletData = walletResponse.data || walletResponse;
+      const inventoryData = inventoryResponse.data || inventoryResponse;
+
       logger.debug('User data loaded', {
         walletExists: !!walletData,
         inventoryItems: inventoryData?.totalItems || 0,
-        inventoryArrayLength: inventoryData?.inventory?.length || 0
+        inventoryArrayLength: inventoryData?.inventory?.length || 0,
+        walletGold: walletData?.gold
       });
 
       setWallet(walletData);

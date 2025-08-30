@@ -97,13 +97,19 @@ async function handleRequest(
 /**
  * Extract route path from full pathname
  * /api/admin/users -> /users
- * /api/user/profile -> /profile
+ * /api/user/profile -> /profile  
+ * /api/v2/user/wallet -> /wallet (v2 routes)
+ * /api/v2/admin/stats -> /stats (v2 routes)
  */
 function extractRoutePath(pathname: string): string {
   // Remove /api prefix and service prefix
   const parts = pathname.split('/').filter(Boolean);
   if (parts[0] === 'api' && parts.length > 2) {
-    // Return the path after /api/{service}/
+    // Handle v2 routes: /api/v2/{service}/{endpoint}
+    if (parts[1] === 'v2' && parts.length > 3) {
+      return '/' + parts.slice(3).join('/');
+    }
+    // Handle v1 routes: /api/{service}/{endpoint}
     return '/' + parts.slice(2).join('/');
   }
   return pathname;
