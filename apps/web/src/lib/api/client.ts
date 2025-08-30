@@ -402,6 +402,17 @@ class APIClient {
     // Emergency actions
     emergency: (action: string, params?: any) =>
       this.post('/api/v2/admin/emergency', { action, ...params }),
+    
+    // Security monitoring
+    getSecurityAlerts: (filter?: 'all' | 'unacknowledged' | 'critical', limit?: number) => {
+      const params = new URLSearchParams();
+      if (filter) params.append('filter', filter);
+      if (limit) params.append('limit', String(limit));
+      return this.get(`/api/v2/admin/security/alerts${params.toString() ? `?${params}` : ''}`);
+    },
+    
+    acknowledgeSecurityAlert: (alertId: string) =>
+      this.put('/api/v2/admin/security/alerts', { alertId, acknowledged: true }),
   };
 
   /**

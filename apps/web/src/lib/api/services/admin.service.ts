@@ -22,6 +22,11 @@ const DeleteUserSchema = z.object({
   reason: z.string().min(1)
 });
 
+const SecurityAlertSchema = z.object({
+  alertId: z.string().min(1),
+  acknowledged: z.boolean()
+});
+
 /**
  * Admin Service Class - Consolidates all admin operations
  */
@@ -317,6 +322,87 @@ export class AdminService {
   }
 
   /**
+   * Get security alerts
+   */
+  static async getSecurityAlerts(request: NextRequest, user: AuthUser): Promise<NextResponse> {
+    try {
+      const adminUser = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { isAdmin: true }
+      });
+
+      if (!adminUser || !adminUser.isAdmin) {
+        return apiError('Admin access required', 403);
+      }
+
+      const url = new URL(request.url);
+      const filter = url.searchParams.get('filter') || 'unacknowledged';
+      const limit = parseInt(url.searchParams.get('limit') || '50', 10);
+
+      // Return empty array for now - this would integrate with a real security monitoring system
+      const mockAlerts: any[] = [];
+
+      const filteredAlerts = mockAlerts.filter(alert => {
+        if (filter === 'all') return true;
+        if (filter === 'critical') return alert.severity === 'critical';
+        if (filter === 'unacknowledged') return !alert.acknowledged;
+        return true;
+      });
+
+      return apiSuccess({
+        alerts: filteredAlerts.slice(0, limit),
+        total: filteredAlerts.length,
+        filter,
+        summary: {
+          critical: mockAlerts.filter(a => !a.acknowledged && a.severity === 'critical').length,
+          unacknowledged: mockAlerts.filter(a => !a.acknowledged).length
+        }
+      });
+    } catch (error) {
+      return handleApiError(error, 'Failed to fetch security alerts');
+    }
+  }
+
+  /**
+   * Acknowledge security alert
+   */
+  static async acknowledgeSecurityAlert(request: NextRequest, user: AuthUser): Promise<NextResponse> {
+    try {
+      const adminUser = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { isAdmin: true }
+      });
+
+      if (!adminUser || !adminUser.isAdmin) {
+        return apiError('Admin access required', 403);
+      }
+
+      const validation = await validateRequestBody(request, SecurityAlertSchema);
+      if ('error' in validation) {
+        return validation.error;
+      }
+
+      const { alertId, acknowledged } = validation.data;
+
+      // In a real implementation, this would update the security alert in a monitoring database
+      console.log(`🔒 SECURITY ALERT ACKNOWLEDGED: ${alertId} by admin ${user.id}`, {
+        acknowledged,
+        timestamp: new Date().toISOString()
+      });
+
+      return apiSuccess({
+        message: 'Security alert acknowledged',
+        alertId,
+        acknowledged,
+        acknowledgedBy: user.id,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      return handleApiError(error, 'Failed to acknowledge security alert');
+    }
+  }
+
+  /**
    * Calculate server uptime
    */
   private static calculateUptime(): string {
@@ -335,3 +421,5 @@ export const adminDashboardStats = withAuth(AdminService.getDashboardStats);
 export const adminEmergencyAction = withAuth(AdminService.executeEmergencyAction);
 export const adminDeleteUser = withAuth(AdminService.deleteUser);
 export const adminGetUsers = withAuth(AdminService.getUsers);
+export const adminGetSecurityAlerts = withAuth(AdminService.getSecurityAlerts);
+export const adminAcknowledgeSecurityAlert = withAuth(AdminService.acknowledgeSecurityAlert);

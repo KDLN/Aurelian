@@ -6,7 +6,9 @@ import {
   adminDashboardStats,
   adminEmergencyAction,
   adminDeleteUser,
-  adminGetUsers
+  adminGetUsers,
+  adminGetSecurityAlerts,
+  adminAcknowledgeSecurityAlert
 } from '@/lib/api/services/admin.service';
 
 /**
@@ -19,6 +21,7 @@ import {
  * - /api/admin/emergency
  * - /api/admin/delete-user
  * - /api/admin/users
+ * - /api/admin/security/alerts
  * 
  * Routes:
  * GET  /api/v2/admin/check-access
@@ -26,6 +29,8 @@ import {
  * POST /api/v2/admin/emergency
  * POST /api/v2/admin/delete-user
  * GET  /api/v2/admin/users
+ * GET  /api/v2/admin/security/alerts
+ * PUT  /api/v2/admin/security/alerts
  */
 
 export const dynamic = 'force-dynamic';
@@ -34,11 +39,15 @@ const routes = {
   GET: {
     '/check-access': adminCheckAccess,
     '/stats': adminDashboardStats,
-    '/users': adminGetUsers
+    '/users': adminGetUsers,
+    '/security/alerts': adminGetSecurityAlerts
   },
   POST: {
     '/emergency': adminEmergencyAction,
     '/delete-user': adminDeleteUser
+  },
+  PUT: {
+    '/security/alerts': adminAcknowledgeSecurityAlert
   }
 };
 

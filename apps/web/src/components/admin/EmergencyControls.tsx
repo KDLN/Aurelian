@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { api } from '@/lib/api/client';
 
 interface EmergencyControlsProps {
   isAdmin: boolean;
@@ -25,24 +25,13 @@ export default function EmergencyControls({ isAdmin }: EmergencyControlsProps) {
 
   const loadSystemStatus = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const response = await fetch('/api/admin/emergency', {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
+      const response = await api.admin.emergency('get_status');
+      setIsMaintenanceMode(response.maintenanceMode || false);
+      setSystemStatus({
+        activeSessions: response.activeSessions || 0,
+        serverLoad: response.serverLoad || 'unknown',
+        lastAction: response.lastEmergencyAction || 'None'
       });
-
-      if (response.ok) {
-        const { data } = await response.json();
-        setIsMaintenanceMode(data.maintenanceMode || false);
-        setSystemStatus({
-          activeSessions: data.activeSessions || 0,
-          serverLoad: data.serverLoad || 'unknown',
-          lastAction: data.lastEmergencyAction || 'None'
-        });
-      }
     } catch (error) {
       console.error('Error loading system status:', error);
     }
@@ -53,37 +42,19 @@ export default function EmergencyControls({ isAdmin }: EmergencyControlsProps) {
     
     setIsLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const response = await fetch('/api/admin/emergency', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ action, params })
-      });
-
-      if (response.ok) {
-        const { data } = await response.json();
-        
-        // Update local state based on action
-        if (action === 'maintenance_mode') {
-          setIsMaintenanceMode(data.result.maintenanceMode);
-        }
-        
-        alert(`Emergency action "${action}" executed successfully`);
-        
-        // Refresh system status
-        loadSystemStatus();
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Emergency action failed');
+      const response = await api.admin.emergency(action, params);
+      
+      // Update local state based on action
+      if (action === 'maintenance_mode') {
+        setIsMaintenanceMode(response.result?.maintenanceMode);
       }
       
+      alert(`Emergency action "${action}" executed successfully`);
+      
+      // Refresh system status
+      loadSystemStatus();
       setConfirmAction(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Emergency action failed:', error);
       alert(`Emergency action failed: ${error}`);
     } finally {

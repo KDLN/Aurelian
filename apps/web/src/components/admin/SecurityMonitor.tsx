@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { api } from '@/lib/api/client';
 
 interface SecurityAlert {
   id: string;
@@ -38,22 +38,8 @@ export default function SecurityMonitor({ isAdmin }: SecurityMonitorProps) {
   const loadSecurityAlerts = async () => {
     try {
       setIsLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const response = await fetch(`/api/admin/security/alerts?filter=${filter}&limit=50`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
-
-      if (response.ok) {
-        const { data } = await response.json();
-        setAlerts(data.alerts || []);
-      } else {
-        console.error('Failed to load security alerts');
-        setAlerts([]);
-      }
+      const response = await api.admin.getSecurityAlerts(filter as any, 50);
+      setAlerts(response.alerts || []);
     } catch (error) {
       console.error('Error loading security alerts:', error);
       setAlerts([]);
@@ -64,28 +50,13 @@ export default function SecurityMonitor({ isAdmin }: SecurityMonitorProps) {
 
   const acknowledgeAlert = async (alertId: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const response = await fetch('/api/admin/security/alerts', {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ alertId, acknowledged: true })
-      });
-
-      if (response.ok) {
-        // Update local state optimistically
-        setAlerts(prev => prev.map(alert => 
-          alert.id === alertId 
-            ? { ...alert, acknowledged: true }
-            : alert
-        ));
-      } else {
-        console.error('Failed to acknowledge alert');
-      }
+      await api.admin.acknowledgeSecurityAlert(alertId);
+      // Update local state optimistically
+      setAlerts(prev => prev.map(alert => 
+        alert.id === alertId 
+          ? { ...alert, acknowledged: true }
+          : alert
+      ));
     } catch (error) {
       console.error('Error acknowledging alert:', error);
     }
