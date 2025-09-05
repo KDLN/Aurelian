@@ -16,7 +16,8 @@ const globalErrorHandler = (error: unknown) => {
     if (status === 401) {
       // Redirect to login or refresh token
       if (typeof window !== 'undefined') {
-        window.location.href = '/auth/login';
+        // Root page handles auth mode via query parameter
+        window.location.href = '/?auth=login';
       }
     }
   }

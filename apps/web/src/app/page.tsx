@@ -17,6 +17,15 @@ export default function Home() {
   const [needsUsername, setNeedsUsername] = useState(false);
   const [newUsername, setNewUsername] = useState('');
 
+  // Allow external redirects to specify auth mode via query parameter
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const auth = params.get('auth');
+    if (auth === 'login' || auth === 'signup' || auth === 'reset') {
+      setAuthMode(auth);
+    }
+  }, []);
+
   useEffect(() => {
     // Handle OAuth implicit flow tokens from URL fragment
     const handleImplicitAuth = async () => {
