@@ -382,20 +382,25 @@ export default function GameLayout({
           }}
         >
           {/* Main Content Area */}
-          <div style={{ flex: '1', overflow: 'hidden', paddingBottom: '16px', minHeight: 0 }}>
+          <div style={{
+            flex: '1',
+            overflow: 'auto',
+            paddingBottom: isMobile ? '8px' : '16px',
+            minHeight: 0
+          }}>
             {/* Active Server Mission Banners */}
             {activeServerMissions.length > 0 && (
-              <div style={{ marginBottom: '16px' }}>
+              <div style={{ marginBottom: isMobile ? '8px' : '12px' }}>
                 {activeServerMissions.slice(0, 1).map((mission) => (
                   <EventBanner
                     key={`${mission.id}-${JSON.stringify(mission.globalProgress)}-${mission.participantCount}`}
                     mission={mission}
-                    className="mb-4"
+                    className=""
                   />
                 ))}
               </div>
             )}
-            
+
             {children}
           </div>
           

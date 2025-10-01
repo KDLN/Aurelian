@@ -3,6 +3,7 @@ import React from 'react';
 import './globals.css';
 import ClientProviders from '@/components/ClientProviders';
 import Link from 'next/link';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 
 export const metadata = { 
   title: 'Aurelian'
@@ -20,12 +21,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }){
       <body style={{fontFamily:'ui-monospace,Menlo,Consolas,monospace',margin:0}} className="bg-white text-slate-900">
         <div style={{
           display:'flex',
-          gap:12,
+          gap: 16,
           alignItems:'center',
-          padding:12,
+          padding: 16,
           borderBottom:'4px solid #533b2c',
           background:'#2a1f1a',
-          flexWrap: 'wrap'
+          flexWrap: 'wrap',
+          minHeight: 64
         }}>
           <div style={{
             background:'#6e462b',
@@ -42,7 +44,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }){
           <Link href="/play" style={{color:'#f1e5c8',fontSize:'clamp(12px, 2.5vw, 14px)'}}>Play</Link>
         </div>
         <ClientProviders>
-          {children}
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
         </ClientProviders>
       </body>
     </html>

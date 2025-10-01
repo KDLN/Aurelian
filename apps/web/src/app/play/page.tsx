@@ -120,9 +120,9 @@ export default function Play(){
 
   return (
     <PageErrorBoundary pageName="Play Game">
-      <div style={{padding:16, background: '#1a1511', minHeight: '100vh', color: '#f1e5c8'}}>
-        <h1>Aurelian Trading World</h1>
-        <div style={{marginBottom: 10}}>
+      <div style={{padding: 24, background: '#1a1511', minHeight: '100vh', color: '#f1e5c8'}}>
+        <h1 style={{marginBottom: 16}}>Aurelian Trading World</h1>
+        <div style={{marginBottom: 16, padding: 12, background: 'rgba(83, 59, 44, 0.2)', border: '1px solid #533b2c', borderRadius: 6}}>
           Status: <b style={{color: status === 'connected' ? '#68b06e' : '#d4621d'}}>{status}</b> — Use Arrow Keys to move
         </div>
         <canvas 
