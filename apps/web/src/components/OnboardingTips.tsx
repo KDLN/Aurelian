@@ -27,17 +27,9 @@ export default function OnboardingTips() {
       id: 'welcome',
       title: 'Welcome to Aurelian!',
       description: 'You\'re now part of a thriving trading empire. Let\'s get you started with the basics.',
-      actionText: 'Let\'s Begin',
-      actionHref: '/creator',
+      actionText: 'Visit Warehouse',
+      actionHref: '/warehouse',
       icon: '🌟'
-    },
-    {
-      id: 'character',
-      title: 'Create Your Character',
-      description: 'Customize your trader\'s appearance in the Character Creator.',
-      actionText: 'Create Character',
-      actionHref: '/creator',
-      icon: '👤'
     },
     {
       id: 'inventory',

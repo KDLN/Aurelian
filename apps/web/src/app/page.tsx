@@ -845,7 +845,6 @@ export default function Home() {
               <li><a href="/missions">🗺️ Dangerous Routes</a> <span className="status-live">LIVE</span></li>
               <li><a href="/agents">👥 Hire Specialists</a> <span className="status-live">LIVE</span></li>
               <li><a href="/guild">🏰 Guild Politics</a> <span className="status-live">LIVE</span></li>
-              <li><a href="/play">⚔️ Living World</a> <span className="status-live">LIVE</span></li>
             </ul>
           </div>
           <div>

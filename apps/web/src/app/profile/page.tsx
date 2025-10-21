@@ -121,11 +121,11 @@ export default function ProfilePage() {
         <div className="error-container">
           <h2>Profile Not Found</h2>
           <p>{error || 'Your profile could not be loaded.'}</p>
-          <button 
-            onClick={() => router.push('/play')} 
+          <button
+            onClick={() => router.push('/hub')}
             className="back-link"
           >
-            ← Back to Game
+            ← Back to Hub
           </button>
         </div>
       </GameLayout>

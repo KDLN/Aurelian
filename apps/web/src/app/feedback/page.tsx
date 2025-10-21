@@ -10,7 +10,6 @@ type PageInfo = {
 const PAGES: PageInfo[] = [
   { name: 'Landing Page', url: 'https://www.aurelian.online/' },
   { name: 'Trading Hub', url: 'https://www.aurelian.online/hub' },
-  { name: 'Character Creator', url: 'https://www.aurelian.online/creator' },
   { name: 'Warehouse', url: 'https://www.aurelian.online/warehouse' },
   { name: 'Inventory', url: 'https://www.aurelian.online/inventory' },
   { name: 'Auction House', url: 'https://www.aurelian.online/auction' },
