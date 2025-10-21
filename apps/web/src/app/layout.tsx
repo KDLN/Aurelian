@@ -40,8 +40,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }){
             fontSize: 'clamp(12px, 2.5vw, 16px)'
           }}>Aurelian</div>
           <Link href="/" style={{color:'#f1e5c8',fontSize:'clamp(12px, 2.5vw, 14px)'}}>Home</Link>
-          <Link href="/creator" style={{color:'#f1e5c8',fontSize:'clamp(12px, 2.5vw, 14px)'}}>Creator</Link>
-          <Link href="/play" style={{color:'#f1e5c8',fontSize:'clamp(12px, 2.5vw, 14px)'}}>Play</Link>
         </div>
         <ClientProviders>
           <ErrorBoundary>

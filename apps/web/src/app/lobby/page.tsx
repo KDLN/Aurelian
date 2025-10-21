@@ -93,18 +93,6 @@ export default function Lobby(){
               <div className="nav-desc">Transform materials</div>
             </Link>
           </div>
-          
-          <div style={{marginTop:'var(--space-xl)'}}>
-            <h3>Other Features</h3>
-            <div className="other-features" style={{display:'flex', gap:'var(--space-md)'}}>
-              <Link href="/creator" className="nav-btn-small">
-                👤 Character Creator
-              </Link>
-              <Link href="/play" className="nav-btn-small">
-                🎮 Multiplayer Game
-              </Link>
-            </div>
-          </div>
         </div>
       </div>
       

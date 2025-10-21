@@ -21,7 +21,6 @@ export default function HelpPage() {
           
           <h5>First Steps:</h5>
           <ol>
-            <li><strong>Create your character:</strong> Visit the <a href="/creator">Character Creator</a> to customize your appearance</li>
             <li><strong>Get starter items:</strong> Go to your <a href="/warehouse">Warehouse</a> and click "Populate Starter Inventory" if you don't have items</li>
             <li><strong>Create a wallet:</strong> Visit any page and click "Create Wallet" if you don't have gold</li>
             <li><strong>Hire agents:</strong> Go to <a href="/agents">Agents</a> to hire your first agent for missions</li>
