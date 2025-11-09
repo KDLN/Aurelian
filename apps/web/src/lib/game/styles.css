@@ -277,7 +277,7 @@
 /* Text styles */
 .game-muted {
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--font-size-xs);
 }
 
 .game-small {
@@ -450,7 +450,7 @@
 .game-status {
   padding: 4px 8px;
   border-radius: 6px;
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   font-weight: bold;
   text-align: center;
 }
@@ -535,7 +535,7 @@
 
 .game-table {
   width: 100%;
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   border-collapse: collapse;
 }
 
@@ -568,7 +568,7 @@
 .game-alert {
   padding: 8px;
   border-radius: 6px;
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   border: 1px solid;
 }
 
