@@ -285,11 +285,38 @@ export default function HelpPage() {
   );
 
   return (
-    <GameLayout 
-      title="Help & Guide" 
+    <GameLayout
+      title="Help & Guide"
       sidebar={sidebar}
     >
       <div className="game-flex-col">
+        {/* Link to Comprehensive Wiki */}
+        <div className="game-card" style={{
+          background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.15), rgba(104, 176, 110, 0.15))',
+          border: '2px solid #d4af37'
+        }}>
+          <div className="game-space-between" style={{ alignItems: 'center' }}>
+            <div>
+              <h3 style={{ marginBottom: '8px' }}>📖 Complete Gameplay Wiki</h3>
+              <p className="game-small game-muted">
+                Looking for detailed information about all game systems? Check out our comprehensive wiki
+                with complete documentation on economy, trading, crafting, missions, guilds, and more!
+              </p>
+            </div>
+            <a
+              href="/wiki"
+              className="game-btn game-btn-primary"
+              style={{
+                whiteSpace: 'nowrap',
+                fontSize: '14px',
+                padding: '12px 20px'
+              }}
+            >
+              View Full Wiki →
+            </a>
+          </div>
+        </div>
+
         <div className="game-card">
           <div className="game-flex" style={{ alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
             <span style={{ fontSize: '32px' }}>{helpSections[selectedSection].icon}</span>
