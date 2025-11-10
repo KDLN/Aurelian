@@ -4,14 +4,18 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
+import { AdminErrorBoundary } from '@/components/ui/error-boundary';
 
 const adminSections = [
+  { id: 'dashboard', title: 'Dashboard', href: '/admin/dashboard', icon: '📊' },
+  { id: 'activity', title: 'Activity Logs', href: '/admin/activity', icon: '📋' },
   { id: 'items', title: 'Items', href: '/admin/items', icon: '📦' },
   { id: 'equipment', title: 'Equipment', href: '/admin/equipment', icon: '⚔️' },
   { id: 'blueprints', title: 'Blueprints', href: '/admin/blueprints', icon: '📜' },
   { id: 'missions', title: 'Missions', href: '/admin/missions', icon: '🚛' },
   { id: 'server-missions', title: 'Server Missions', href: '/admin/server-missions', icon: '🌍' },
   { id: 'hubs', title: 'Hubs', href: '/admin/hubs', icon: '🏛️' },
+  { id: 'debug', title: 'Debug Tools', href: '/admin/debug', icon: '🔧' },
 ];
 
 export default function AdminLayout({
@@ -105,7 +109,9 @@ export default function AdminLayout({
 
         {/* Page Content */}
         <main className="admin-main">
-          {children}
+          <AdminErrorBoundary>
+            {children}
+          </AdminErrorBoundary>
         </main>
       </div>
     </div>

@@ -49,7 +49,6 @@ export default function CraftingPage() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [quantity, setQuantity] = useState(1);
   const [message, setMessage] = useState('');
-  const [populatingBlueprints, setPopulatingBlueprints] = useState(false);
 
   const categories = ['all', ...Array.from(new Set(blueprints.map(bp => bp.category)))];
   const filteredBlueprints = selectedCategory === 'all' 
@@ -87,81 +86,6 @@ export default function CraftingPage() {
     }
   };
 
-  const handleDebugCraft = async () => {
-    if (!selectedBlueprint || quantity < 1) return;
-    
-    try {
-      clearError();
-      
-      // Get session token for authorization
-      const { data: { session } } = await import('@/lib/supabaseClient').then(m => m.supabase.auth.getSession());
-      
-      if (!session?.access_token) {
-        setMessage('❌ Authentication failed');
-        return;
-      }
-
-      const response = await fetch('/api/crafting/debug-start', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          blueprintId: selectedBlueprint.id,
-          quantity: quantity
-        })
-      });
-
-      const result = await response.json();
-      
-      if (response.ok) {
-        setMessage(`🚀 ${result.message}`);
-        setQuantity(1);
-        // Refresh crafting data to show new job
-        window.location.reload();
-      } else {
-        setMessage(`❌ ${result.error || result.details}`);
-      }
-    } catch (err) {
-      setMessage(`❌ ${err instanceof Error ? err.message : 'Failed to start debug crafting'}`);
-    }
-  };
-
-  const handlePopulateBlueprints = async () => {
-    setPopulatingBlueprints(true);
-    try {
-      const { data: { session } } = await import('@/lib/supabaseClient').then(m => m.supabase.auth.getSession());
-      const token = session?.access_token;
-      
-      if (!token) {
-        setMessage('❌ Authentication failed');
-        return;
-      }
-
-      const response = await fetch('/api/crafting/blueprints/populate-starter', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      const result = await response.json();
-      
-      if (response.ok) {
-        setMessage(`✅ ${result.message}`);
-        // Refresh the page to show new blueprints
-        window.location.reload();
-      } else {
-        setMessage(`❌ ${result.error || result.message}`);
-      }
-    } catch (err) {
-      console.error('Failed to populate blueprints:', err);
-      setMessage('❌ Failed to populate crafting recipes');
-    } finally {
-      setPopulatingBlueprints(false);
-    }
-  };
 
   const formatTime = (minutes: number) => {
     if (minutes < 60) return `${minutes}m`;
@@ -332,21 +256,6 @@ export default function CraftingPage() {
               {filteredBlueprints.length === 0 ? (
                 <div className="game-flex-col" style={{ gap: '12px' }}>
                   <p className="game-muted">No recipes available in this category.</p>
-                  {blueprints.length === 0 && (
-                    <div>
-                      <button 
-                        onClick={handlePopulateBlueprints}
-                        disabled={populatingBlueprints}
-                        className="game-btn game-btn-primary"
-                        style={{ fontSize: '12px', padding: '8px 12px' }}
-                      >
-                        {populatingBlueprints ? '🔄 Adding Recipes...' : '📜 Add Starter Recipes (Debug)'}
-                      </button>
-                      <p className="game-small game-muted" style={{ textAlign: 'center', marginTop: '8px' }}>
-                        This will populate the database with starter crafting recipes
-                      </p>
-                    </div>
-                  )}
                 </div>
               ) : (
                 <div className="game-flex-col" style={{ gap: '8px' }}>
@@ -510,24 +419,12 @@ export default function CraftingPage() {
                   className="game-btn game-btn-primary"
                   style={{ width: '100%', marginBottom: '8px' }}
                 >
-                  {isLoading ? 'Starting...' : 
+                  {isLoading ? 'Starting...' :
                    !selectedBlueprint.isUnlocked ? 'Recipe Locked' :
                    !selectedBlueprint.canCraft ? `Requires Level ${selectedBlueprint.requiredLevel}` :
                    selectedBlueprint.maxCraftable === 0 ? 'Insufficient Materials' :
                    'Start Crafting'}
                 </button>
-                
-                <button 
-                  onClick={handleDebugCraft}
-                  disabled={!selectedBlueprint.isUnlocked || !selectedBlueprint.canCraft || isLoading || selectedBlueprint.maxCraftable === 0}
-                  className="game-btn game-btn-warning"
-                  style={{ width: '100%', fontSize: '12px' }}
-                >
-                  🚀 DEBUG: Start 2s Craft
-                </button>
-                <div className="game-muted game-small" style={{ textAlign: 'center', marginTop: '0.25rem' }}>
-                  Completes in 2 seconds for testing
-                </div>
               </div>
             ) : (
               <p className="game-muted">Select a recipe from the list to begin crafting.</p>

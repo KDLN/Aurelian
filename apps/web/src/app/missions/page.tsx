@@ -153,50 +153,6 @@ export default function MissionsPage() {
     }
   }, [completeMissionMutation, completingMissions]);
 
-  // Debug function to set all active missions to 2 seconds left
-  const handleDebugSpeedUp = useCallback(async () => {
-    if (activeMissions.length === 0) {
-      alert('No active missions to speed up');
-      return;
-    }
-
-    try {
-      // Import the API helper to get authenticated requests
-      const { supabase } = await import('@/lib/supabaseClient');
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError || !session?.access_token) {
-        throw new Error('Authentication failed');
-      }
-
-      const response = await fetch('/api/missions/debug-speedup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to speed up missions');
-      }
-
-      const result = await response.json();
-      if (result.success) {
-        setCompletionMessage(`🚀 Debug: Set ${result.updatedCount} missions to complete in 2 seconds!`);
-        setTimeout(() => setCompletionMessage(''), 5000);
-        // Delay refetch to avoid race condition with mission completion
-        setTimeout(() => {
-          console.log('🔄 [DebugSpeedUp] Delayed refetch to update timers');
-          refetch();
-        }, 500);
-      }
-    } catch (error) {
-      console.error('Failed to speed up missions:', error);
-      alert(`Failed to speed up missions: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }, [activeMissions.length, refetch]);
 
   // Memoize expensive calculations
   const activeMissionsWithStatus = useMemo(() => {
@@ -262,22 +218,9 @@ export default function MissionsPage() {
         <a href="/missions/leaderboard" className="game-btn game-btn-secondary" style={{ width: '100%', textAlign: 'center', display: 'block', marginBottom: '0.5rem' }}>
           🏆 Leaderboards
         </a>
-        
-        {/* Debug button for testing */}
-        <button 
-          onClick={handleDebugSpeedUp}
-          className="game-btn game-btn-warning" 
-          style={{ width: '100%', fontSize: 'var(--font-size-xs)' }}
-          disabled={activeMissions.length === 0}
-        >
-          🚀 DEBUG: Speed Up Missions
-        </button>
-        <div className="game-muted game-small" style={{ textAlign: 'center', marginTop: '0.25rem' }}>
-          Sets active missions to 2s left
-        </div>
       </div>
     </div>
-  ), [mounted, wallet, handleDebugSpeedUp, activeMissions.length, agents.length, availableAgents.length]);
+  ), [mounted, wallet, activeMissions.length, agents.length, availableAgents.length]);
 
   if (isLoading) {
     return (
