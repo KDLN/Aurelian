@@ -257,7 +257,15 @@ export default function OnboardingPanel() {
 
       {/* Onboarding Progress Panel - Floating Modal */}
       {!showWelcome && (
-        <div className="fixed bottom-4 right-4 z-40 max-w-md w-full">
+        <div
+          className="max-w-md w-full"
+          style={{
+            position: 'fixed',
+            bottom: '1rem',
+            right: '1rem',
+            zIndex: 9999
+          }}
+        >
           {/* Minimized Button */}
           {isPanelMinimized ? (
             <button
