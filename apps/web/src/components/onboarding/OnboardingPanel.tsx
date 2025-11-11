@@ -135,9 +135,20 @@ export default function OnboardingPanel() {
         method: 'POST',
         headers
       });
-      if (!res.ok) throw new Error('Failed to start onboarding');
 
       const data = await res.json();
+
+      // Handle case where onboarding already started
+      if (!res.ok && data.error === 'Onboarding already started' && data.session) {
+        setHasStarted(true);
+        setSession(data.session);
+        setShowWelcome(false);
+        await checkOnboardingStatus();
+        return;
+      }
+
+      if (!res.ok) throw new Error('Failed to start onboarding');
+
       setHasStarted(true);
       setSession(data.session);
       setShowWelcome(false);
