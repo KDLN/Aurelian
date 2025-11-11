@@ -7,6 +7,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ONBOARDING_STEPS, getStepByKey } from '@/lib/onboarding/steps';
 import { supabase } from '@/lib/supabaseClient';
 import WelcomeModal from './WelcomeModal';
@@ -44,8 +45,10 @@ export default function OnboardingPanel() {
   const [rewardStepKey, setRewardStepKey] = useState<string | null>(null);
   const [showEconomicTutorial, setShowEconomicTutorial] = useState(false);
   const [isPanelMinimized, setIsPanelMinimized] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     checkOnboardingStatus();
   }, []);
 
@@ -213,7 +216,12 @@ export default function OnboardingPanel() {
   const currentStep = steps.find((s) => s.status === 'IN_PROGRESS');
   const rewardStep = rewardStepKey ? getStepByKey(rewardStepKey) : null;
 
-  return (
+  // Don't render portal on server-side
+  if (!mounted) {
+    return null;
+  }
+
+  const content = (
     <>
       {/* Welcome Modal */}
       {showWelcome && (
@@ -351,4 +359,7 @@ export default function OnboardingPanel() {
       )}
     </>
   );
+
+  // Render using portal to document body for proper z-index layering
+  return createPortal(content, document.body);
 }
