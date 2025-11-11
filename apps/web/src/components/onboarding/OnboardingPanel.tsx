@@ -195,11 +195,17 @@ export default function OnboardingPanel() {
     }
   }
 
+  // Don't render portal on server-side
+  if (!mounted) {
+    return null;
+  }
+
   if (loading) {
-    return (
+    return createPortal(
       <div className="p-4 bg-[#231913] border border-[#8b7355] rounded-lg text-[#f1e5c8]">
         <p>Loading onboarding...</p>
-      </div>
+      </div>,
+      document.body
     );
   }
 
@@ -210,16 +216,14 @@ export default function OnboardingPanel() {
 
   // For users who haven't started, only show the welcome modal
   if (!hasStarted) {
-    return showWelcome ? <WelcomeModal onStart={handleStartOnboarding} onDismiss={handleDismiss} /> : null;
+    return showWelcome ? createPortal(
+      <WelcomeModal onStart={handleStartOnboarding} onDismiss={handleDismiss} />,
+      document.body
+    ) : null;
   }
 
   const currentStep = steps.find((s) => s.status === 'IN_PROGRESS');
   const rewardStep = rewardStepKey ? getStepByKey(rewardStepKey) : null;
-
-  // Don't render portal on server-side
-  if (!mounted) {
-    return null;
-  }
 
   const content = (
     <>
