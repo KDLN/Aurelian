@@ -53,7 +53,9 @@ model User {
   trailNodes           TrailNode[]
   trailSegs            TrailSeg[]
   wallets              Wallet?
-  
+  onboardingSteps      OnboardingStep[]
+  onboardingSession    OnboardingSession?
+
   @@index([isAdmin])
   @@index([updatedAt])
 }
@@ -993,4 +995,73 @@ enum MailPriority {
   NORMAL
   HIGH
   URGENT
+}
+
+model OnboardingStep {
+  id              String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String      @db.Uuid
+  stepKey         String
+  status          StepStatus  @default(NOT_STARTED)
+  startedAt       DateTime?
+  completedAt     DateTime?
+  rewardsClaimed  Boolean     @default(false)
+  claimedAt       DateTime?
+  skipped         Boolean     @default(false)
+  attempts        Int         @default(0)
+  timeSpentSec    Int         @default(0)
+  metadata        Json?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, stepKey])
+  @@index([userId, status])
+  @@index([stepKey, status])
+  @@index([completedAt])
+}
+
+model OnboardingMetrics {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  date              DateTime  @default(now()) @db.Date
+  stepKey           String
+  started           Int       @default(0)
+  completed         Int       @default(0)
+  skipped           Int       @default(0)
+  avgTimeToComplete Int       @default(0)
+  medianTime        Int       @default(0)
+  completionRate    Float     @default(0)
+  rewardsClaimed    Int       @default(0)
+  totalGoldGranted  Int       @default(0)
+  totalItemsGranted Int       @default(0)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([date, stepKey])
+  @@index([date])
+  @@index([stepKey])
+}
+
+model OnboardingSession {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String    @unique @db.Uuid
+  startedAt         DateTime  @default(now())
+  completedAt       DateTime?
+  dismissed         Boolean   @default(false)
+  dismissedAt       DateTime?
+  currentStep       Int       @default(1)
+  stepsCompleted    Int       @default(0)
+  totalGoldEarned   Int       @default(0)
+  totalItemsEarned  Int       @default(0)
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([startedAt])
+  @@index([completedAt])
+  @@index([currentStep])
+}
+
+enum StepStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
 }
