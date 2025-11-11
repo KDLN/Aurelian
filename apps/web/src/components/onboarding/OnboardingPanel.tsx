@@ -8,6 +8,7 @@
 
 import { useEffect, useState } from 'react';
 import { ONBOARDING_STEPS, getStepByKey } from '@/lib/onboarding/steps';
+import { supabase } from '@/lib/supabaseClient';
 import WelcomeModal from './WelcomeModal';
 import TutorialStepCard from './TutorialStepCard';
 import RewardClaimModal from './RewardClaimModal';
@@ -47,10 +48,28 @@ export default function OnboardingPanel() {
     checkOnboardingStatus();
   }, []);
 
+  async function getAuthHeaders() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      throw new Error('No auth session');
+    }
+    return {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json'
+    };
+  }
+
   async function checkOnboardingStatus() {
     try {
-      const res = await fetch('/api/onboarding/start');
+      const headers = await getAuthHeaders();
+      const res = await fetch('/api/onboarding/start', { headers });
       const data = await res.json();
+
+      if (data.error) {
+        console.error('Onboarding status error:', data.error);
+        setLoading(false);
+        return;
+      }
 
       setHasStarted(data.hasStarted);
       setSession(data.session);
@@ -69,7 +88,11 @@ export default function OnboardingPanel() {
 
   async function handleStartOnboarding() {
     try {
-      const res = await fetch('/api/onboarding/start', { method: 'POST' });
+      const headers = await getAuthHeaders();
+      const res = await fetch('/api/onboarding/start', {
+        method: 'POST',
+        headers
+      });
       if (!res.ok) throw new Error('Failed to start onboarding');
 
       const data = await res.json();
@@ -97,9 +120,10 @@ export default function OnboardingPanel() {
         return;
       }
 
+      const headers = await getAuthHeaders();
       const res = await fetch('/api/onboarding/validate-step', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ stepKey })
       });
 
@@ -124,9 +148,10 @@ export default function OnboardingPanel() {
 
   async function handleClaimReward(stepKey: string) {
     try {
+      const headers = await getAuthHeaders();
       const res = await fetch('/api/onboarding/claim-reward', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ stepKey })
       });
 
@@ -143,9 +168,10 @@ export default function OnboardingPanel() {
   async function handleCompleteEconomicTutorial() {
     try {
       // Mark tutorial as read
+      const headers = await getAuthHeaders();
       const res = await fetch('/api/onboarding/validate-step', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           stepKey: 'economic_tutorial',
           metadata: { hasReadTutorial: true }
