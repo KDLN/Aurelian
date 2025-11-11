@@ -78,7 +78,10 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     console.error('Failed to get onboarding metrics:', error);
     return NextResponse.json(
-      { error: 'Failed to get onboarding metrics' },
+      {
+        error: 'Failed to get onboarding metrics',
+        details: error instanceof Error ? error.message : String(error)
+      },
       { status: 500 }
     );
   }
