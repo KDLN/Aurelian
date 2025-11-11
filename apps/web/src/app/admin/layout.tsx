@@ -9,6 +9,7 @@ import { AdminErrorBoundary } from '@/components/ui/error-boundary';
 const adminSections = [
   { id: 'dashboard', title: 'Dashboard', href: '/admin/dashboard', icon: '📊' },
   { id: 'activity', title: 'Activity Logs', href: '/admin/activity', icon: '📋' },
+  { id: 'onboarding', title: 'Onboarding', href: '/admin/onboarding', icon: '🎓' },
   { id: 'items', title: 'Items', href: '/admin/items', icon: '📦' },
   { id: 'equipment', title: 'Equipment', href: '/admin/equipment', icon: '⚔️' },
   { id: 'blueprints', title: 'Blueprints', href: '/admin/blueprints', icon: '📜' },

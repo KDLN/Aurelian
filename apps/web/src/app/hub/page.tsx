@@ -7,6 +7,7 @@ import { useAgents } from '@/hooks/useAgents';
 import { useMissions } from '@/hooks/useMissionsQuery';
 import { supabase } from '@/lib/supabaseClient';
 import Link from 'next/link';
+import OnboardingPanel from '@/components/onboarding/OnboardingPanel';
 
 interface RecentActivity {
   id: string;
@@ -217,17 +218,20 @@ export default function TradingHub() {
   );
 
   return (
-    <GameLayout 
-      title="Trading Hub" 
+    <GameLayout
+      title="Trading Hub"
       sidebar={sidebar}
     >
       <div className="game-flex-col">
+        {/* Onboarding Panel */}
+        <OnboardingPanel />
+
         <div className="game-card">
           <div className="game-grid-2">
             <div>
               <h2>Welcome back, {profile?.display || user?.email?.split('@')[0] || 'Trader'}!</h2>
               <p className="game-muted">
-                Manage your trading empire from the central hub. Check your progress, 
+                Manage your trading empire from the central hub. Check your progress,
                 review recent activity, and plan your next moves.
               </p>
             </div>
