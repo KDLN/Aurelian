@@ -7,6 +7,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabaseClient';
 
 interface FunnelStep {
   order: number;
@@ -89,10 +90,22 @@ export default function AdminOnboardingPage() {
     fetchMetrics();
   }, [days]);
 
+  async function getAuthHeaders() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      throw new Error('No auth session');
+    }
+    return {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json'
+    };
+  }
+
   async function fetchMetrics() {
     try {
       setLoading(true);
-      const res = await fetch(`/api/admin/onboarding-metrics?days=${days}`);
+      const headers = await getAuthHeaders();
+      const res = await fetch(`/api/admin/onboarding-metrics?days=${days}`, { headers });
       if (!res.ok) {
         throw new Error('Failed to fetch metrics');
       }
