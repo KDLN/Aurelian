@@ -47,6 +47,11 @@ export default function OnboardingPanel() {
   const [isPanelMinimized, setIsPanelMinimized] = useState(false);
   const [mounted, setMounted] = useState(false);
 
+  // Draggable window state
+  const [position, setPosition] = useState({ x: window.innerWidth - 420, y: 80 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
   useEffect(() => {
     setMounted(true);
     checkOnboardingStatus();
@@ -89,6 +94,39 @@ export default function OnboardingPanel() {
       setLoading(false);
     }
   }
+
+  // Drag handlers for movable window
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).tagName === 'BUTTON') return; // Don't drag when clicking buttons
+    setIsDragging(true);
+    setDragOffset({
+      x: e.clientX - position.x,
+      y: e.clientY - position.y
+    });
+  };
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      setPosition({
+        x: e.clientX - dragOffset.x,
+        y: e.clientY - dragOffset.y
+      });
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, dragOffset]);
 
   async function handleStartOnboarding() {
     try {
@@ -255,53 +293,66 @@ export default function OnboardingPanel() {
         />
       )}
 
-      {/* Onboarding Progress Panel - Floating Modal */}
+      {/* Onboarding Progress Panel - Draggable Floating Window */}
       {!showWelcome && (
         <div
-          className="max-w-md w-full"
           style={{
             position: 'fixed',
-            bottom: '1rem',
-            right: '1rem',
-            zIndex: 9999
+            left: `${position.x}px`,
+            top: `${position.y}px`,
+            zIndex: 9999,
+            width: '400px',
+            cursor: isDragging ? 'grabbing' : 'grab',
+            userSelect: 'none'
           }}
+          onMouseDown={handleMouseDown}
+          className="game-card shadow-2xl"
         >
           {/* Minimized Button */}
           {isPanelMinimized ? (
             <button
               onClick={() => setIsPanelMinimized(false)}
-              className="bg-[#231913] border-2 border-[#8b7355] rounded-lg p-4 text-[#f1e5c8] hover:bg-[#2a1f17] transition-colors shadow-lg flex items-center gap-3 w-full"
+              className="game-btn game-btn-secondary w-full flex items-center gap-3"
+              style={{ cursor: 'pointer' }}
             >
               <span className="text-2xl">🎓</span>
               <div className="flex-1 text-left">
                 <p className="font-bold">Tutorial Progress</p>
-                <p className="text-sm text-[#d4c5a9]">
+                <p className="game-small game-muted">
                   {session?.stepsCompleted}/{ONBOARDING_STEPS.length} Complete
                 </p>
               </div>
               <span className="text-xl">↑</span>
             </button>
           ) : (
-            <div className="bg-[#231913] border-2 border-[#8b7355] rounded-lg shadow-2xl max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="game-flex-col" style={{ maxHeight: '80vh', overflow: 'hidden' }}>
               {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b border-[#8b7355]">
+              <div className="game-space-between" style={{ borderBottom: '1px solid var(--game-border)', paddingBottom: '0.5rem', marginBottom: '0.5rem' }}>
                 <div className="flex-1">
-                  <h2 className="text-xl font-bold text-[#f1e5c8]">🎓 Tutorial Progress</h2>
-                  <p className="text-[#d4c5a9] text-xs">
-                    Complete steps to earn rewards
+                  <h2 className="game-good">🎓 Tutorial Progress</h2>
+                  <p className="game-muted game-small">
+                    Drag to move • Complete steps to earn rewards
                   </p>
                 </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => setIsPanelMinimized(true)}
-                    className="text-[#d4c5a9] hover:text-[#f1e5c8] transition-colors px-2"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsPanelMinimized(true);
+                    }}
+                    className="game-btn game-btn-small"
+                    style={{ cursor: 'pointer', padding: '0.25rem 0.5rem' }}
                     title="Minimize"
                   >
                     ↓
                   </button>
                   <button
-                    onClick={handleDismiss}
-                    className="text-[#d4c5a9] hover:text-[#f1e5c8] transition-colors px-2"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDismiss();
+                    }}
+                    className="game-btn game-btn-small"
+                    style={{ cursor: 'pointer', padding: '0.25rem 0.5rem' }}
                     title="Dismiss (can resume later)"
                   >
                     ✕
@@ -310,41 +361,39 @@ export default function OnboardingPanel() {
               </div>
 
               {/* Scrollable Content */}
-              <div className="overflow-y-auto p-4 text-[#f1e5c8]">
+              <div style={{ overflowY: 'auto', maxHeight: 'calc(80vh - 100px)' }} className="game-flex-col">
                 {/* Progress Stats */}
-                <div className="flex items-center justify-between mb-3 text-sm">
-                  <span className="text-[#d4c5a9]">Progress</span>
-                  <span className="font-bold text-yellow-400">
+                <div className="game-space-between game-small" style={{ marginBottom: '0.5rem' }}>
+                  <span className="game-muted">Progress</span>
+                  <span className="game-good">
                     {session?.stepsCompleted}/{ONBOARDING_STEPS.length}
                   </span>
                 </div>
 
                 {/* Progress Bar */}
-                <div className="mb-4">
-                  <div className="w-full bg-[#1a1410] rounded-full h-2 border border-[#8b7355]">
-                    <div
-                      className="bg-gradient-to-r from-yellow-600 to-orange-600 h-2 rounded-full transition-all duration-500"
-                      style={{
-                        width: `${((session?.stepsCompleted || 0) / ONBOARDING_STEPS.length) * 100}%`
-                      }}
-                    />
-                  </div>
+                <div className="game-progress-bar" style={{ marginBottom: '1rem' }}>
+                  <div
+                    className="game-progress-fill"
+                    style={{
+                      width: `${((session?.stepsCompleted || 0) / ONBOARDING_STEPS.length) * 100}%`
+                    }}
+                  />
                 </div>
 
                 {/* Compact Stats */}
-                <div className="grid grid-cols-2 gap-2 mb-4 text-xs">
-                  <div className="bg-[#1a1410] border border-yellow-600 rounded p-2 text-center">
-                    <p className="font-bold text-yellow-400">{session?.totalGoldEarned}g</p>
-                    <p className="text-[#d4c5a9]">Gold Earned</p>
+                <div className="game-grid-2" style={{ marginBottom: '1rem' }}>
+                  <div className="game-card-nested" style={{ textAlign: 'center' }}>
+                    <p className="game-good">{session?.totalGoldEarned}g</p>
+                    <p className="game-muted game-small">Gold Earned</p>
                   </div>
-                  <div className="bg-[#1a1410] border border-blue-600 rounded p-2 text-center">
-                    <p className="font-bold text-blue-400">{session?.totalItemsEarned}</p>
-                    <p className="text-[#d4c5a9]">Items Earned</p>
+                  <div className="game-card-nested" style={{ textAlign: 'center' }}>
+                    <p className="game-good">{session?.totalItemsEarned}</p>
+                    <p className="game-muted game-small">Items Earned</p>
                   </div>
                 </div>
 
                 {/* Step Cards */}
-                <div className="space-y-3">
+                <div className="game-flex-col">
                   {ONBOARDING_STEPS.map((stepDef) => {
                     const stepRecord = steps.find((s) => s.stepKey === stepDef.key);
                     if (!stepRecord) return null;
