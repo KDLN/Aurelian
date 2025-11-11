@@ -2,6 +2,5 @@
   "framework": null,
   "buildCommand": "npm --prefix apps/web run build",
   "installCommand": "npm install",
-  "outputDirectory": "apps/web/.next",
-  "rootDirectory": "."
+  "outputDirectory": "apps/web/.next"
 }
