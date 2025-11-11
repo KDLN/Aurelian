@@ -199,9 +199,14 @@ export default function OnboardingPanel() {
     );
   }
 
-  // Don't show anything if dismissed or completed
-  if (!hasStarted || session?.dismissed || session?.completedAt) {
+  // Don't show anything if dismissed or completed (but DO show welcome modal for new users)
+  if (session?.dismissed || session?.completedAt) {
     return null;
+  }
+
+  // For users who haven't started, only show the welcome modal
+  if (!hasStarted) {
+    return showWelcome ? <WelcomeModal onStart={handleStartOnboarding} onDismiss={handleDismiss} /> : null;
   }
 
   const currentStep = steps.find((s) => s.status === 'IN_PROGRESS');

@@ -483,9 +483,9 @@ export default function GameLayout({
           )}
         </GamePanel>
       </div>
-      
-      {/* Onboarding system - appears globally */}
-      <OnboardingTips />
+
+      {/* Onboarding system - NEW comprehensive system in hub page */}
+      {/* <OnboardingTips /> - Replaced by OnboardingPanel */}
     </div>
   );
 }
