@@ -1,6 +1,7 @@
 {
-  "buildCommand": "cd /vercel/path0 && npm --prefix packages/database run generate && npm --prefix apps/web run build",
-  "installCommand": "npm install",
   "framework": null,
-  "outputDirectory": "apps/web/.next"
+  "buildCommand": "npm --prefix apps/web run build",
+  "installCommand": "npm install",
+  "outputDirectory": "apps/web/.next",
+  "rootDirectory": "."
 }
