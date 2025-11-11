@@ -43,6 +43,7 @@ export default function OnboardingPanel() {
   const [showRewardModal, setShowRewardModal] = useState(false);
   const [rewardStepKey, setRewardStepKey] = useState<string | null>(null);
   const [showEconomicTutorial, setShowEconomicTutorial] = useState(false);
+  const [isPanelMinimized, setIsPanelMinimized] = useState(false);
 
   useEffect(() => {
     checkOnboardingStatus();
@@ -242,76 +243,110 @@ export default function OnboardingPanel() {
         />
       )}
 
-      {/* Onboarding Progress Panel */}
+      {/* Onboarding Progress Panel - Floating Modal */}
       {!showWelcome && (
-        <div className="mb-6 bg-[#231913] border-2 border-[#8b7355] rounded-lg p-6 text-[#f1e5c8]">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-2xl font-bold">🎓 Tutorial Progress</h2>
-              <p className="text-[#d4c5a9] text-sm">
-                Complete steps to earn rewards and master the game
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-3xl font-bold text-yellow-400">
-                {session?.stepsCompleted}/{ONBOARDING_STEPS.length}
-              </p>
-              <p className="text-sm text-[#d4c5a9]">Steps Complete</p>
-            </div>
-          </div>
+        <div className="fixed bottom-4 right-4 z-40 max-w-md w-full">
+          {/* Minimized Button */}
+          {isPanelMinimized ? (
+            <button
+              onClick={() => setIsPanelMinimized(false)}
+              className="bg-[#231913] border-2 border-[#8b7355] rounded-lg p-4 text-[#f1e5c8] hover:bg-[#2a1f17] transition-colors shadow-lg flex items-center gap-3 w-full"
+            >
+              <span className="text-2xl">🎓</span>
+              <div className="flex-1 text-left">
+                <p className="font-bold">Tutorial Progress</p>
+                <p className="text-sm text-[#d4c5a9]">
+                  {session?.stepsCompleted}/{ONBOARDING_STEPS.length} Complete
+                </p>
+              </div>
+              <span className="text-xl">↑</span>
+            </button>
+          ) : (
+            <div className="bg-[#231913] border-2 border-[#8b7355] rounded-lg shadow-2xl max-h-[80vh] overflow-hidden flex flex-col">
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-[#8b7355]">
+                <div className="flex-1">
+                  <h2 className="text-xl font-bold text-[#f1e5c8]">🎓 Tutorial Progress</h2>
+                  <p className="text-[#d4c5a9] text-xs">
+                    Complete steps to earn rewards
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setIsPanelMinimized(true)}
+                    className="text-[#d4c5a9] hover:text-[#f1e5c8] transition-colors px-2"
+                    title="Minimize"
+                  >
+                    ↓
+                  </button>
+                  <button
+                    onClick={handleDismiss}
+                    className="text-[#d4c5a9] hover:text-[#f1e5c8] transition-colors px-2"
+                    title="Dismiss (can resume later)"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
 
-          {/* Progress Bar */}
-          <div className="mb-6">
-            <div className="w-full bg-[#1a1410] rounded-full h-3 border border-[#8b7355]">
-              <div
-                className="bg-gradient-to-r from-yellow-600 to-orange-600 h-3 rounded-full transition-all duration-500"
-                style={{
-                  width: `${((session?.stepsCompleted || 0) / ONBOARDING_STEPS.length) * 100}%`
-                }}
-              />
-            </div>
-          </div>
+              {/* Scrollable Content */}
+              <div className="overflow-y-auto p-4 text-[#f1e5c8]">
+                {/* Progress Stats */}
+                <div className="flex items-center justify-between mb-3 text-sm">
+                  <span className="text-[#d4c5a9]">Progress</span>
+                  <span className="font-bold text-yellow-400">
+                    {session?.stepsCompleted}/{ONBOARDING_STEPS.length}
+                  </span>
+                </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-4 mb-6">
-            <div className="bg-[#1a1410] border border-yellow-600 rounded-lg p-3 text-center">
-              <p className="text-2xl font-bold text-yellow-400">{session?.totalGoldEarned}g</p>
-              <p className="text-xs text-[#d4c5a9]">Gold Earned</p>
-            </div>
-            <div className="bg-[#1a1410] border border-blue-600 rounded-lg p-3 text-center">
-              <p className="text-2xl font-bold text-blue-400">{session?.totalItemsEarned}</p>
-              <p className="text-xs text-[#d4c5a9]">Items Earned</p>
-            </div>
-            <div className="bg-[#1a1410] border border-green-600 rounded-lg p-3 text-center">
-              <p className="text-2xl font-bold text-green-400">
-                {Math.round(((session?.stepsCompleted || 0) / ONBOARDING_STEPS.length) * 100)}%
-              </p>
-              <p className="text-xs text-[#d4c5a9]">Complete</p>
-            </div>
-          </div>
+                {/* Progress Bar */}
+                <div className="mb-4">
+                  <div className="w-full bg-[#1a1410] rounded-full h-2 border border-[#8b7355]">
+                    <div
+                      className="bg-gradient-to-r from-yellow-600 to-orange-600 h-2 rounded-full transition-all duration-500"
+                      style={{
+                        width: `${((session?.stepsCompleted || 0) / ONBOARDING_STEPS.length) * 100}%`
+                      }}
+                    />
+                  </div>
+                </div>
 
-          {/* Step Cards */}
-          <div className="space-y-4">
-            {ONBOARDING_STEPS.map((stepDef) => {
-              const stepRecord = steps.find((s) => s.stepKey === stepDef.key);
-              if (!stepRecord) return null;
+                {/* Compact Stats */}
+                <div className="grid grid-cols-2 gap-2 mb-4 text-xs">
+                  <div className="bg-[#1a1410] border border-yellow-600 rounded p-2 text-center">
+                    <p className="font-bold text-yellow-400">{session?.totalGoldEarned}g</p>
+                    <p className="text-[#d4c5a9]">Gold Earned</p>
+                  </div>
+                  <div className="bg-[#1a1410] border border-blue-600 rounded p-2 text-center">
+                    <p className="font-bold text-blue-400">{session?.totalItemsEarned}</p>
+                    <p className="text-[#d4c5a9]">Items Earned</p>
+                  </div>
+                </div>
 
-              const isActive = currentStep?.stepKey === stepDef.key;
+                {/* Step Cards */}
+                <div className="space-y-3">
+                  {ONBOARDING_STEPS.map((stepDef) => {
+                    const stepRecord = steps.find((s) => s.stepKey === stepDef.key);
+                    if (!stepRecord) return null;
 
-              return (
-                <TutorialStepCard
-                  key={stepDef.key}
-                  step={stepDef}
-                  status={stepRecord.status}
-                  rewardsClaimed={stepRecord.rewardsClaimed}
-                  isActive={isActive}
-                  onValidate={() => handleValidateStep(stepDef.key)}
-                  onClaimReward={() => handleClaimReward(stepDef.key)}
-                />
-              );
-            })}
-          </div>
+                    const isActive = currentStep?.stepKey === stepDef.key;
+
+                    return (
+                      <TutorialStepCard
+                        key={stepDef.key}
+                        step={stepDef}
+                        status={stepRecord.status}
+                        rewardsClaimed={stepRecord.rewardsClaimed}
+                        isActive={isActive}
+                        onValidate={() => handleValidateStep(stepDef.key)}
+                        onClaimReward={() => handleClaimReward(stepDef.key)}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </>
