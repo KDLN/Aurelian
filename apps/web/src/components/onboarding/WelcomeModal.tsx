@@ -74,24 +74,64 @@ export default function WelcomeModal({ onStart, onDismiss }: WelcomeModalProps) 
         maxWidth: '600px',
         width: '90vw',
         cursor: isDragging ? 'grabbing' : 'grab',
-        userSelect: 'none'
+        userSelect: 'none',
+        border: '3px solid #8b7355',
+        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(139, 115, 85, 0.5)',
+        background: '#1a1410'
       }}
       onMouseDown={handleMouseDown}
-      className="game-card shadow-2xl"
+      className="game-card"
     >
+        {/* Close Button */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDismiss();
+          }}
+          style={{
+            position: 'absolute',
+            top: '8px',
+            right: '8px',
+            background: '#8b7355',
+            border: '2px solid #a0846b',
+            borderRadius: '4px',
+            width: '32px',
+            height: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            fontSize: '20px',
+            fontWeight: 'bold',
+            color: '#f1e5c8',
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#a0846b';
+            e.currentTarget.style.transform = 'scale(1.1)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = '#8b7355';
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
+          title="Close"
+        >
+          ✕
+        </button>
+
         {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
-          <h1 className="game-good" style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🎉 Welcome to The Exchange!</h1>
-          <p className="game-muted">Drag to move • Your trading adventure begins here</p>
+        <div style={{ textAlign: 'center', marginBottom: '1rem', paddingTop: '0.5rem' }}>
+          <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem', color: '#f1e5c8', fontWeight: 'bold' }}>🎉 Welcome to The Exchange!</h1>
+          <p className="game-muted" style={{ fontSize: '0.9rem' }}>Drag to move • Your trading adventure begins here</p>
         </div>
 
         {/* Introduction */}
         <div className="game-flex-col" style={{ marginBottom: '1rem' }}>
-          <p>
+          <p style={{ color: '#f1e5c8', lineHeight: '1.6' }}>
             You've arrived at a bustling trade hub where fortunes are made through cunning trading,
             strategic crafting, and bold expeditions.
           </p>
-          <p>
+          <p style={{ color: '#f1e5c8', lineHeight: '1.6' }}>
             This quick tutorial will teach you everything you need to become a master trader:
           </p>
         </div>
@@ -101,40 +141,46 @@ export default function WelcomeModal({ onStart, onDismiss }: WelcomeModalProps) 
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <span style={{ fontSize: '1.5rem' }}>📦</span>
             <div>
-              <h3 className="game-good game-small">Manage Your Warehouse</h3>
-              <p className="game-muted game-small">Store and organize your trading goods</p>
+              <h3 style={{ color: '#d4a574', fontWeight: 'bold', fontSize: '0.95rem', marginBottom: '0.25rem' }}>Manage Your Warehouse</h3>
+              <p style={{ color: '#b8a890', fontSize: '0.85rem' }}>Store and organize your trading goods</p>
             </div>
           </div>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <span style={{ fontSize: '1.5rem' }}>👤</span>
             <div>
-              <h3 className="game-good game-small">Hire Agents</h3>
-              <p className="game-muted game-small">Send them on missions to gather resources</p>
+              <h3 style={{ color: '#d4a574', fontWeight: 'bold', fontSize: '0.95rem', marginBottom: '0.25rem' }}>Hire Agents</h3>
+              <p style={{ color: '#b8a890', fontSize: '0.85rem' }}>Send them on missions to gather resources</p>
             </div>
           </div>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <span style={{ fontSize: '1.5rem' }}>🔨</span>
             <div>
-              <h3 className="game-good game-small">Craft Items</h3>
-              <p className="game-muted game-small">Transform raw materials into valuable goods</p>
+              <h3 style={{ color: '#d4a574', fontWeight: 'bold', fontSize: '0.95rem', marginBottom: '0.25rem' }}>Craft Items</h3>
+              <p style={{ color: '#b8a890', fontSize: '0.85rem' }}>Transform raw materials into valuable goods</p>
             </div>
           </div>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <span style={{ fontSize: '1.5rem' }}>🏪</span>
             <div>
-              <h3 className="game-good game-small">Trade on Market</h3>
-              <p className="game-muted game-small">Buy low, sell high, build your empire</p>
+              <h3 style={{ color: '#d4a574', fontWeight: 'bold', fontSize: '0.95rem', marginBottom: '0.25rem' }}>Trade on Market</h3>
+              <p style={{ color: '#b8a890', fontSize: '0.85rem' }}>Buy low, sell high, build your empire</p>
             </div>
           </div>
         </div>
 
         {/* Starter Package */}
-        <div className="game-card-nested" style={{ marginBottom: '1rem' }}>
-          <h3 className="game-good" style={{ marginBottom: '0.5rem' }}>
+        <div style={{
+          marginBottom: '1rem',
+          background: '#0d0a08',
+          border: '2px solid #8b7355',
+          borderRadius: '6px',
+          padding: '1rem'
+        }}>
+          <h3 style={{ marginBottom: '0.5rem', color: '#f1e5c8', fontWeight: 'bold', fontSize: '1.1rem' }}>
             <span>🎁</span> Starter Package Awaiting!
           </h3>
-          <p className="game-small" style={{ marginBottom: '0.5rem' }}>Complete the tutorial to unlock your starter package:</p>
-          <div className="game-grid-2 game-small">
+          <p style={{ marginBottom: '0.5rem', color: '#f1e5c8', fontSize: '0.95rem' }}>Complete the tutorial to unlock your starter package:</p>
+          <div className="game-grid-2" style={{ fontSize: '0.9rem', color: '#f1e5c8' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
               <span>💰</span> {firstStep.rewards.gold} Gold
             </div>
@@ -157,7 +203,7 @@ export default function WelcomeModal({ onStart, onDismiss }: WelcomeModalProps) 
         </div>
 
         {/* Time Estimate */}
-        <div className="game-muted game-small" style={{ textAlign: 'center', marginBottom: '1rem' }}>
+        <div style={{ textAlign: 'center', marginBottom: '1rem', color: '#b8a890', fontSize: '0.9rem' }}>
           <p>⏱️ Takes about 15-20 minutes • You can skip optional steps anytime</p>
         </div>
 
@@ -188,7 +234,7 @@ export default function WelcomeModal({ onStart, onDismiss }: WelcomeModalProps) 
         </div>
 
         {/* Note */}
-        <p className="game-muted game-small" style={{ textAlign: 'center', marginTop: '1rem' }}>
+        <p style={{ textAlign: 'center', marginTop: '1rem', color: '#b8a890', fontSize: '0.85rem' }}>
           You can access the tutorial again later from your profile settings
         </p>
       </div>
