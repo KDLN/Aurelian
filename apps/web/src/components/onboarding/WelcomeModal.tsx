@@ -6,7 +6,7 @@
  * First modal shown to new users. Introduces the game and starts the onboarding flow.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ONBOARDING_STEPS } from '@/lib/onboarding/steps';
 
 interface WelcomeModalProps {
@@ -16,6 +16,9 @@ interface WelcomeModalProps {
 
 export default function WelcomeModal({ onStart, onDismiss }: WelcomeModalProps) {
   const [loading, setLoading] = useState(false);
+  const [position, setPosition] = useState({ x: 100, y: 100 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
   const handleStart = async () => {
     setLoading(true);
@@ -27,116 +30,167 @@ export default function WelcomeModal({ onStart, onDismiss }: WelcomeModalProps) 
     }
   };
 
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).tagName === 'BUTTON') return;
+    setIsDragging(true);
+    setDragOffset({
+      x: e.clientX - position.x,
+      y: e.clientY - position.y
+    });
+  };
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      setPosition({
+        x: e.clientX - dragOffset.x,
+        y: e.clientY - dragOffset.y
+      });
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, dragOffset]);
+
   const firstStep = ONBOARDING_STEPS[0];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-[#231913] border-2 border-[#8b7355] rounded-lg max-w-2xl w-full mx-4 p-8 text-[#f1e5c8]">
+    <div
+      style={{
+        position: 'fixed',
+        left: `${position.x}px`,
+        top: `${position.y}px`,
+        zIndex: 9999,
+        maxWidth: '600px',
+        width: '90vw',
+        cursor: isDragging ? 'grabbing' : 'grab',
+        userSelect: 'none'
+      }}
+      onMouseDown={handleMouseDown}
+      className="game-card shadow-2xl"
+    >
         {/* Header */}
-        <div className="text-center mb-6">
-          <h1 className="text-4xl font-bold mb-2">🎉 Welcome to The Exchange!</h1>
-          <p className="text-xl text-[#d4c5a9]">Your trading adventure begins here</p>
+        <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+          <h1 className="game-good" style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🎉 Welcome to The Exchange!</h1>
+          <p className="game-muted">Drag to move • Your trading adventure begins here</p>
         </div>
 
         {/* Introduction */}
-        <div className="mb-6 space-y-4">
-          <p className="text-lg">
+        <div className="game-flex-col" style={{ marginBottom: '1rem' }}>
+          <p>
             You've arrived at a bustling trade hub where fortunes are made through cunning trading,
             strategic crafting, and bold expeditions.
           </p>
-          <p className="text-lg">
+          <p>
             This quick tutorial will teach you everything you need to become a master trader:
           </p>
         </div>
 
         {/* Features List */}
-        <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="flex items-start gap-3">
-            <span className="text-2xl">📦</span>
+        <div className="game-grid-2" style={{ marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <span style={{ fontSize: '1.5rem' }}>📦</span>
             <div>
-              <h3 className="font-bold">Manage Your Warehouse</h3>
-              <p className="text-sm text-[#d4c5a9]">Store and organize your trading goods</p>
+              <h3 className="game-good game-small">Manage Your Warehouse</h3>
+              <p className="game-muted game-small">Store and organize your trading goods</p>
             </div>
           </div>
-          <div className="flex items-start gap-3">
-            <span className="text-2xl">👤</span>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <span style={{ fontSize: '1.5rem' }}>👤</span>
             <div>
-              <h3 className="font-bold">Hire Agents</h3>
-              <p className="text-sm text-[#d4c5a9]">Send them on missions to gather resources</p>
+              <h3 className="game-good game-small">Hire Agents</h3>
+              <p className="game-muted game-small">Send them on missions to gather resources</p>
             </div>
           </div>
-          <div className="flex items-start gap-3">
-            <span className="text-2xl">🔨</span>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <span style={{ fontSize: '1.5rem' }}>🔨</span>
             <div>
-              <h3 className="font-bold">Craft Items</h3>
-              <p className="text-sm text-[#d4c5a9]">Transform raw materials into valuable goods</p>
+              <h3 className="game-good game-small">Craft Items</h3>
+              <p className="game-muted game-small">Transform raw materials into valuable goods</p>
             </div>
           </div>
-          <div className="flex items-start gap-3">
-            <span className="text-2xl">🏪</span>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <span style={{ fontSize: '1.5rem' }}>🏪</span>
             <div>
-              <h3 className="font-bold">Trade on Market</h3>
-              <p className="text-sm text-[#d4c5a9]">Buy low, sell high, build your empire</p>
+              <h3 className="game-good game-small">Trade on Market</h3>
+              <p className="game-muted game-small">Buy low, sell high, build your empire</p>
             </div>
           </div>
         </div>
 
         {/* Starter Package */}
-        <div className="mb-6 bg-[#1a1410] border border-[#8b7355] rounded-lg p-4">
-          <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
+        <div className="game-card-nested" style={{ marginBottom: '1rem' }}>
+          <h3 className="game-good" style={{ marginBottom: '0.5rem' }}>
             <span>🎁</span> Starter Package Awaiting!
           </h3>
-          <p className="mb-3">Complete the tutorial to unlock your starter package:</p>
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div className="flex items-center gap-2">
+          <p className="game-small" style={{ marginBottom: '0.5rem' }}>Complete the tutorial to unlock your starter package:</p>
+          <div className="game-grid-2 game-small">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
               <span>💰</span> {firstStep.rewards.gold} Gold
             </div>
-            <div className="flex items-center gap-2">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
               <span>⚒️</span> {firstStep.rewards.items.find(i => i.itemKey === 'iron_ore')?.qty} Iron Ore
             </div>
-            <div className="flex items-center gap-2">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
               <span>🌿</span> {firstStep.rewards.items.find(i => i.itemKey === 'herb')?.qty} Herbs
             </div>
-            <div className="flex items-center gap-2">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
               <span>🦌</span> {firstStep.rewards.items.find(i => i.itemKey === 'hide')?.qty} Hides
             </div>
-            <div className="flex items-center gap-2">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
               <span>⚔️</span> Equipment
             </div>
-            <div className="flex items-center gap-2">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
               <span>📜</span> Blueprints
             </div>
           </div>
         </div>
 
         {/* Time Estimate */}
-        <div className="mb-6 text-center text-sm text-[#d4c5a9]">
+        <div className="game-muted game-small" style={{ textAlign: 'center', marginBottom: '1rem' }}>
           <p>⏱️ Takes about 15-20 minutes • You can skip optional steps anytime</p>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-4">
+        <div className="game-space-between">
           <button
-            onClick={handleStart}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleStart();
+            }}
             disabled={loading}
-            className="flex-1 bg-[#8b7355] hover:bg-[#a0846b] disabled:bg-gray-600 text-[#f1e5c8] font-bold py-3 px-6 rounded transition-colors"
+            className="game-btn game-btn-primary"
+            style={{ cursor: 'pointer', flex: 1, marginRight: '0.5rem' }}
           >
             {loading ? 'Starting...' : 'Start Tutorial'}
           </button>
           <button
-            onClick={onDismiss}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDismiss();
+            }}
             disabled={loading}
-            className="px-6 py-3 border border-[#8b7355] hover:bg-[#1a1410] rounded transition-colors"
+            className="game-btn game-btn-secondary"
+            style={{ cursor: 'pointer' }}
           >
             Skip for Now
           </button>
         </div>
 
         {/* Note */}
-        <p className="mt-4 text-xs text-center text-[#d4c5a9]">
+        <p className="game-muted game-small" style={{ textAlign: 'center', marginTop: '1rem' }}>
           You can access the tutorial again later from your profile settings
         </p>
       </div>
-    </div>
   );
 }
