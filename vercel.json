@@ -1,6 +1,8 @@
 {
-  "framework": null,
-  "buildCommand": "cd apps/web && npm run build",
-  "installCommand": "npm install",
-  "outputDirectory": "apps/web/.next"
+  "builds": [
+    {
+      "src": "apps/web/package.json",
+      "use": "@vercel/next"
+    }
+  ]
 }
