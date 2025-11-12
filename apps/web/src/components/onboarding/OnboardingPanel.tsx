@@ -301,91 +301,127 @@ export default function OnboardingPanel() {
             </button>
           }
         >
-          {/* Subtitle */}
-          <p className="game-muted game-small" style={{ marginTop: '-0.5rem', marginBottom: '1rem', textAlign: 'center' }}>
-            Drag to move • Complete steps to earn rewards
-          </p>
-
-          {/* Scrollable Content */}
-          <div style={{ overflowY: 'auto', maxHeight: 'calc(80vh - 120px)' }}>
-            {/* Progress Stats */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '0.75rem',
-              fontSize: '0.95rem'
-            }}>
-              <span style={{ color: '#b8a890' }}>Progress</span>
-              <span style={{ color: '#d4a574', fontWeight: 'bold' }}>
-                {session?.stepsCompleted}/{ONBOARDING_STEPS.length}
-              </span>
-            </div>
-
-            {/* Progress Bar */}
-            <div className="game-progress-bar" style={{ marginBottom: '1rem' }}>
-              <div
-                className="game-progress-fill"
-                style={{
-                  width: `${((session?.stepsCompleted || 0) / ONBOARDING_STEPS.length) * 100}%`
-                }}
-              />
-            </div>
-
-            {/* Compact Stats */}
-            <div className="game-grid-2" style={{ marginBottom: '1rem', gap: '0.5rem' }}>
-              <div style={{
-                background: '#0d0a08',
-                border: '2px solid #8b7355',
-                borderRadius: '6px',
-                padding: '0.75rem',
-                textAlign: 'center'
-              }}>
-                <p style={{ color: '#d4a574', fontWeight: 'bold', margin: 0, fontSize: '1.1rem' }}>
-                  {session?.totalGoldEarned}g
-                </p>
-                <p className="game-small" style={{ color: '#b8a890', margin: 0, marginTop: '0.25rem' }}>
-                  Gold Earned
-                </p>
-              </div>
-              <div style={{
-                background: '#0d0a08',
-                border: '2px solid #8b7355',
-                borderRadius: '6px',
-                padding: '0.75rem',
-                textAlign: 'center'
-              }}>
-                <p style={{ color: '#d4a574', fontWeight: 'bold', margin: 0, fontSize: '1.1rem' }}>
-                  {session?.totalItemsEarned}
-                </p>
-                <p className="game-small" style={{ color: '#b8a890', margin: 0, marginTop: '0.25rem' }}>
-                  Items Earned
-                </p>
-              </div>
-            </div>
-
-            {/* Step Cards */}
-            <div className="game-flex-col">
-              {ONBOARDING_STEPS.map((stepDef) => {
-                const stepRecord = steps.find((s) => s.stepKey === stepDef.key);
-                if (!stepRecord) return null;
-
-                const isActive = currentStep?.stepKey === stepDef.key;
-
-                return (
-                  <TutorialStepCard
-                    key={stepDef.key}
-                    step={stepDef}
-                    status={stepRecord.status}
-                    rewardsClaimed={stepRecord.rewardsClaimed}
-                    isActive={isActive}
-                    onValidate={() => handleValidateStep(stepDef.key)}
-                    onClaimReward={() => handleClaimReward(stepDef.key)}
-                  />
-                );
-              })}
-            </div>
+          {/* Subtitle with progress */}
+          <div style={{ textAlign: 'center', marginTop: '-0.5rem', marginBottom: '1rem' }}>
+            <p className="game-muted game-small" style={{ margin: 0 }}>
+              Drag to move • Step {session?.currentStep}/{ONBOARDING_STEPS.length}
+            </p>
           </div>
+
+          {/* Progress Bar */}
+          <div className="game-progress-bar" style={{ marginBottom: '1.5rem' }}>
+            <div
+              className="game-progress-fill"
+              style={{
+                width: `${((session?.stepsCompleted || 0) / ONBOARDING_STEPS.length) * 100}%`
+              }}
+            />
+          </div>
+
+          {/* Current Step Display */}
+          {currentStep && (() => {
+            const stepDef = getStepByKey(currentStep.stepKey);
+            if (!stepDef) return null;
+
+            return (
+              <>
+                {/* Step Header */}
+                <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+                  <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>{stepDef.icon}</div>
+                  <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem', color: '#f1e5c8', fontWeight: 'bold' }}>
+                    {stepDef.title}
+                  </h2>
+                  <p style={{ color: '#f1e5c8', lineHeight: '1.6', marginBottom: '1rem' }}>
+                    {stepDef.description}
+                  </p>
+                </div>
+
+                {/* Requirements */}
+                <div style={{
+                  background: '#0d0a08',
+                  border: '2px solid #8b7355',
+                  borderRadius: '6px',
+                  padding: '1rem',
+                  marginBottom: '1.5rem'
+                }}>
+                  <h3 style={{ marginBottom: '0.75rem', color: '#d4a574', fontWeight: 'bold', fontSize: '1rem' }}>
+                    📋 What to do:
+                  </h3>
+                  <ul style={{ margin: 0, paddingLeft: '1.5rem', color: '#f1e5c8', lineHeight: '1.8' }}>
+                    {stepDef.requirements.map((req, idx) => (
+                      <li key={idx} style={{ marginBottom: '0.5rem' }}>{req}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Rewards Preview */}
+                <div style={{
+                  background: '#0d0a08',
+                  border: '2px solid #8b7355',
+                  borderRadius: '6px',
+                  padding: '1rem',
+                  marginBottom: '1.5rem'
+                }}>
+                  <h3 style={{ marginBottom: '0.75rem', color: '#d4a574', fontWeight: 'bold', fontSize: '1rem' }}>
+                    🎁 Rewards:
+                  </h3>
+                  <div className="game-grid-2" style={{ fontSize: '0.9rem', color: '#f1e5c8', gap: '0.5rem' }}>
+                    {stepDef.rewards.gold > 0 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <span>💰</span> {stepDef.rewards.gold} Gold
+                      </div>
+                    )}
+                    {stepDef.rewards.items.map((item, idx) => (
+                      <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <span>📦</span> {item.qty} {item.itemKey.replace(/_/g, ' ')}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Action Button */}
+                <button
+                  onClick={() => handleValidateStep(stepDef.key)}
+                  className="game-btn game-btn-primary"
+                  style={{ cursor: 'pointer', width: '100%', padding: '0.75rem', fontSize: '1rem' }}
+                >
+                  ✓ Complete Step
+                </button>
+
+                {/* Stats Footer */}
+                <div className="game-grid-2" style={{ marginTop: '1.5rem', gap: '0.5rem' }}>
+                  <div style={{
+                    background: '#0d0a08',
+                    border: '2px solid #8b7355',
+                    borderRadius: '6px',
+                    padding: '0.5rem',
+                    textAlign: 'center'
+                  }}>
+                    <p style={{ color: '#d4a574', fontWeight: 'bold', margin: 0, fontSize: '1rem' }}>
+                      {session?.totalGoldEarned}g
+                    </p>
+                    <p className="game-small" style={{ color: '#b8a890', margin: 0, marginTop: '0.25rem' }}>
+                      Total Gold
+                    </p>
+                  </div>
+                  <div style={{
+                    background: '#0d0a08',
+                    border: '2px solid #8b7355',
+                    borderRadius: '6px',
+                    padding: '0.5rem',
+                    textAlign: 'center'
+                  }}>
+                    <p style={{ color: '#d4a574', fontWeight: 'bold', margin: 0, fontSize: '1rem' }}>
+                      {session?.totalItemsEarned}
+                    </p>
+                    <p className="game-small" style={{ color: '#b8a890', margin: 0, marginTop: '0.25rem' }}>
+                      Total Items
+                    </p>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
         </DraggableWindow>
       )}
     </>
