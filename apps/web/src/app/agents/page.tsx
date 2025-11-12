@@ -8,6 +8,7 @@ import { useEquipment } from '@/hooks/useEquipment';
 import { AgentType, EquipmentSlot } from '@/lib/types';
 import { agentTypeInfo, getHiringCost } from '@/lib/agents/generator';
 import { getAgentLevelProgress } from '@/lib/missions/calculator';
+import { useOnboardingAction } from '@/hooks/useOnboardingTracker';
 
 export default function AgentsPage() {
   const { agents, isLoading, error, refetch } = useAgents();
@@ -16,6 +17,7 @@ export default function AgentsPage() {
   const { giveStarterGear, isGivingGear } = useStarterGear();
   const { wallet, inventory } = useUserDataQuery();
   const { equipment } = useEquipment();
+  const trackOnboardingAction = useOnboardingAction();
   
   const [selectedAgent, setSelectedAgent] = useState<string>('');
   const [selectedAgentType, setSelectedAgentType] = useState<AgentType>(AgentType.SCOUT);
@@ -36,6 +38,9 @@ export default function AgentsPage() {
     const isFirstAgent = agents.length === 0;
     const success = await hireAgent(selectedAgentType);
     if (success) {
+      // Track onboarding step completion
+      await trackOnboardingAction('hire_agent');
+
       // Automatically give starter gear for first agent
       if (isFirstAgent) {
         const gearSuccess = await giveStarterGear();

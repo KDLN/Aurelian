@@ -6,6 +6,7 @@ import GameButton from '@/components/ui/GameButton';
 import { useGameWorld } from '@/lib/game/world';
 import { useUserData } from '@/hooks/useUserData';
 import { supabase } from '@/lib/supabaseClient';
+import { useOnboardingTracker } from '@/hooks/useOnboardingTracker';
 
 interface InventoryItem {
   id: string;
@@ -24,6 +25,9 @@ interface LocationInventory {
 }
 
 export default function StoragePage() {
+  // Track warehouse visit for onboarding
+  useOnboardingTracker('warehouse_tour');
+
   const { world } = useGameWorld();
   const { user, authLoaded, inventory } = useUserData();
   const [inventoryData, setInventoryData] = useState<Record<string, LocationInventory>>({});
