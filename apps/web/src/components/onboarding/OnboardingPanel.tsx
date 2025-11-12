@@ -381,17 +381,26 @@ export default function OnboardingPanel() {
                   </div>
                 </div>
 
-                {/* Action Button */}
+                {/* Action Buttons */}
                 {stepDef.actionUrl ? (
-                  <button
-                    onClick={() => {
-                      router.push(stepDef.actionUrl!);
-                    }}
-                    className="game-btn game-btn-primary"
-                    style={{ cursor: 'pointer', width: '100%', padding: '0.75rem', fontSize: '1rem' }}
-                  >
-                    {stepDef.actionLabel || 'Continue'} →
-                  </button>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button
+                      onClick={() => {
+                        router.push(stepDef.actionUrl!);
+                      }}
+                      className="game-btn game-btn-secondary"
+                      style={{ cursor: 'pointer', flex: 1, padding: '0.75rem', fontSize: '1rem' }}
+                    >
+                      {stepDef.actionLabel || 'Go to Page'} →
+                    </button>
+                    <button
+                      onClick={() => handleValidateStep(stepDef.key)}
+                      className="game-btn game-btn-primary"
+                      style={{ cursor: 'pointer', flex: 1, padding: '0.75rem', fontSize: '1rem' }}
+                    >
+                      ✓ Complete
+                    </button>
+                  </div>
                 ) : (
                   <button
                     onClick={() => handleValidateStep(stepDef.key)}
