@@ -8,6 +8,7 @@
 
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useRouter } from 'next/navigation';
 import { ONBOARDING_STEPS, getStepByKey } from '@/lib/onboarding/steps';
 import { supabase } from '@/lib/supabaseClient';
 import WelcomeModal from './WelcomeModal';
@@ -37,6 +38,7 @@ interface OnboardingSession {
 }
 
 export default function OnboardingPanel() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [hasStarted, setHasStarted] = useState(false);
   const [session, setSession] = useState<OnboardingSession | null>(null);
@@ -380,13 +382,26 @@ export default function OnboardingPanel() {
                 </div>
 
                 {/* Action Button */}
-                <button
-                  onClick={() => handleValidateStep(stepDef.key)}
-                  className="game-btn game-btn-primary"
-                  style={{ cursor: 'pointer', width: '100%', padding: '0.75rem', fontSize: '1rem' }}
-                >
-                  ✓ Complete Step
-                </button>
+                {stepDef.actionUrl ? (
+                  <button
+                    onClick={() => {
+                      setIsPanelMinimized(true); // Minimize so they can see the page
+                      router.push(stepDef.actionUrl!);
+                    }}
+                    className="game-btn game-btn-primary"
+                    style={{ cursor: 'pointer', width: '100%', padding: '0.75rem', fontSize: '1rem' }}
+                  >
+                    {stepDef.actionLabel || 'Continue'} →
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleValidateStep(stepDef.key)}
+                    className="game-btn game-btn-primary"
+                    style={{ cursor: 'pointer', width: '100%', padding: '0.75rem', fontSize: '1rem' }}
+                  >
+                    ✓ Complete Step
+                  </button>
+                )}
 
                 {/* Stats Footer */}
                 <div className="game-grid-2" style={{ marginTop: '1.5rem', gap: '0.5rem' }}>

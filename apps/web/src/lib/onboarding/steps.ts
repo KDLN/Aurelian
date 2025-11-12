@@ -31,6 +31,8 @@ export interface OnboardingStepDefinition {
   validationQuery?: string; // SQL query or function name to validate completion
   helpText?: string;
   videoUrl?: string;
+  actionUrl?: string; // URL to navigate user to complete the action
+  actionLabel?: string; // Label for action button (e.g., "Go to Warehouse")
 }
 
 /**
@@ -82,7 +84,9 @@ export const ONBOARDING_STEPS: OnboardingStepDefinition[] = [
       ]
     },
     validationQuery: 'hasVisitedWarehouse',
-    helpText: 'Click the Warehouse tab in the navigation menu.',
+    helpText: 'Go to the Warehouse page to view your inventory. The step will complete automatically when you visit.',
+    actionUrl: '/warehouse',
+    actionLabel: 'Go to Warehouse',
   },
 
   {
@@ -101,7 +105,9 @@ export const ONBOARDING_STEPS: OnboardingStepDefinition[] = [
       ]
     },
     validationQuery: 'hasHiredAgent',
-    helpText: 'Go to Agents page and hire your first agent with the starter gold.',
+    helpText: 'Visit the Agents page and hire your first agent. You need at least 100g to hire an agent.',
+    actionUrl: '/agents',
+    actionLabel: 'Go to Agents',
   },
 
   // ===== PHASE 2: ECONOMIC LOOP (Core Gameplay) =====
