@@ -129,6 +129,8 @@ export const ONBOARDING_STEPS: OnboardingStepDefinition[] = [
     },
     validationQuery: 'hasCompletedMission',
     helpText: 'Visit the Missions page, select a LOW risk mission, and send your agent.',
+    actionUrl: '/missions',
+    actionLabel: 'Go to Missions',
   },
 
   {
@@ -167,6 +169,8 @@ export const ONBOARDING_STEPS: OnboardingStepDefinition[] = [
     },
     validationQuery: 'hasCraftedItem',
     helpText: 'Go to Crafting page, select a blueprint, and start crafting using your iron ore.',
+    actionUrl: '/crafting',
+    actionLabel: 'Go to Crafting',
   },
 
   // ===== PHASE 3: ADVANCED (Trading & Social) =====
@@ -188,6 +192,8 @@ export const ONBOARDING_STEPS: OnboardingStepDefinition[] = [
     },
     validationQuery: 'hasCreatedListing',
     helpText: 'Visit the Market, select an item from your warehouse, and create a listing.',
+    actionUrl: '/market',
+    actionLabel: 'Go to Market',
   },
 
   {
@@ -223,6 +229,8 @@ export const ONBOARDING_STEPS: OnboardingStepDefinition[] = [
     },
     validationQuery: 'hasJoinedGuild',
     helpText: 'Visit the Guilds page to browse guilds or create your own.',
+    actionUrl: '/guilds',
+    actionLabel: 'Go to Guilds',
   }
 ];
 
