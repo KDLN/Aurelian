@@ -45,20 +45,32 @@ export function useOnboardingAction() {
   return useCallback(async (stepKey: string) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) return;
+      if (!session?.access_token) {
+        console.debug('[Onboarding] No session token, skipping tracking');
+        return;
+      }
 
       const headers = {
         'Authorization': `Bearer ${session.access_token}`,
         'Content-Type': 'application/json'
       };
 
-      await fetch('/api/onboarding/validate-step', {
+      console.log(`[Onboarding] Tracking action: ${stepKey}`);
+      const response = await fetch('/api/onboarding/validate-step', {
         method: 'POST',
         headers,
         body: JSON.stringify({ stepKey })
       });
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.warn('[Onboarding] Validation failed:', error);
+      } else {
+        const result = await response.json();
+        console.log('[Onboarding] Validation result:', result);
+      }
     } catch (error) {
-      console.debug('Onboarding action tracking error:', error);
+      console.debug('[Onboarding] Action tracking error:', error);
     }
   }, []);
 }

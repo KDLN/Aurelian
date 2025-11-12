@@ -156,7 +156,7 @@ export default function MissionsPage() {
       });
       console.log('🏁 Completion finished for mission:', missionInstanceId);
     }
-  }, [completeMissionMutation, completingMissions]);
+  }, [completeMissionMutation, completingMissions, trackOnboardingAction]);
 
 
   // Memoize expensive calculations
