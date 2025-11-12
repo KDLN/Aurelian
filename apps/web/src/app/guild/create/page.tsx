@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react';
 import GameLayout from '@/components/GameLayout';
 import { supabase } from '@/lib/supabaseClient';
+import { useOnboardingAction } from '@/hooks/useOnboardingTracker';
 
 export default function CreateGuildPage() {
+  const trackOnboardingAction = useOnboardingAction();
   const [formData, setFormData] = useState({
     name: '',
     tag: '',
@@ -82,8 +84,12 @@ export default function CreateGuildPage() {
       }
 
       const result = await response.json();
+
+      // Track onboarding step completion
+      await trackOnboardingAction('join_guild');
+
       alert(`Guild "${result.guild.name}" created successfully!`);
-      
+
       // Redirect to guild page
       window.location.href = '/guild';
 

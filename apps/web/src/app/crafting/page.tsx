@@ -4,6 +4,7 @@ import { useState } from 'react';
 import GameLayout from '@/components/GameLayout';
 import { useCrafting } from '@/hooks/useCrafting';
 import { useUserDataQuery } from '@/hooks/useUserDataQuery';
+import { useOnboardingAction } from '@/hooks/useOnboardingTracker';
 
 interface Blueprint {
   id: string;
@@ -33,6 +34,7 @@ interface Blueprint {
 
 export default function CraftingPage() {
   const { refreshData } = useUserDataQuery();
+  const trackOnboardingAction = useOnboardingAction();
   const {
     blueprints,
     activeJobs,
@@ -72,6 +74,10 @@ export default function CraftingPage() {
     try {
       clearError();
       const result = await completeCrafting(jobId);
+
+      // Track onboarding step completion
+      await trackOnboardingAction('first_craft');
+
       setMessage(`🎉 ${result.message}`);
       if (result.leveledUp) {
         setMessage(prev => `${prev}\n🆙 Level up! Now level ${result.newLevel}!`);

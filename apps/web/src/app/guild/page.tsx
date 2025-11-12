@@ -8,16 +8,22 @@ import LoadingSpinner from '@/components/guild/LoadingSpinner';
 import ErrorBoundary from '@/components/guild/ErrorBoundary';
 import TreasurySection from '@/components/guild/TreasurySection';
 import { supabase } from '@/lib/supabaseClient';
+import { useOnboardingAction } from '@/hooks/useOnboardingTracker';
 
 export default function GuildPage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'treasury' | 'wars'>('overview');
-  
+  const trackOnboardingAction = useOnboardingAction();
+
   const { guild, invitations, isInGuild, isLoading, error, refresh } = useGuild();
   const { respondToInvitation, isLoading: inviteLoading, error: inviteError } = useGuildInvitations();
 
   const handleInvitationResponse = async (invitationId: string, action: 'accept' | 'decline') => {
     const success = await respondToInvitation(invitationId, action);
     if (success) {
+      // Track onboarding step completion when joining guild
+      if (action === 'accept') {
+        await trackOnboardingAction('join_guild');
+      }
       await refresh(); // Refresh guild data after accepting/declining
     }
   };

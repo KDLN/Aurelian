@@ -15,11 +15,13 @@ import HelpTooltip, { RiskTooltip, DurationTooltip } from '@/components/HelpTool
 import ContributionModal from '@/components/server/ContributionModal';
 import { triggerGlobalServerMissionsRefresh } from '@/hooks/useServerMissions';
 import PageErrorBoundary from '@/components/PageErrorBoundary';
+import { useOnboardingAction } from '@/hooks/useOnboardingTracker';
 
 export default function MissionsPage() {
   const { data, isLoading, error, refetch } = useMissions(); // Uses optimized 60s polling
   const startMissionMutation = useStartMission();
   const completeMissionMutation = useCompleteMission();
+  const trackOnboardingAction = useOnboardingAction();
   
   // Only load user data after component mounts to avoid blocking initial render
   const [mounted, setMounted] = useState(false);
@@ -124,13 +126,16 @@ export default function MissionsPage() {
       
       const result = await completeMissionMutation.mutateAsync(missionInstanceId);
       if (result.success) {
+        // Track onboarding step completion
+        await trackOnboardingAction('first_mission');
+
         const rewards = result.rewards;
         const goldText = rewards?.gold && rewards.gold > 0 ? `${rewards.gold} gold` : '';
-        const itemsText = rewards?.items?.length 
+        const itemsText = rewards?.items?.length
           ? rewards.items.map((item: any) => `${item.qty} ${item.itemKey}`).join(', ')
           : '';
         const rewardText = [goldText, itemsText].filter(Boolean).join(' and ');
-        
+
         if (result.missionSuccess) {
           setCompletionMessage(`Mission completed successfully! Received: ${rewardText}`);
         } else {

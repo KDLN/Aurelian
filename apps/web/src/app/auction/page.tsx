@@ -10,6 +10,7 @@ import { useUserDataQuery } from '@/hooks/useUserDataQuery';
 import { getRTClient } from '@/lib/rtClient';
 import { supabase } from '@/lib/supabaseClient';
 import type { Room } from 'colyseus.js';
+import { useOnboardingAction } from '@/hooks/useOnboardingTracker';
 
 // Prevent hydration mismatch by ensuring client-only rendering of dynamic content
 
@@ -38,6 +39,7 @@ const DURATION_OPTIONS = [
 export default function AuctionPage() {
   const { world } = useGameWorld();
   const { wallet, inventory, refreshData } = useUserDataQuery();
+  const trackOnboardingAction = useOnboardingAction();
   const [selectedItem, setSelectedItem] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [price, setPrice] = useState(10);
@@ -137,7 +139,10 @@ export default function AuctionPage() {
           alert(data.message);
         });
 
-        auctionRoom.onMessage('listing_created', (listing: Listing) => {
+        auctionRoom.onMessage('listing_created', async (listing: Listing) => {
+          // Track onboarding step completion
+          await trackOnboardingAction('first_sale');
+
           // Reset form on successful creation
           setQuantity(1);
           setPrice(10);
