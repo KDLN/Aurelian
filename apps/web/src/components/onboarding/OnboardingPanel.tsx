@@ -11,6 +11,7 @@ import { createPortal } from 'react-dom';
 import { ONBOARDING_STEPS, getStepByKey } from '@/lib/onboarding/steps';
 import { supabase } from '@/lib/supabaseClient';
 import WelcomeModal from './WelcomeModal';
+import DraggableWindow from './DraggableWindow';
 import TutorialStepCard from './TutorialStepCard';
 import RewardClaimModal from './RewardClaimModal';
 import EconomicTutorial from './EconomicTutorial';
@@ -46,11 +47,6 @@ export default function OnboardingPanel() {
   const [showEconomicTutorial, setShowEconomicTutorial] = useState(false);
   const [isPanelMinimized, setIsPanelMinimized] = useState(false);
   const [mounted, setMounted] = useState(false);
-
-  // Draggable window state
-  const [position, setPosition] = useState({ x: window.innerWidth - 420, y: 80 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     setMounted(true);
@@ -94,39 +90,6 @@ export default function OnboardingPanel() {
       setLoading(false);
     }
   }
-
-  // Drag handlers for movable window
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).tagName === 'BUTTON') return; // Don't drag when clicking buttons
-    setIsDragging(true);
-    setDragOffset({
-      x: e.clientX - position.x,
-      y: e.clientY - position.y
-    });
-  };
-
-  useEffect(() => {
-    if (!isDragging) return;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      setPosition({
-        x: e.clientX - dragOffset.x,
-        y: e.clientY - dragOffset.y
-      });
-    };
-
-    const handleMouseUp = () => {
-      setIsDragging(false);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isDragging, dragOffset]);
 
   async function handleStartOnboarding() {
     try {
@@ -306,128 +269,124 @@ export default function OnboardingPanel() {
 
       {/* Onboarding Progress Panel - Draggable Floating Window */}
       {!showWelcome && (
-        <div
-          style={{
-            position: 'fixed',
-            left: `${position.x}px`,
-            top: `${position.y}px`,
-            zIndex: 9999,
-            width: '400px',
-            cursor: isDragging ? 'grabbing' : 'grab',
-            userSelect: 'none'
-          }}
-          onMouseDown={handleMouseDown}
-          className="game-card shadow-2xl"
-        >
-          {/* Minimized Button */}
-          {isPanelMinimized ? (
+        <DraggableWindow
+          initialPosition={{ x: window.innerWidth - 420, y: 80 }}
+          width="400px"
+          maxWidth="400px"
+          title="🎓 Tutorial Progress"
+          onClose={handleDismiss}
+          onMinimize={() => setIsPanelMinimized(true)}
+          isMinimized={isPanelMinimized}
+          minimizedContent={
             <button
               onClick={() => setIsPanelMinimized(false)}
-              className="game-btn game-btn-secondary w-full flex items-center gap-3"
-              style={{ cursor: 'pointer' }}
+              className="game-btn game-btn-secondary"
+              style={{
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                padding: '1rem',
+                minWidth: '250px'
+              }}
             >
-              <span className="text-2xl">🎓</span>
-              <div className="flex-1 text-left">
-                <p className="font-bold">Tutorial Progress</p>
-                <p className="game-small game-muted">
+              <span style={{ fontSize: '1.5rem' }}>🎓</span>
+              <div style={{ flex: 1, textAlign: 'left' }}>
+                <p style={{ fontWeight: 'bold', margin: 0 }}>Tutorial Progress</p>
+                <p className="game-small game-muted" style={{ margin: 0 }}>
                   {session?.stepsCompleted}/{ONBOARDING_STEPS.length} Complete
                 </p>
               </div>
-              <span className="text-xl">↑</span>
+              <span style={{ fontSize: '1.25rem' }}>↑</span>
             </button>
-          ) : (
-            <div className="game-flex-col" style={{ maxHeight: '80vh', overflow: 'hidden' }}>
-              {/* Header */}
-              <div className="game-space-between" style={{ borderBottom: '1px solid var(--game-border)', paddingBottom: '0.5rem', marginBottom: '0.5rem' }}>
-                <div className="flex-1">
-                  <h2 className="game-good">🎓 Tutorial Progress</h2>
-                  <p className="game-muted game-small">
-                    Drag to move • Complete steps to earn rewards
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsPanelMinimized(true);
-                    }}
-                    className="game-btn game-btn-small"
-                    style={{ cursor: 'pointer', padding: '0.25rem 0.5rem' }}
-                    title="Minimize"
-                  >
-                    ↓
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDismiss();
-                    }}
-                    className="game-btn game-btn-small"
-                    style={{ cursor: 'pointer', padding: '0.25rem 0.5rem' }}
-                    title="Dismiss (can resume later)"
-                  >
-                    ✕
-                  </button>
-                </div>
+          }
+        >
+          {/* Subtitle */}
+          <p className="game-muted game-small" style={{ marginTop: '-0.5rem', marginBottom: '1rem', textAlign: 'center' }}>
+            Drag to move • Complete steps to earn rewards
+          </p>
+
+          {/* Scrollable Content */}
+          <div style={{ overflowY: 'auto', maxHeight: 'calc(80vh - 120px)' }}>
+            {/* Progress Stats */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '0.75rem',
+              fontSize: '0.95rem'
+            }}>
+              <span style={{ color: '#b8a890' }}>Progress</span>
+              <span style={{ color: '#d4a574', fontWeight: 'bold' }}>
+                {session?.stepsCompleted}/{ONBOARDING_STEPS.length}
+              </span>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="game-progress-bar" style={{ marginBottom: '1rem' }}>
+              <div
+                className="game-progress-fill"
+                style={{
+                  width: `${((session?.stepsCompleted || 0) / ONBOARDING_STEPS.length) * 100}%`
+                }}
+              />
+            </div>
+
+            {/* Compact Stats */}
+            <div className="game-grid-2" style={{ marginBottom: '1rem', gap: '0.5rem' }}>
+              <div style={{
+                background: '#0d0a08',
+                border: '2px solid #8b7355',
+                borderRadius: '6px',
+                padding: '0.75rem',
+                textAlign: 'center'
+              }}>
+                <p style={{ color: '#d4a574', fontWeight: 'bold', margin: 0, fontSize: '1.1rem' }}>
+                  {session?.totalGoldEarned}g
+                </p>
+                <p className="game-small" style={{ color: '#b8a890', margin: 0, marginTop: '0.25rem' }}>
+                  Gold Earned
+                </p>
               </div>
-
-              {/* Scrollable Content */}
-              <div style={{ overflowY: 'auto', maxHeight: 'calc(80vh - 100px)' }} className="game-flex-col">
-                {/* Progress Stats */}
-                <div className="game-space-between game-small" style={{ marginBottom: '0.5rem' }}>
-                  <span className="game-muted">Progress</span>
-                  <span className="game-good">
-                    {session?.stepsCompleted}/{ONBOARDING_STEPS.length}
-                  </span>
-                </div>
-
-                {/* Progress Bar */}
-                <div className="game-progress-bar" style={{ marginBottom: '1rem' }}>
-                  <div
-                    className="game-progress-fill"
-                    style={{
-                      width: `${((session?.stepsCompleted || 0) / ONBOARDING_STEPS.length) * 100}%`
-                    }}
-                  />
-                </div>
-
-                {/* Compact Stats */}
-                <div className="game-grid-2" style={{ marginBottom: '1rem' }}>
-                  <div className="game-card-nested" style={{ textAlign: 'center' }}>
-                    <p className="game-good">{session?.totalGoldEarned}g</p>
-                    <p className="game-muted game-small">Gold Earned</p>
-                  </div>
-                  <div className="game-card-nested" style={{ textAlign: 'center' }}>
-                    <p className="game-good">{session?.totalItemsEarned}</p>
-                    <p className="game-muted game-small">Items Earned</p>
-                  </div>
-                </div>
-
-                {/* Step Cards */}
-                <div className="game-flex-col">
-                  {ONBOARDING_STEPS.map((stepDef) => {
-                    const stepRecord = steps.find((s) => s.stepKey === stepDef.key);
-                    if (!stepRecord) return null;
-
-                    const isActive = currentStep?.stepKey === stepDef.key;
-
-                    return (
-                      <TutorialStepCard
-                        key={stepDef.key}
-                        step={stepDef}
-                        status={stepRecord.status}
-                        rewardsClaimed={stepRecord.rewardsClaimed}
-                        isActive={isActive}
-                        onValidate={() => handleValidateStep(stepDef.key)}
-                        onClaimReward={() => handleClaimReward(stepDef.key)}
-                      />
-                    );
-                  })}
-                </div>
+              <div style={{
+                background: '#0d0a08',
+                border: '2px solid #8b7355',
+                borderRadius: '6px',
+                padding: '0.75rem',
+                textAlign: 'center'
+              }}>
+                <p style={{ color: '#d4a574', fontWeight: 'bold', margin: 0, fontSize: '1.1rem' }}>
+                  {session?.totalItemsEarned}
+                </p>
+                <p className="game-small" style={{ color: '#b8a890', margin: 0, marginTop: '0.25rem' }}>
+                  Items Earned
+                </p>
               </div>
             </div>
-          )}
-        </div>
+
+            {/* Step Cards */}
+            <div className="game-flex-col">
+              {ONBOARDING_STEPS.map((stepDef) => {
+                const stepRecord = steps.find((s) => s.stepKey === stepDef.key);
+                if (!stepRecord) return null;
+
+                const isActive = currentStep?.stepKey === stepDef.key;
+
+                return (
+                  <TutorialStepCard
+                    key={stepDef.key}
+                    step={stepDef}
+                    status={stepRecord.status}
+                    rewardsClaimed={stepRecord.rewardsClaimed}
+                    isActive={isActive}
+                    onValidate={() => handleValidateStep(stepDef.key)}
+                    onClaimReward={() => handleClaimReward(stepDef.key)}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        </DraggableWindow>
       )}
     </>
   );

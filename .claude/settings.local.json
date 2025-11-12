@@ -34,7 +34,8 @@
       "Bash(cat:*)",
       "Bash(npm --prefix apps/web run typecheck)",
       "Bash(npm --prefix apps/web run build)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nrefactor: create reusable DraggableWindow component for consistent styling\n\nCreated DraggableWindow component to ensure consistent styling between\nWelcomeModal and OnboardingPanel:\n\n**New DraggableWindow component:**\n- Reusable draggable window with game theme\n- Props: initialPosition, width, maxWidth, title, onClose, onMinimize\n- Supports minimized state with custom minimizedContent\n- 3px brown border, double shadow, dark background\n- Integrated header with title and control buttons\n- Prevents dragging when clicking buttons/inputs\n\n**Updated OnboardingPanel:**\n- Uses DraggableWindow instead of custom drag handlers\n- Removed duplicate drag logic (position, isDragging, dragOffset states)\n- Better contrast: #f1e5c8 text, #d4a574 highlights, #b8a890 muted\n- Stats cards match WelcomeModal style (#0d0a08 background)\n- Cleaner, more maintainable code\n\nBoth modals now have identical frame styling and behavior.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
