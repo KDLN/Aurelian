@@ -84,8 +84,8 @@ export default function OnboardingPanel() {
       setSession(data.session);
       setSteps(data.steps || []);
 
-      // Show welcome modal if not started and not dismissed
-      if (!data.hasStarted || (!data.session?.dismissed && data.session?.currentStep === 1)) {
+      // Show welcome modal ONLY if not started and not dismissed
+      if (!data.hasStarted && !data.session?.dismissed) {
         setShowWelcome(true);
       }
     } catch (error) {
