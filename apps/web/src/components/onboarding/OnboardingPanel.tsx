@@ -385,7 +385,6 @@ export default function OnboardingPanel() {
                 {stepDef.actionUrl ? (
                   <button
                     onClick={() => {
-                      setIsPanelMinimized(true); // Minimize so they can see the page
                       router.push(stepDef.actionUrl!);
                     }}
                     className="game-btn game-btn-primary"
