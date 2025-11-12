@@ -5,6 +5,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { queryClient } from '@/lib/query-client';
 import { ErrorBoundary } from './ErrorBoundary';
+import OnboardingPanel from '@/components/onboarding/OnboardingPanel';
 
 interface ClientProvidersProps {
   children: React.ReactNode;
@@ -29,6 +30,7 @@ export default function ClientProviders({ children }: ClientProvidersProps) {
     <ErrorBoundary onError={handleQueryError}>
       <QueryClientProvider client={queryClient}>
         {children}
+        <OnboardingPanel />
         {process.env.NODE_ENV === 'development' && (
           <ReactQueryDevtools initialIsOpen={false} />
         )}

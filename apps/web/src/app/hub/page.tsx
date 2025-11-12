@@ -7,7 +7,6 @@ import { useAgents } from '@/hooks/useAgents';
 import { useMissions } from '@/hooks/useMissionsQuery';
 import { supabase } from '@/lib/supabaseClient';
 import Link from 'next/link';
-import OnboardingPanel from '@/components/onboarding/OnboardingPanel';
 
 interface RecentActivity {
   id: string;
@@ -223,9 +222,6 @@ export default function TradingHub() {
       sidebar={sidebar}
     >
       <div className="game-flex-col">
-        {/* Onboarding Panel */}
-        <OnboardingPanel />
-
         <div className="game-card">
           <div className="game-grid-2">
             <div>
