@@ -336,23 +336,23 @@ export default function OnboardingPanel() {
                   </p>
                 </div>
 
-                {/* Requirements */}
-                <div style={{
-                  background: '#0d0a08',
-                  border: '2px solid #8b7355',
-                  borderRadius: '6px',
-                  padding: '1rem',
-                  marginBottom: '1.5rem'
-                }}>
-                  <h3 style={{ marginBottom: '0.75rem', color: '#d4a574', fontWeight: 'bold', fontSize: '1rem' }}>
-                    📋 What to do:
-                  </h3>
-                  <ul style={{ margin: 0, paddingLeft: '1.5rem', color: '#f1e5c8', lineHeight: '1.8' }}>
-                    {stepDef.requirements.map((req, idx) => (
-                      <li key={idx} style={{ marginBottom: '0.5rem' }}>{req}</li>
-                    ))}
-                  </ul>
-                </div>
+                {/* Help Text */}
+                {stepDef.helpText && (
+                  <div style={{
+                    background: '#0d0a08',
+                    border: '2px solid #8b7355',
+                    borderRadius: '6px',
+                    padding: '1rem',
+                    marginBottom: '1.5rem'
+                  }}>
+                    <h3 style={{ marginBottom: '0.75rem', color: '#d4a574', fontWeight: 'bold', fontSize: '1rem' }}>
+                      📋 What to do:
+                    </h3>
+                    <p style={{ margin: 0, color: '#f1e5c8', lineHeight: '1.8' }}>
+                      {stepDef.helpText}
+                    </p>
+                  </div>
+                )}
 
                 {/* Rewards Preview */}
                 <div style={{
