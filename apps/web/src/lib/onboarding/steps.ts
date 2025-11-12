@@ -84,9 +84,9 @@ export const ONBOARDING_STEPS: OnboardingStepDefinition[] = [
       ]
     },
     validationQuery: 'hasVisitedWarehouse',
-    helpText: 'Go to the Warehouse page to view your inventory. The step will complete automatically when you visit.',
-    actionUrl: '/warehouse',
-    actionLabel: 'Go to Warehouse',
+    helpText: 'Go to the Storage page to view your inventory. The step will complete automatically when you visit.',
+    actionUrl: '/storage',
+    actionLabel: 'Go to Storage',
   },
 
   {
@@ -228,9 +228,9 @@ export const ONBOARDING_STEPS: OnboardingStepDefinition[] = [
       items: []
     },
     validationQuery: 'hasJoinedGuild',
-    helpText: 'Visit the Guilds page to browse guilds or create your own.',
-    actionUrl: '/guilds',
-    actionLabel: 'Go to Guilds',
+    helpText: 'Visit the Guild page to browse guilds or create your own.',
+    actionUrl: '/guild',
+    actionLabel: 'Go to Guild',
   }
 ];
 
