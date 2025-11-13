@@ -80,7 +80,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate step completion
+    console.log(`[Onboarding API] Validating step ${stepKey} for user ${user.id}`);
     const validation = await validateStep(user.id, stepKey);
+    console.log(`[Onboarding API] Validation result:`, validation);
 
     if (!validation.valid) {
       return NextResponse.json({

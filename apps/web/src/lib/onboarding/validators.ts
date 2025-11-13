@@ -186,10 +186,15 @@ export async function validateStep(userId: string, stepKey: string): Promise<Val
   try {
     return await validator(userId);
   } catch (error) {
-    console.error(`Validation error for step ${stepKey}:`, error);
+    console.error(`[Validators] Validation error for step ${stepKey}:`, error);
+    console.error(`[Validators] Error details:`, {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
     return {
       valid: false,
-      message: 'Validation failed due to an error'
+      message: `Validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
     };
   }
 }
