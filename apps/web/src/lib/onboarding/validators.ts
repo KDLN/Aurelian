@@ -74,7 +74,7 @@ async function validateFirstMission(userId: string): Promise<ValidationResult> {
   const completedMission = await prisma.mission.findFirst({
     where: {
       userId,
-      status: 'COMPLETED'
+      status: 'complete'
     }
   });
 
@@ -110,7 +110,7 @@ async function validateFirstCraft(userId: string): Promise<ValidationResult> {
   const completedCraft = await prisma.craftJob.findFirst({
     where: {
       userId,
-      status: 'COMPLETED'
+      status: 'complete'
     }
   });
 
