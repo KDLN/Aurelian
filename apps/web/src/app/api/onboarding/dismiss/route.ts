@@ -25,6 +25,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Validate request body (should be empty for this endpoint)
+    const contentType = req.headers.get('content-type');
+    if (contentType?.includes('application/json')) {
+      try {
+        const body = await req.json();
+        if (Object.keys(body).length > 0) {
+          console.warn('[Onboarding] Dismiss endpoint received unexpected body:', body);
+        }
+      } catch (error) {
+        // Invalid JSON - ignore and continue
+        console.warn('[Onboarding] Dismiss endpoint received invalid JSON');
+      }
+    }
+
     // Get or create session
     let session = await prisma.onboardingSession.findUnique({
       where: { userId: user.id }

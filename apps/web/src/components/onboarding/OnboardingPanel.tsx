@@ -6,7 +6,7 @@
  * Main container for the onboarding system. Orchestrates all modals and manages state.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { ONBOARDING_STEPS, getStepByKey } from '@/lib/onboarding/steps';
@@ -52,6 +52,9 @@ export default function OnboardingPanel() {
   const [isPanelMinimized, setIsPanelMinimized] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [isClaimingReward, setIsClaimingReward] = useState(false);
+
+  // Use ref for synchronous race condition prevention
+  const isClaimingRef = useRef(false);
 
   useEffect(() => {
     setMounted(true);
@@ -281,13 +284,14 @@ export default function OnboardingPanel() {
           stepIcon={rewardStep.icon}
           rewards={rewardStep.rewards}
           onClose={async () => {
-            // Prevent multiple simultaneous claims
-            if (isClaimingReward) return;
+            // Prevent race condition: Check and set flag synchronously using ref
+            if (isClaimingRef.current) return;
+            isClaimingRef.current = true;
+            setIsClaimingReward(true);
 
             // Claim rewards BEFORE closing modal
             if (rewardStepKey) {
               try {
-                setIsClaimingReward(true);
                 await handleClaimReward(rewardStepKey);
 
                 // Only close modal if claiming succeeded
@@ -298,10 +302,13 @@ export default function OnboardingPanel() {
                 alert('Failed to claim rewards. Please try again.');
                 // Keep modal open so user can retry
               } finally {
+                isClaimingRef.current = false;
                 setIsClaimingReward(false);
               }
             } else {
               // No reward to claim, just close
+              isClaimingRef.current = false;
+              setIsClaimingReward(false);
               setShowRewardModal(false);
               setRewardStepKey(null);
             }

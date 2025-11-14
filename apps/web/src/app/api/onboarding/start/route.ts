@@ -145,19 +145,26 @@ export async function GET(req: NextRequest) {
       ONBOARDING_STEPS.map(s => [s.key, s.order])
     );
 
-    const sortedSteps = steps.sort((a, b) => {
-      const orderA = orderMap.get(a.stepKey);
-      const orderB = orderMap.get(b.stepKey);
+    // Filter out invalid steps (indicates database corruption)
+    const validSteps = steps.filter(s => orderMap.has(s.stepKey));
 
-      // If step keys not found in ONBOARDING_STEPS, log error and sort to end
-      if (orderA === undefined || orderB === undefined) {
-        console.error('[Onboarding] Invalid step key found in database:', {
-          stepA: a.stepKey,
-          stepB: b.stepKey
-        });
-        return orderA === undefined ? 1 : -1;
-      }
+    // Log if any steps were filtered out
+    if (validSteps.length !== steps.length) {
+      const invalidSteps = steps.filter(s => !orderMap.has(s.stepKey));
+      console.error('[Onboarding] Invalid step keys found in database (data corruption):', {
+        userId: user.id,
+        invalidSteps: invalidSteps.map(s => ({
+          stepKey: s.stepKey,
+          stepId: s.id
+        })),
+        expectedSteps: ONBOARDING_STEPS.map(s => s.key)
+      });
+    }
 
+    // Sort valid steps by their defined order
+    const sortedSteps = validSteps.sort((a, b) => {
+      const orderA = orderMap.get(a.stepKey)!;
+      const orderB = orderMap.get(b.stepKey)!;
       return orderA - orderB;
     });
 
