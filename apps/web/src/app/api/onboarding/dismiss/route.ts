@@ -39,43 +39,23 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Get or create session
-    let session = await prisma.onboardingSession.findUnique({
-      where: { userId: user.id }
+    // Use upsert for atomic create-or-update operation
+    const session = await prisma.onboardingSession.upsert({
+      where: { userId: user.id },
+      create: {
+        userId: user.id,
+        dismissed: true,
+        dismissedAt: new Date(),
+        currentStep: 1,
+        stepsCompleted: 0,
+        totalGoldEarned: 0,
+        totalItemsEarned: 0
+      },
+      update: {
+        dismissed: true,
+        dismissedAt: new Date()
+      }
     });
-
-    // Validate session ownership (defense in depth)
-    if (session && session.userId !== user.id) {
-      console.error('[Onboarding] Session ownership mismatch:', {
-        sessionUserId: session.userId,
-        requestUserId: user.id
-      });
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    }
-
-    if (!session) {
-      // Create session if it doesn't exist (user dismissed before starting)
-      session = await prisma.onboardingSession.create({
-        data: {
-          userId: user.id,
-          dismissed: true,
-          dismissedAt: new Date(),
-          currentStep: 1,
-          stepsCompleted: 0,
-          totalGoldEarned: 0,
-          totalItemsEarned: 0
-        }
-      });
-    } else {
-      // Update existing session
-      session = await prisma.onboardingSession.update({
-        where: { userId: user.id },
-        data: {
-          dismissed: true,
-          dismissedAt: new Date()
-        }
-      });
-    }
 
     return NextResponse.json({
       success: true,

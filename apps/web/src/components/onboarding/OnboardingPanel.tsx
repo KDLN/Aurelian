@@ -141,15 +141,15 @@ export default function OnboardingPanel() {
 
       if (!res.ok) throw new Error('Failed to dismiss onboarding');
 
-      // Update local state
+      // Update local state only after successful API call
       setShowWelcome(false);
       if (session) {
         setSession({ ...session, dismissed: true, dismissedAt: new Date().toISOString() });
       }
     } catch (error) {
       console.error('Failed to dismiss onboarding:', error);
-      // Still hide the welcome modal even if API fails
-      setShowWelcome(false);
+      // Show error to user, keep modal open
+      alert('Failed to dismiss tutorial. Please try again.');
     }
   }
 
@@ -283,6 +283,7 @@ export default function OnboardingPanel() {
           stepTitle={rewardStep.title}
           stepIcon={rewardStep.icon}
           rewards={rewardStep.rewards}
+          isLoading={isClaimingReward}
           onClose={async () => {
             // Prevent race condition: Check and set flag synchronously using ref
             if (isClaimingRef.current) return;
