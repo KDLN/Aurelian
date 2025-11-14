@@ -141,14 +141,20 @@ export async function GET(req: NextRequest) {
     });
 
     const steps = await prisma.onboardingStep.findMany({
-      where: { userId: user.id },
-      orderBy: { stepKey: 'asc' }
+      where: { userId: user.id }
+    });
+
+    // Sort steps by their defined order (not alphabetically by key)
+    const sortedSteps = steps.sort((a, b) => {
+      const stepA = ONBOARDING_STEPS.find(s => s.key === a.stepKey);
+      const stepB = ONBOARDING_STEPS.find(s => s.key === b.stepKey);
+      return (stepA?.order || 0) - (stepB?.order || 0);
     });
 
     return NextResponse.json({
       hasStarted: !!session,
       session,
-      steps,
+      steps: sortedSteps,
       totalSteps: ONBOARDING_STEPS.length
     });
   } catch (error) {

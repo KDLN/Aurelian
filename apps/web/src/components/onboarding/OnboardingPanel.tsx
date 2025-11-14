@@ -17,11 +17,13 @@ import TutorialStepCard from './TutorialStepCard';
 import RewardClaimModal from './RewardClaimModal';
 import EconomicTutorial from './EconomicTutorial';
 
+type StepStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'SKIPPED';
+
 interface OnboardingStep {
   id: string;
   userId: string;
   stepKey: string;
-  status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'SKIPPED';
+  status: StepStatus;
   rewardsClaimed: boolean;
   completedAt?: string;
 }
@@ -126,8 +128,25 @@ export default function OnboardingPanel() {
   }
 
   async function handleDismiss() {
-    // TODO: Add API endpoint to mark session as dismissed
-    setShowWelcome(false);
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch('/api/onboarding/dismiss', {
+        method: 'POST',
+        headers
+      });
+
+      if (!res.ok) throw new Error('Failed to dismiss onboarding');
+
+      // Update local state
+      setShowWelcome(false);
+      if (session) {
+        setSession({ ...session, dismissed: true, dismissedAt: new Date().toISOString() });
+      }
+    } catch (error) {
+      console.error('Failed to dismiss onboarding:', error);
+      // Still hide the welcome modal even if API fails
+      setShowWelcome(false);
+    }
   }
 
   async function handleValidateStep(stepKey: string) {
@@ -262,7 +281,11 @@ export default function OnboardingPanel() {
           stepTitle={rewardStep.title}
           stepIcon={rewardStep.icon}
           rewards={rewardStep.rewards}
-          onClose={() => {
+          onClose={async () => {
+            // Claim rewards when modal closes
+            if (rewardStepKey) {
+              await handleClaimReward(rewardStepKey);
+            }
             setShowRewardModal(false);
             setRewardStepKey(null);
           }}
