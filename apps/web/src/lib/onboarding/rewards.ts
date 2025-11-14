@@ -6,6 +6,7 @@
  */
 
 import { prisma } from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
 import type { ItemReward, StepRewards } from './steps';
 
 export interface RewardResult {
@@ -103,7 +104,7 @@ export async function grantStepRewards(
  * Grant item to user's warehouse
  */
 async function grantItemToWarehouse(
-  tx: any,
+  tx: Prisma.TransactionClient,
   userId: string,
   itemReward: ItemReward
 ): Promise<void> {
@@ -148,7 +149,7 @@ async function grantItemToWarehouse(
  * Apply special bonus effects
  */
 async function applyBonus(
-  tx: any,
+  tx: Prisma.TransactionClient,
   userId: string,
   stepKey: string,
   bonus: string
@@ -213,7 +214,7 @@ async function applyBonus(
 /**
  * Unlock starter blueprints for user
  */
-async function unlockStarterBlueprints(tx: any, userId: string): Promise<void> {
+async function unlockStarterBlueprints(tx: Prisma.TransactionClient, userId: string): Promise<void> {
   // Get all blueprints with tier 1
   const starterBlueprints = await tx.blueprint.findMany({
     where: { tier: 1 }
@@ -246,7 +247,7 @@ async function unlockStarterBlueprints(tx: any, userId: string): Promise<void> {
  * Update aggregate metrics for admin dashboard
  */
 async function updateMetrics(
-  tx: any,
+  tx: Prisma.TransactionClient,
   stepKey: string,
   rewards: StepRewards
 ): Promise<void> {

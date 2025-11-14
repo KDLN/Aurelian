@@ -5,14 +5,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseServer } from '@/lib/supabaseServer';
 import { prisma } from '@/lib/prisma';
 import { ONBOARDING_STEPS } from '@/lib/onboarding/steps';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,7 +20,7 @@ export async function POST(req: NextRequest) {
     const token = authHeader.replace('Bearer ', '');
     const {
       data: { user }
-    } = await supabase.auth.getUser(token);
+    } = await supabaseServer.auth.getUser(token);
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -37,10 +32,28 @@ export async function POST(req: NextRequest) {
     });
 
     if (existingSession) {
-      return NextResponse.json(
-        { error: 'Onboarding already started', session: existingSession },
-        { status: 400 }
-      );
+      // Allow restart if session was dismissed before starting (0 steps completed)
+      if (existingSession.dismissed && existingSession.stepsCompleted === 0) {
+        // Delete old dismissed session and associated steps to start fresh
+        await prisma.$transaction(async (tx) => {
+          // Delete any step records (there shouldn't be any, but clean up just in case)
+          await tx.onboardingStep.deleteMany({
+            where: { userId: user.id }
+          });
+
+          // Delete the dismissed session
+          await tx.onboardingSession.delete({
+            where: { userId: user.id }
+          });
+        });
+        // Continue to create new session below (fall through)
+      } else {
+        // Session exists and user has made progress - can't restart
+        return NextResponse.json(
+          { error: 'Onboarding already started', session: existingSession },
+          { status: 400 }
+        );
+      }
     }
 
     // Create session and all step records in transaction
@@ -129,7 +142,7 @@ export async function GET(req: NextRequest) {
     const token = authHeader.replace('Bearer ', '');
     const {
       data: { user }
-    } = await supabase.auth.getUser(token);
+    } = await supabaseServer.auth.getUser(token);
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -141,14 +154,42 @@ export async function GET(req: NextRequest) {
     });
 
     const steps = await prisma.onboardingStep.findMany({
-      where: { userId: user.id },
-      orderBy: { stepKey: 'asc' }
+      where: { userId: user.id }
+    });
+
+    // Sort steps by their defined order (not alphabetically by key)
+    // Create order lookup map for O(1) access instead of O(n) find operations
+    const orderMap = new Map(
+      ONBOARDING_STEPS.map(s => [s.key, s.order])
+    );
+
+    // Filter out invalid steps (indicates database corruption)
+    const validSteps = steps.filter(s => orderMap.has(s.stepKey));
+
+    // Log if any steps were filtered out
+    if (validSteps.length !== steps.length) {
+      const invalidSteps = steps.filter(s => !orderMap.has(s.stepKey));
+      console.error('[Onboarding] Invalid step keys found in database (data corruption):', {
+        userId: user.id,
+        invalidSteps: invalidSteps.map(s => ({
+          stepKey: s.stepKey,
+          stepId: s.id
+        })),
+        expectedSteps: ONBOARDING_STEPS.map(s => s.key)
+      });
+    }
+
+    // Sort valid steps by their defined order
+    const sortedSteps = validSteps.sort((a, b) => {
+      const orderA = orderMap.get(a.stepKey)!;
+      const orderB = orderMap.get(b.stepKey)!;
+      return orderA - orderB;
     });
 
     return NextResponse.json({
       hasStarted: !!session,
       session,
-      steps,
+      steps: sortedSteps,
       totalSteps: ONBOARDING_STEPS.length
     });
   } catch (error) {

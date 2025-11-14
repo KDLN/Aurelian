@@ -15,6 +15,7 @@ interface RewardClaimModalProps {
   stepIcon: string;
   rewards: StepRewards;
   onClose: () => void;
+  isLoading?: boolean;
 }
 
 export default function RewardClaimModal({
@@ -22,7 +23,8 @@ export default function RewardClaimModal({
   stepTitle,
   stepIcon,
   rewards,
-  onClose
+  onClose,
+  isLoading = false
 }: RewardClaimModalProps) {
   const [animationPhase, setAnimationPhase] = useState<'enter' | 'show' | 'exit'>('enter');
 
@@ -143,9 +145,21 @@ export default function RewardClaimModal({
         {/* Continue Button */}
         <button
           onClick={handleClose}
-          className="w-full bg-yellow-600 hover:bg-yellow-700 text-black font-bold py-3 px-6 rounded-lg transition-colors text-lg"
+          disabled={isLoading}
+          className={`w-full font-bold py-3 px-6 rounded-lg transition-colors text-lg ${
+            isLoading
+              ? 'bg-gray-600 cursor-not-allowed text-gray-300'
+              : 'bg-yellow-600 hover:bg-yellow-700 text-black'
+          }`}
         >
-          Continue Tutorial
+          {isLoading ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="animate-spin">⏳</span>
+              Claiming Rewards...
+            </span>
+          ) : (
+            'Continue Tutorial'
+          )}
         </button>
 
         {/* Encouragement Text */}

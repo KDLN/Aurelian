@@ -6,12 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { supabaseServer } from '@/lib/supabaseServer';
 import { prisma } from '@/lib/prisma';
 import { validateStep, markStepStarted } from '@/lib/onboarding/validators';
 import { getStepByKey, getNextStep } from '@/lib/onboarding/steps';
@@ -27,7 +22,7 @@ export async function POST(req: NextRequest) {
     const token = authHeader.replace('Bearer ', '');
     const {
       data: { user }
-    } = await supabase.auth.getUser(token);
+    } = await supabaseServer.auth.getUser(token);
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
