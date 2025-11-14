@@ -32,10 +32,28 @@ export async function POST(req: NextRequest) {
     });
 
     if (existingSession) {
-      return NextResponse.json(
-        { error: 'Onboarding already started', session: existingSession },
-        { status: 400 }
-      );
+      // Allow restart if session was dismissed before starting (0 steps completed)
+      if (existingSession.dismissed && existingSession.stepsCompleted === 0) {
+        // Delete old dismissed session and associated steps to start fresh
+        await prisma.$transaction(async (tx) => {
+          // Delete any step records (there shouldn't be any, but clean up just in case)
+          await tx.onboardingStep.deleteMany({
+            where: { userId: user.id }
+          });
+
+          // Delete the dismissed session
+          await tx.onboardingSession.delete({
+            where: { userId: user.id }
+          });
+        });
+        // Continue to create new session below (fall through)
+      } else {
+        // Session exists and user has made progress - can't restart
+        return NextResponse.json(
+          { error: 'Onboarding already started', session: existingSession },
+          { status: 400 }
+        );
+      }
     }
 
     // Create session and all step records in transaction
