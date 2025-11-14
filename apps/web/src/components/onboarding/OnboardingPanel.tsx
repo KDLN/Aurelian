@@ -8,7 +8,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { ONBOARDING_STEPS, getStepByKey } from '@/lib/onboarding/steps';
 import { supabase } from '@/lib/supabaseClient';
 import WelcomeModal from './WelcomeModal';
@@ -41,6 +41,7 @@ interface OnboardingSession {
 
 export default function OnboardingPanel() {
   const router = useRouter();
+  const pathname = usePathname();
   const [loading, setLoading] = useState(true);
   const [hasStarted, setHasStarted] = useState(false);
   const [session, setSession] = useState<OnboardingSession | null>(null);
@@ -232,6 +233,11 @@ export default function OnboardingPanel() {
 
   // Don't render portal on server-side
   if (!mounted) {
+    return null;
+  }
+
+  // Don't show tutorial on home page
+  if (pathname === '/') {
     return null;
   }
 
