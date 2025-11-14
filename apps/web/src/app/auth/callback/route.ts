@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
   const refresh_token = searchParams.get('refresh_token')
   
   // if "next" is in param, use it as the redirect URL
-  const next = searchParams.get('next') ?? '/'
+  const next = searchParams.get('next') ?? '/hub'
 
   // Enhanced logging for debugging
   console.log(`🔄 Auth callback received:`)
@@ -90,10 +90,10 @@ export async function GET(request: NextRequest) {
   }
 
   // For implicit flow, tokens are in URL fragment (not accessible server-side)
-  // If we have no code and no error, assume it's implicit flow and redirect to homepage
+  // If we have no code and no error, assume it's implicit flow and redirect to hub
   if (!code && !error) {
-    console.log(`🔄 No code parameter - likely implicit flow, redirecting to homepage`)
-    return NextResponse.redirect(`${origin}/`)
+    console.log(`🔄 No code parameter - likely implicit flow, redirecting to hub`)
+    return NextResponse.redirect(`${origin}/hub`)
   }
 
   if (code) {
