@@ -5,13 +5,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseServer } from '@/lib/supabaseServer';
 import { prisma } from '@/lib/prisma';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,7 +19,7 @@ export async function POST(req: NextRequest) {
     const token = authHeader.replace('Bearer ', '');
     const {
       data: { user }
-    } = await supabase.auth.getUser(token);
+    } = await supabaseServer.auth.getUser(token);
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -34,6 +29,15 @@ export async function POST(req: NextRequest) {
     let session = await prisma.onboardingSession.findUnique({
       where: { userId: user.id }
     });
+
+    // Validate session ownership (defense in depth)
+    if (session && session.userId !== user.id) {
+      console.error('[Onboarding] Session ownership mismatch:', {
+        sessionUserId: session.userId,
+        requestUserId: user.id
+      });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
 
     if (!session) {
       // Create session if it doesn't exist (user dismissed before starting)
@@ -65,9 +69,15 @@ export async function POST(req: NextRequest) {
       session
     });
   } catch (error) {
-    console.error('Failed to dismiss onboarding:', error);
+    console.error('[Onboarding] Failed to dismiss onboarding:', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
     return NextResponse.json(
-      { error: 'Failed to dismiss onboarding' },
+      {
+        error: 'Failed to dismiss onboarding',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }

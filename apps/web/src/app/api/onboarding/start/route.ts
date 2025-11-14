@@ -5,14 +5,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseServer } from '@/lib/supabaseServer';
 import { prisma } from '@/lib/prisma';
 import { ONBOARDING_STEPS } from '@/lib/onboarding/steps';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,7 +20,7 @@ export async function POST(req: NextRequest) {
     const token = authHeader.replace('Bearer ', '');
     const {
       data: { user }
-    } = await supabase.auth.getUser(token);
+    } = await supabaseServer.auth.getUser(token);
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -129,7 +124,7 @@ export async function GET(req: NextRequest) {
     const token = authHeader.replace('Bearer ', '');
     const {
       data: { user }
-    } = await supabase.auth.getUser(token);
+    } = await supabaseServer.auth.getUser(token);
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -145,10 +140,25 @@ export async function GET(req: NextRequest) {
     });
 
     // Sort steps by their defined order (not alphabetically by key)
+    // Create order lookup map for O(1) access instead of O(n) find operations
+    const orderMap = new Map(
+      ONBOARDING_STEPS.map(s => [s.key, s.order])
+    );
+
     const sortedSteps = steps.sort((a, b) => {
-      const stepA = ONBOARDING_STEPS.find(s => s.key === a.stepKey);
-      const stepB = ONBOARDING_STEPS.find(s => s.key === b.stepKey);
-      return (stepA?.order || 0) - (stepB?.order || 0);
+      const orderA = orderMap.get(a.stepKey);
+      const orderB = orderMap.get(b.stepKey);
+
+      // If step keys not found in ONBOARDING_STEPS, log error and sort to end
+      if (orderA === undefined || orderB === undefined) {
+        console.error('[Onboarding] Invalid step key found in database:', {
+          stepA: a.stepKey,
+          stepB: b.stepKey
+        });
+        return orderA === undefined ? 1 : -1;
+      }
+
+      return orderA - orderB;
     });
 
     return NextResponse.json({

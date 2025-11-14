@@ -51,6 +51,7 @@ export default function OnboardingPanel() {
   const [showEconomicTutorial, setShowEconomicTutorial] = useState(false);
   const [isPanelMinimized, setIsPanelMinimized] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isClaimingReward, setIsClaimingReward] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -184,22 +185,20 @@ export default function OnboardingPanel() {
   }
 
   async function handleClaimReward(stepKey: string) {
-    try {
-      const headers = await getAuthHeaders();
-      const res = await fetch('/api/onboarding/claim-reward', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ stepKey })
-      });
+    const headers = await getAuthHeaders();
+    const res = await fetch('/api/onboarding/claim-reward', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ stepKey })
+    });
 
-      if (!res.ok) throw new Error('Failed to claim rewards');
-
-      // Refresh state
-      await checkOnboardingStatus();
-    } catch (error) {
-      console.error('Failed to claim rewards:', error);
-      alert('Failed to claim rewards. Please try again.');
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to claim rewards');
     }
+
+    // Refresh state
+    await checkOnboardingStatus();
   }
 
   async function handleCompleteEconomicTutorial() {
@@ -282,12 +281,30 @@ export default function OnboardingPanel() {
           stepIcon={rewardStep.icon}
           rewards={rewardStep.rewards}
           onClose={async () => {
-            // Claim rewards when modal closes
+            // Prevent multiple simultaneous claims
+            if (isClaimingReward) return;
+
+            // Claim rewards BEFORE closing modal
             if (rewardStepKey) {
-              await handleClaimReward(rewardStepKey);
+              try {
+                setIsClaimingReward(true);
+                await handleClaimReward(rewardStepKey);
+
+                // Only close modal if claiming succeeded
+                setShowRewardModal(false);
+                setRewardStepKey(null);
+              } catch (error) {
+                console.error('Failed to claim rewards:', error);
+                alert('Failed to claim rewards. Please try again.');
+                // Keep modal open so user can retry
+              } finally {
+                setIsClaimingReward(false);
+              }
+            } else {
+              // No reward to claim, just close
+              setShowRewardModal(false);
+              setRewardStepKey(null);
             }
-            setShowRewardModal(false);
-            setRewardStepKey(null);
           }}
         />
       )}
