@@ -247,19 +247,6 @@ export default function HubDesignTestPage() {
             </div>
           </article>
 
-          <article className="game-card">
-            <div className="hub-design-card__header">
-              <h3>Top Warehouse Items</h3>
-              <Link href="#" className="game-btn game-btn-small">
-                View All
-              </Link>
-            </div>
-            <div className="hub-design-resource">
-              {warehouseItems.map(item => (
-                <div key={item.id} className="hub-design-resource__item">
-                  <div>
-                    <div className="game-small">{item.name}</div>
-                    <div className="hub-design-resource__meta">{item.meta}</div>
           <article className="game-card hub-card">
             <header>
               <h3>Top Warehouse Items</h3>
