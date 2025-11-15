@@ -154,6 +154,8 @@ describe('Auto-sync User - Core Functions', () => {
         }
       });
 
+      // Note: Updated from 500 to 1000 to match actual implementation (auto-sync.ts:184)
+      // This reflects the increased starter gold amount
       expect(mockPrisma.wallet.create).toHaveBeenCalledWith({
         data: {
           userId: userId,

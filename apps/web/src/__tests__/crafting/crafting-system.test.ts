@@ -303,6 +303,10 @@ describe('Crafting System Tests', () => {
   });
 
   describe('Crafting Job Completion', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
     const mockCraftJob = {
       id: 'job-123',
       userId: 'user-123',
@@ -333,7 +337,6 @@ describe('Crafting System Tests', () => {
 
     it('should complete job and award items and XP correctly', async () => {
       const completionTime = new Date('2023-01-01T11:30:00Z'); // 30 min after ETA
-      jest.useFakeTimers();
       jest.setSystemTime(completionTime);
 
       const expectedTotalItems = mockCraftJob.qty * mockCraftJob.blueprint.outputQty; // 2 * 3 = 6
@@ -642,11 +645,14 @@ describe('Crafting System Tests', () => {
   });
 
   describe('Crafting Timing Validation', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
     it('should prevent early completion attempts', async () => {
       const currentTime = new Date('2023-01-01T10:30:00Z');
       const jobETA = new Date('2023-01-01T11:00:00Z'); // 30 minutes in future
 
-      jest.useFakeTimers();
       jest.setSystemTime(currentTime);
 
       const mockTx = {
@@ -685,7 +691,6 @@ describe('Crafting System Tests', () => {
       const currentTime = new Date('2023-01-01T11:30:00Z');
       const jobETA = new Date('2023-01-01T11:00:00Z'); // 30 minutes ago
 
-      jest.useFakeTimers();
       jest.setSystemTime(currentTime);
 
       const mockTx = {
