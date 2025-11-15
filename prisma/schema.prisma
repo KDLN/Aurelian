@@ -326,6 +326,7 @@ model Listing {
   @@index([sellerId])
   @@index([itemId])
   @@index([status])
+  @@index([id, status])
 }
 
 model LedgerTx {

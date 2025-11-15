@@ -649,6 +649,9 @@ describe('Critical Database Transactions', () => {
     it('should handle concurrent purchases of the same listing', async () => {
       // Simulate two buyers trying to purchase the same listing simultaneously
       // First buyer should succeed, second should fail with "Listing is no longer available"
+      // NOTE: This uses Promise.all() to run requests in parallel, which better simulates
+      // concurrent behavior. However, true concurrency testing requires integration tests
+      // with a real database to properly test race conditions and transaction isolation.
 
       let callCount = 0;
       const mockTx = {
@@ -696,14 +699,20 @@ describe('Critical Database Transactions', () => {
         body: JSON.stringify({ listingId: 'listing-123' }),
       });
 
-      // First purchase succeeds
-      const response1 = await POST(request1);
+      // Run both requests in parallel to simulate concurrent access
+      const [response1, response2] = await Promise.all([
+        POST(request1),
+        POST(request2)
+      ]);
+
+      // Parse responses
       const data1 = await response1.json();
+      const data2 = await response2.json();
+
+      // First purchase succeeds
       expect(data1.message).toContain('Purchased');
 
       // Second purchase fails - listing already sold
-      const response2 = await POST(request2);
-      const data2 = await response2.json();
       expect(data2.error).toBe('LISTING_UNAVAILABLE');
       expect(data2.message).toBe('This listing is no longer available');
     });
