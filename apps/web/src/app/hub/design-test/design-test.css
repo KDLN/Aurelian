@@ -34,6 +34,73 @@
   text-align: center;
 }
 
+.hub-design-shell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.hub-design-hero__grid {
+  align-items: start;
+  gap: var(--space-xl);
+}
+
+.hub-design-hero__intro {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.hub-design-summary {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.hub-design-summary__grid {
+  display: grid;
+  gap: var(--space-sm);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.hub-design-summary__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) 0;
+  border-bottom: 1px solid var(--input-border);
+}
+
+.hub-design-summary__item:last-child {
+  border-bottom: none;
+}
+
+.hub-design-summary__label {
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.hub-design-summary__value {
+  font-weight: 600;
+}
+
+.hub-design-columns {
+  align-items: stretch;
+  gap: var(--space-xl);
+}
+
+.hub-design-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.hub-design-activity,
+.hub-design-resource {
 .hub-design-test {
   display: grid;
   gap: var(--space-xl);
@@ -86,6 +153,42 @@
   gap: var(--space-md);
 }
 
+.hub-design-activity__item,
+.hub-design-resource__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-md);
+}
+
+.hub-design-activity__meta,
+.hub-design-resource__meta {
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.hub-design-resource__item .game-pill {
+  white-space: nowrap;
+}
+
+.hub-design-missions {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.hub-design-mission-grid {
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.hub-design-mission {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.hub-design-mission__header {
 .hub-activity-item {
   display: flex;
   justify-content: space-between;
@@ -135,6 +238,76 @@
   gap: var(--space-sm);
 }
 
+.hub-design-mission__meta {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+}
+
+.hub-design-progress {
+  margin-top: var(--space-xs);
+}
+
+.hub-design-lower-grid {
+  display: grid;
+  gap: var(--space-xl);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+.hub-design-event-list {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.hub-design-event {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.hub-design-event__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.hub-design-event__meta {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+}
+
+.hub-design-roster__list {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.hub-design-roster__item {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.hub-design-roster__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.hub-design-roster__meta {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
 .hub-tag {
   display: inline-flex;
   align-items: center;
@@ -215,6 +388,28 @@
   color: var(--muted);
 }
 
+.hub-design-news__list {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.hub-design-news__item {
+  display: grid;
+  gap: var(--space-xs);
+  align-content: start;
+}
+
+@media (max-width: 1200px) {
+  .hub-design-columns,
+  .hub-design-lower-grid {
+    gap: var(--space-lg);
+  }
+}
+
+@media (max-width: 960px) {
+  .hub-design-columns,
+  .hub-design-lower-grid {
+    grid-template-columns: 1fr;
 .hub-news-item {
   display: grid;
   gap: var(--space-xs);
@@ -242,6 +437,50 @@
 }
 
 @media (max-width: 768px) {
+  .hub-design-shell {
+    gap: var(--space-lg);
+  }
+
+  .hub-design-hero__grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-lg);
+  }
+
+  .hub-design-summary__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .hub-design-mission-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hub-design-card__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-xs);
+  }
+
+  .hub-design-activity__item,
+  .hub-design-resource__item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-sm);
+  }
+
+  .hub-design-resource__item .game-pill {
+    align-self: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .hub-design-summary__item {
+    padding: calc(var(--space-xs) / 1.5) 0;
+  }
+
+  .hub-design-summary__label {
+    letter-spacing: normal;
   .hub-card {
     padding: calc(var(--space-md) * 1.25);
   }

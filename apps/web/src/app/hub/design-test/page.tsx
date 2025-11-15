@@ -5,6 +5,9 @@ import GameLayout from '@/components/GameLayout';
 
 import './design-test.css';
 
+type Tone = 'positive' | 'warning' | 'neutral';
+
+const summaryStats: { label: string; value: string; tone: Tone }[] = [
 const summaryStats = [
   { label: 'Gold Earned', value: '+12,450g', tone: 'positive' },
   { label: 'Contracts Closed', value: '7 deals', tone: 'neutral' },
@@ -75,6 +78,24 @@ const accountSnapshot = {
   guild: { tag: 'SYN', name: 'Synthesis Collective' }
 };
 
+const toneClassName = (tone: Tone) => {
+  if (tone === 'positive') return 'game-good';
+  if (tone === 'warning') return 'game-warn';
+  return 'game-muted';
+};
+
+const statusClassName = (status: string) => {
+  if (status === 'active') return 'game-pill game-pill-good';
+  if (status === 'scheduled') return 'game-pill game-pill-warn';
+  return 'game-pill';
+};
+
+const riskClassName = (risk: string) => {
+  if (risk === 'LOW') return 'game-pill game-pill-good';
+  if (risk === 'MEDIUM') return 'game-pill game-pill-warn';
+  return 'game-pill game-pill-bad';
+};
+
 export default function HubDesignTestPage() {
   const sidebar = (
     <aside className="hub-test-sidebar">
@@ -123,6 +144,43 @@ export default function HubDesignTestPage() {
 
   return (
     <GameLayout title="Hub Design Test" sidebar={sidebar} showChat={false}>
+      <div className="hub-design-shell game-flex-col">
+        <section className="game-card hub-design-hero" aria-labelledby="hub-design-hero-title">
+          <div className="game-grid-2 hub-design-hero__grid">
+            <div className="hub-design-hero__intro">
+              <h2 id="hub-design-hero-title">Trading Hub layout preview</h2>
+              <p className="game-muted">
+                Preview responsive refinements for the Trading Hub before applying changes to the live experience.
+              </p>
+            </div>
+            <div className="game-card-nested hub-design-summary">
+              <h4>Today's Summary</h4>
+              <div className="hub-design-summary__grid">
+                {summaryStats.map(stat => (
+                  <div key={stat.label} className="hub-design-summary__item">
+                    <span className="hub-design-summary__label">{stat.label}</span>
+                    <span className={`hub-design-summary__value ${toneClassName(stat.tone)}`}>
+                      {stat.value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="game-grid-2 hub-design-columns" aria-label="Recent activity and warehouse snapshot">
+          <article className="game-card">
+            <div className="hub-design-card__header">
+              <h3>Recent Activity</h3>
+              <span className="game-muted game-small">Latest account movements</span>
+            </div>
+            <div className="hub-design-activity">
+              {recentActivity.map(item => (
+                <div key={item.id} className="hub-design-activity__item">
+                  <div>
+                    <div className="game-small">{item.icon} {item.message}</div>
+                    <div className="hub-design-activity__meta">{item.meta}</div>
       <div className="hub-design-test">
         <section className="hub-design-test__header">
           <article className="game-card hub-card">
@@ -190,6 +248,19 @@ export default function HubDesignTestPage() {
             </div>
           </article>
 
+          <article className="game-card">
+            <div className="hub-design-card__header">
+              <h3>Top Warehouse Items</h3>
+              <Link href="#" className="game-btn game-btn-small">
+                View All
+              </Link>
+            </div>
+            <div className="hub-design-resource">
+              {warehouseItems.map(item => (
+                <div key={item.id} className="hub-design-resource__item">
+                  <div>
+                    <div className="game-small">{item.name}</div>
+                    <div className="hub-design-resource__meta">{item.meta}</div>
           <article className="game-card hub-card">
             <header>
               <h3>Top Warehouse Items</h3>
@@ -209,6 +280,32 @@ export default function HubDesignTestPage() {
           </article>
         </section>
 
+        <section className="game-card hub-design-missions" aria-label="Active mission overview">
+          <div className="hub-design-card__header">
+            <h3>Active Missions</h3>
+            <Link href="#" className="game-btn game-btn-small">
+              View All
+            </Link>
+          </div>
+          <div className="hub-design-mission-grid">
+            {missions.map(mission => (
+              <div key={mission.id} className="game-card-nested hub-design-mission">
+                <div className="hub-design-mission__header">
+                  <span className="game-small">{mission.name}</span>
+                  <span className={riskClassName(mission.risk)}>{mission.risk}</span>
+                </div>
+                <div className="hub-design-mission__meta">
+                  <span>Agent {mission.agent}</span>
+                  <span>ETA {mission.eta}</span>
+                </div>
+                <div
+                  className="game-progress-bar hub-design-progress"
+                  role="progressbar"
+                  aria-valuenow={mission.progress}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                >
+                  <div className="game-progress-fill" style={{ width: `${mission.progress}%` }} />
         <section className="game-card hub-card" aria-label="Mission grid">
           <header>
             <h3>Mission Overview</h3>
@@ -235,6 +332,36 @@ export default function HubDesignTestPage() {
           </div>
         </section>
 
+        <section className="game-grid-2 hub-design-lower-grid" aria-label="Server events and agent readiness">
+          <article className="game-card hub-design-events">
+            <div className="hub-design-card__header">
+              <h3>Server Events</h3>
+              <Link href="#" className="game-btn game-btn-small">
+                Browse Missions
+              </Link>
+            </div>
+            <div className="hub-design-event-list">
+              {serverEvents.map(event => {
+                const percent = Math.min(100, Math.round((event.progress / event.target) * 100));
+                return (
+                  <div key={event.id} className="game-card-nested hub-design-event">
+                    <div className="hub-design-event__header">
+                      <h4>{event.name}</h4>
+                      <span className={statusClassName(event.status)}>{event.status}</span>
+                    </div>
+                    <p className="game-muted game-small">{event.description}</p>
+                    <div className="hub-design-event__meta">
+                      <span>{percent}% complete</span>
+                      <span>{event.timeRemaining}</span>
+                    </div>
+                    <div
+                      className="game-progress-bar hub-design-progress"
+                      role="progressbar"
+                      aria-valuenow={percent}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                    >
+                      <div className="game-progress-fill" style={{ width: `${percent}%` }} />
         <section className="hub-design-test__grid--three" aria-label="Events, roster, and news">
           <article className="game-card hub-card">
             <header>
@@ -266,6 +393,22 @@ export default function HubDesignTestPage() {
             </div>
           </article>
 
+          <article className="game-card hub-design-roster">
+            <div className="hub-design-card__header">
+              <h3>Agent Readiness</h3>
+              <span className="game-muted game-small">Squad status snapshot</span>
+            </div>
+            <div className="hub-design-roster__list">
+              {agentRoster.map(agent => (
+                <div key={agent.id} className="game-card-nested hub-design-roster__item">
+                  <div className="hub-design-roster__header">
+                    <strong>{agent.name}</strong>
+                    <span className="game-muted game-small">{agent.condition}</span>
+                  </div>
+                  <div className="hub-design-roster__meta">
+                    <span>{agent.role}</span>
+                    <span>{agent.focus}</span>
+                  </div>
           <article className="game-card hub-card">
             <header>
               <h3>Agent Readiness</h3>
@@ -284,6 +427,28 @@ export default function HubDesignTestPage() {
               ))}
             </div>
           </article>
+        </section>
+
+        <section className="game-card hub-design-news" aria-label="World news feed">
+          <div className="hub-design-card__header">
+            <h3>World News</h3>
+            <Link href="#" className="game-btn game-btn-small">
+              Manage
+            </Link>
+          </div>
+          <div className="hub-design-news__list">
+            {newsFeed.map(item => (
+              <div key={item.id} className="game-card-nested hub-design-news__item">
+                <strong>{item.title}</strong>
+                <time dateTime={item.time} className="game-muted game-small">
+                  {item.time}
+                </time>
+                <Link href="#" className="game-btn game-btn-link game-small">
+                  Read Update
+                </Link>
+              </div>
+            ))}
+          </div>
 
           <article className="game-card hub-card">
             <header>
