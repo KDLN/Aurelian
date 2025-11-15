@@ -16,7 +16,8 @@ export async function POST(request: NextRequest) {
     const { listingId } = body;
 
     try {
-      // Process the purchase in a transaction
+      // Process the purchase in a transaction with Serializable isolation
+      // This prevents concurrent modifications and ensures consistency
       const result = await prisma.$transaction(async (tx) => {
         // Get the listing with lock
         const listing = await tx.listing.findUnique({
@@ -38,6 +39,16 @@ export async function POST(request: NextRequest) {
 
         const totalCost = listing.qty * listing.price;
 
+        // Check if buyer wallet exists first to provide better error messages
+        const buyerWallet = await tx.wallet.findUnique({
+          where: { userId: user.id },
+          select: { gold: true }
+        });
+
+        if (!buyerWallet) {
+          throw new Error('Wallet not found');
+        }
+
         // CRITICAL: Deduct gold BEFORE marking listing as sold
         // This ensures we fail fast if buyer has insufficient funds,
         // preventing unnecessary listing status changes that would rollback
@@ -51,7 +62,7 @@ export async function POST(request: NextRequest) {
           }
         });
 
-        // If no rows were updated, either wallet doesn't exist or insufficient gold
+        // If no rows were updated, buyer has insufficient gold
         if (buyerWalletUpdate.count === 0) {
           throw new Error('Insufficient gold');
         }
@@ -123,9 +134,14 @@ export async function POST(request: NextRequest) {
           listing,
           totalCost
         };
+      }, {
+        isolationLevel: 'Serializable',
+        timeout: 10000
       });
 
-      // Log activities and track stats for both buyer and seller
+      // Non-critical analytics logging (outside transaction)
+      // If these fail, the purchase still succeeded
+      // Critical financial logging (ledgerTx) is inside the transaction above
       await ActivityLogger.logTradeCompleted(
         user.id,
         result.listing.item.name,
@@ -166,6 +182,10 @@ export async function POST(request: NextRequest) {
 
       if (errorMessage === 'Cannot buy your own listing') {
         return createErrorResponse('INVALID_OPERATION', 'You cannot purchase your own listing');
+      }
+
+      if (errorMessage === 'Wallet not found') {
+        return createErrorResponse('WALLET_NOT_FOUND', 'Your wallet was not found. Please contact support.');
       }
 
       if (errorMessage === 'Insufficient gold') {

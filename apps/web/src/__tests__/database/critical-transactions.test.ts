@@ -269,6 +269,7 @@ describe('Critical Database Transactions', () => {
           update: jest.fn(),
         },
         wallet: {
+          findUnique: jest.fn().mockResolvedValue({ gold: 1000 }), // Buyer has 1000 gold
           updateMany: jest.fn().mockResolvedValue({ count: 1 }), // Atomic buyer wallet update
           upsert: jest.fn().mockResolvedValue({ id: 'seller-wallet', gold: 2500 }),
         },
@@ -280,7 +281,10 @@ describe('Critical Database Transactions', () => {
         },
       };
 
-      mockPrisma.$transaction.mockImplementation(async (callback) => {
+      mockPrisma.$transaction.mockImplementation(async (callback, options) => {
+        // Verify Serializable isolation level is used
+        expect(options?.isolationLevel).toBe('Serializable');
+        expect(options?.timeout).toBe(10000);
         return callback(mockTx);
       });
 
@@ -370,6 +374,7 @@ describe('Critical Database Transactions', () => {
           update: jest.fn(),
         },
         wallet: {
+          findUnique: jest.fn().mockResolvedValue({ gold: 1000 }),
           updateMany: jest.fn().mockResolvedValue({ count: 1 }),
           upsert: jest.fn().mockResolvedValue({ id: 'seller-wallet', gold: 2500 }),
         },
@@ -421,6 +426,7 @@ describe('Critical Database Transactions', () => {
           update: jest.fn(),
         },
         wallet: {
+          findUnique: jest.fn().mockResolvedValue({ gold: 1000 }),
           updateMany: jest.fn().mockResolvedValue({ count: 1 }),
           upsert: jest.fn().mockResolvedValue({ id: 'seller-wallet', userId: 'seller-456', gold: 500 }),
         },
@@ -513,6 +519,40 @@ describe('Critical Database Transactions', () => {
       expect(mockTx.listing.findUnique).toHaveBeenCalled();
     });
 
+    it('should handle missing buyer wallet', async () => {
+      const mockTx = {
+        listing: {
+          findUnique: jest.fn().mockResolvedValue(mockListing),
+        },
+        wallet: {
+          findUnique: jest.fn().mockResolvedValue(null), // Wallet doesn't exist
+        },
+      };
+
+      mockPrisma.$transaction.mockImplementation(async (callback) => {
+        return callback(mockTx);
+      });
+
+      const { POST } = await import('@/app/api/auction/buy/route');
+
+      const request = new NextRequest('http://localhost/api/auction/buy', {
+        method: 'POST',
+        headers: { authorization: 'Bearer valid-token' },
+        body: JSON.stringify({ listingId: 'listing-123' }),
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(data.error).toBe('WALLET_NOT_FOUND');
+      expect(data.message).toBe('Your wallet was not found. Please contact support.');
+      expect(mockTx.listing.findUnique).toHaveBeenCalled();
+      expect(mockTx.wallet.findUnique).toHaveBeenCalledWith({
+        where: { userId: 'buyer-123' },
+        select: { gold: true }
+      });
+    });
+
     it('should handle insufficient funds', async () => {
       const mockTx = {
         listing: {
@@ -520,6 +560,7 @@ describe('Critical Database Transactions', () => {
           update: jest.fn(),
         },
         wallet: {
+          findUnique: jest.fn().mockResolvedValue({ gold: 100 }), // Not enough gold
           updateMany: jest.fn().mockResolvedValue({ count: 0 }), // Atomic check failed - insufficient gold
         },
       };
@@ -558,6 +599,49 @@ describe('Critical Database Transactions', () => {
       expect(mockTx.listing.update).not.toHaveBeenCalled();
     });
 
+    it('should rollback transaction if ledger creation fails', async () => {
+      const mockTx = {
+        listing: {
+          findUnique: jest.fn().mockResolvedValue(mockListing),
+          update: jest.fn(),
+        },
+        wallet: {
+          findUnique: jest.fn().mockResolvedValue({ gold: 1000 }),
+          updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+          upsert: jest.fn(),
+        },
+        inventory: {
+          upsert: jest.fn(),
+        },
+        ledgerTx: {
+          createMany: jest.fn().mockRejectedValue(new Error('Ledger write failed')),
+        },
+      };
+
+      mockPrisma.$transaction.mockImplementation(async (callback) => {
+        return callback(mockTx);
+      });
+
+      const { POST } = await import('@/app/api/auction/buy/route');
+
+      const request = new NextRequest('http://localhost/api/auction/buy', {
+        method: 'POST',
+        headers: { authorization: 'Bearer valid-token' },
+        body: JSON.stringify({ listingId: 'listing-123' }),
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(data.error).toBe('INTERNAL_ERROR');
+      expect(data.message).toBe('An error occurred while processing your purchase');
+
+      // Verify ledger was attempted
+      expect(mockTx.ledgerTx.createMany).toHaveBeenCalled();
+
+      // In a real scenario, the transaction would rollback all previous operations
+    });
+
     it('should handle concurrent purchases of the same listing', async () => {
       // Simulate two buyers trying to purchase the same listing simultaneously
       // First buyer should succeed, second should fail with "Listing is no longer available"
@@ -576,6 +660,7 @@ describe('Critical Database Transactions', () => {
           update: jest.fn(),
         },
         wallet: {
+          findUnique: jest.fn().mockResolvedValue({ gold: 1000 }),
           updateMany: jest.fn().mockResolvedValue({ count: 1 }),
           upsert: jest.fn(),
         },
