@@ -9,6 +9,8 @@ jest.mock('@/lib/prisma', () => ({
       findUnique: jest.fn(),
       findFirst: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn(),
+      upsert: jest.fn(),
       create: jest.fn(),
     },
     guild: {
@@ -267,8 +269,7 @@ describe('Critical Database Transactions', () => {
           update: jest.fn(),
         },
         wallet: {
-          findFirst: jest.fn().mockResolvedValue({ id: 'buyer-wallet', gold: 1000 }), // Buyer wallet
-          update: jest.fn(),
+          updateMany: jest.fn().mockResolvedValue({ count: 1 }), // Atomic buyer wallet update
           upsert: jest.fn().mockResolvedValue({ id: 'seller-wallet', gold: 2500 }),
         },
         inventory: {
@@ -307,10 +308,15 @@ describe('Critical Database Transactions', () => {
         }
       });
 
-      // Verify buyer gold deduction
-      expect(mockTx.wallet.update).toHaveBeenCalledWith({
-        where: { id: 'buyer-wallet' },
-        data: { gold: 500 } // 1000 - 500
+      // Verify atomic buyer gold deduction with insufficient funds check
+      expect(mockTx.wallet.updateMany).toHaveBeenCalledWith({
+        where: {
+          userId: 'buyer-123',
+          gold: { gte: 500 }  // Atomic check
+        },
+        data: {
+          gold: { decrement: 500 }  // Atomic decrement
+        }
       });
 
       // Verify seller wallet upsert (race condition safe)
@@ -364,8 +370,7 @@ describe('Critical Database Transactions', () => {
           update: jest.fn(),
         },
         wallet: {
-          findFirst: jest.fn().mockResolvedValue({ id: 'buyer-wallet', gold: 1000 }),
-          update: jest.fn(),
+          updateMany: jest.fn().mockResolvedValue({ count: 1 }),
           upsert: jest.fn().mockResolvedValue({ id: 'seller-wallet', gold: 2500 }),
         },
         inventory: {
@@ -416,8 +421,7 @@ describe('Critical Database Transactions', () => {
           update: jest.fn(),
         },
         wallet: {
-          findFirst: jest.fn().mockResolvedValue({ id: 'buyer-wallet', gold: 1000 }), // Buyer wallet
-          update: jest.fn(),
+          updateMany: jest.fn().mockResolvedValue({ count: 1 }),
           upsert: jest.fn().mockResolvedValue({ id: 'seller-wallet', userId: 'seller-456', gold: 500 }),
         },
         inventory: {
@@ -513,9 +517,10 @@ describe('Critical Database Transactions', () => {
       const mockTx = {
         listing: {
           findUnique: jest.fn().mockResolvedValue(mockListing),
+          update: jest.fn(),
         },
         wallet: {
-          findFirst: jest.fn().mockResolvedValue({ id: 'buyer-wallet', gold: 100 }), // Not enough
+          updateMany: jest.fn().mockResolvedValue({ count: 0 }), // Atomic check failed - insufficient gold
         },
       };
 
@@ -537,7 +542,16 @@ describe('Critical Database Transactions', () => {
       expect(data.error).toBe('INSUFFICIENT_FUNDS');
       expect(data.message).toBe('You do not have enough gold for this purchase');
       expect(mockTx.listing.findUnique).toHaveBeenCalled();
-      expect(mockTx.wallet.findFirst).toHaveBeenCalled();
+      expect(mockTx.listing.update).toHaveBeenCalled();  // Listing gets marked sold first
+      expect(mockTx.wallet.updateMany).toHaveBeenCalledWith({
+        where: {
+          userId: 'buyer-123',
+          gold: { gte: 500 }  // Atomic check that fails
+        },
+        data: {
+          gold: { decrement: 500 }
+        }
+      });
     });
   });
 });

@@ -36,16 +36,7 @@ export async function POST(request: NextRequest) {
           throw new Error('Cannot buy your own listing');
         }
 
-        // Check buyer's wallet
-        const buyerWallet = await tx.wallet.findFirst({
-          where: { userId: user.id }
-        });
-
         const totalCost = listing.qty * listing.price;
-
-        if (!buyerWallet || buyerWallet.gold < totalCost) {
-          throw new Error('Insufficient gold');
-        }
 
         // Update listing status
         await tx.listing.update({
@@ -56,11 +47,22 @@ export async function POST(request: NextRequest) {
           }
         });
 
-        // Transfer gold from buyer to seller
-        await tx.wallet.update({
-          where: { id: buyerWallet.id },
-          data: { gold: buyerWallet.gold - totalCost }
+        // Atomically deduct gold from buyer's wallet with insufficient funds check
+        // This prevents race conditions and ensures the gold check + update happen atomically
+        const buyerWalletUpdate = await tx.wallet.updateMany({
+          where: {
+            userId: user.id,
+            gold: { gte: totalCost }  // Atomic check: only update if sufficient gold
+          },
+          data: {
+            gold: { decrement: totalCost }  // Atomic decrement
+          }
         });
+
+        // If no rows were updated, either wallet doesn't exist or insufficient gold
+        if (buyerWalletUpdate.count === 0) {
+          throw new Error('Insufficient gold');
+        }
 
         // Use upsert for seller wallet to handle race conditions
         // If multiple purchases happen simultaneously for a new seller,
