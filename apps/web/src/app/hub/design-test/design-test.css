@@ -35,13 +35,14 @@
 }
 
 .hub-design-shell {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: var(--space-xl);
 }
 
 .hub-design-hero__grid {
   align-items: start;
-  gap: var(--space-lg);
+  gap: var(--space-xl);
 }
 
 .hub-design-hero__intro {
@@ -56,7 +57,7 @@
 
 .hub-design-summary__grid {
   display: grid;
-  gap: var(--space-xs);
+  gap: var(--space-sm);
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
@@ -84,12 +85,18 @@
   font-weight: 600;
 }
 
+.hub-design-columns {
+  align-items: stretch;
+  gap: var(--space-xl);
+}
+
 .hub-design-card__header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: var(--space-sm);
   margin-bottom: var(--space-sm);
+  flex-wrap: wrap;
 }
 
 .hub-design-activity,
@@ -110,6 +117,11 @@
 .hub-design-resource__meta {
   font-size: var(--font-size-xs);
   color: var(--muted);
+  margin-top: 2px;
+}
+
+.hub-design-resource__item .game-pill {
+  white-space: nowrap;
 }
 
 .hub-design-missions {
@@ -148,21 +160,21 @@
   margin-top: var(--space-xs);
 }
 
-.hub-design-lower {
-  display: grid;
-  gap: var(--space-xl);
-}
-
 .hub-design-lower-grid {
   display: grid;
   gap: var(--space-xl);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
 }
 
-.hub-design-event-list,
-.hub-design-roster,
-.hub-design-news {
+.hub-design-event-list {
   display: grid;
   gap: var(--space-md);
+}
+
+.hub-design-event {
+  display: grid;
+  gap: var(--space-sm);
 }
 
 .hub-design-event__header {
@@ -170,6 +182,7 @@
   justify-content: space-between;
   align-items: center;
   gap: var(--space-sm);
+  flex-wrap: wrap;
 }
 
 .hub-design-event__meta {
@@ -181,11 +194,22 @@
   color: var(--muted);
 }
 
+.hub-design-roster__list {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.hub-design-roster__item {
+  display: grid;
+  gap: var(--space-sm);
+}
+
 .hub-design-roster__header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: var(--space-sm);
+  flex-wrap: wrap;
 }
 
 .hub-design-roster__meta {
@@ -197,49 +221,75 @@
   color: var(--muted);
 }
 
-.hub-design-news {
-  max-height: 320px;
-  overflow-y: auto;
-  padding-right: 4px;
+.hub-design-news__list {
+  display: grid;
+  gap: var(--space-md);
 }
 
 .hub-design-news__item {
   display: grid;
   gap: var(--space-xs);
+  align-content: start;
 }
 
-@media (max-width: 900px) {
-  .hub-design-summary__grid {
-    grid-template-columns: minmax(0, 1fr);
+@media (max-width: 1200px) {
+  .hub-design-columns,
+  .hub-design-lower-grid {
+    gap: var(--space-lg);
   }
 }
 
-@media (max-width: 700px) {
+@media (max-width: 960px) {
+  .hub-design-columns,
+  .hub-design-lower-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .hub-design-shell {
+    gap: var(--space-lg);
+  }
+
+  .hub-design-hero__grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-lg);
+  }
+
+  .hub-design-summary__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .hub-design-mission-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hub-design-card__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-xs);
+  }
+
   .hub-design-activity__item,
   .hub-design-resource__item {
     flex-direction: column;
     align-items: flex-start;
+    gap: var(--space-sm);
   }
 
-  .hub-design-activity__item .game-btn,
-  .hub-design-resource__item .game-btn {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .hub-design-mission-grid {
-    grid-template-columns: minmax(0, 1fr);
+  .hub-design-resource__item .game-pill {
+    align-self: flex-start;
   }
 }
 
-@media (min-width: 960px) {
-  .hub-design-lower-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+@media (max-width: 480px) {
+  .hub-design-summary__item {
+    padding: calc(var(--space-xs) / 1.5) 0;
   }
-}
 
-@media (min-width: 1280px) {
-  .hub-design-lower-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .hub-design-summary__label {
+    letter-spacing: normal;
   }
 }
