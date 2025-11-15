@@ -481,6 +481,8 @@
 
   .hub-design-summary__label {
     letter-spacing: normal;
+  }
+
   .hub-card {
     padding: calc(var(--space-md) * 1.25);
   }
