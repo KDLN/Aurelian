@@ -460,7 +460,11 @@ describe('Critical Database Transactions', () => {
         body: JSON.stringify({ listingId: 'listing-123' }),
       });
 
-      await expect(POST(request)).rejects.toThrow('Listing not found');
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(data.error).toBe('NOT_FOUND');
+      expect(data.message).toBe('Listing not found');
       expect(mockTx.listing.findUnique).toHaveBeenCalled();
     });
 
@@ -488,7 +492,11 @@ describe('Critical Database Transactions', () => {
         body: JSON.stringify({ listingId: 'listing-123' }),
       });
 
-      await expect(POST(request)).rejects.toThrow('Cannot buy your own listing');
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(data.error).toBe('INVALID_OPERATION');
+      expect(data.message).toBe('You cannot purchase your own listing');
       expect(mockTx.listing.findUnique).toHaveBeenCalled();
     });
 
@@ -514,7 +522,11 @@ describe('Critical Database Transactions', () => {
         body: JSON.stringify({ listingId: 'listing-123' }),
       });
 
-      await expect(POST(request)).rejects.toThrow('Insufficient gold');
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(data.error).toBe('INSUFFICIENT_FUNDS');
+      expect(data.message).toBe('You do not have enough gold for this purchase');
       expect(mockTx.listing.findUnique).toHaveBeenCalled();
       expect(mockTx.wallet.findFirst).toHaveBeenCalled();
     });
