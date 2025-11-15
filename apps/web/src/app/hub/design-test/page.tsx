@@ -8,7 +8,6 @@ import './design-test.css';
 type Tone = 'positive' | 'warning' | 'neutral';
 
 const summaryStats: { label: string; value: string; tone: Tone }[] = [
-const summaryStats = [
   { label: 'Gold Earned', value: '+12,450g', tone: 'positive' },
   { label: 'Contracts Closed', value: '7 deals', tone: 'neutral' },
   { label: 'Success Rate', value: '92%', tone: 'positive' },
