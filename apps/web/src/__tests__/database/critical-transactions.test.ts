@@ -9,6 +9,8 @@ jest.mock('@/lib/prisma', () => ({
       findUnique: jest.fn(),
       findFirst: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn(),
+      upsert: jest.fn(),
       create: jest.fn(),
     },
     guild: {
@@ -71,6 +73,10 @@ const mockPrisma = prisma as jest.Mocked<typeof prisma>;
 describe('Critical Database Transactions', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks(); // Prevent mock pollution between tests
   });
 
   describe('Guild Treasury Deposit Transaction', () => {
@@ -253,8 +259,9 @@ describe('Critical Database Transactions', () => {
     };
 
     beforeEach(() => {
-      const { getRequestBody } = require('@/lib/auth/middleware');
+      const { getRequestBody, withAuth } = require('@/lib/auth/middleware');
       getRequestBody.mockResolvedValue({ listingId: 'listing-123' });
+      withAuth.mockImplementation((request: any, handler: any) => handler({ id: 'buyer-123' }, request));
     });
 
     it('should handle successful auction purchase with all updates', async () => {
@@ -266,26 +273,27 @@ describe('Critical Database Transactions', () => {
           update: jest.fn(),
         },
         wallet: {
-          findFirst: jest.fn()
-            .mockResolvedValueOnce({ id: 'buyer-wallet', gold: 1000 }) // Buyer wallet
-            .mockResolvedValueOnce({ id: 'seller-wallet', gold: 2000 }), // Seller wallet
-          update: jest.fn(),
+          findUnique: jest.fn().mockResolvedValue({ gold: 1000 }), // Buyer has 1000 gold
+          updateMany: jest.fn().mockResolvedValue({ count: 1 }), // Atomic buyer wallet update
+          upsert: jest.fn().mockResolvedValue({ id: 'seller-wallet', gold: 2500 }),
         },
         inventory: {
-          findFirst: jest.fn().mockResolvedValue(null),
-          create: jest.fn(),
+          upsert: jest.fn().mockResolvedValue({ id: 'inv-1', userId: 'buyer-123', itemId: 'item-789', qty: 5 }),
         },
         ledgerTx: {
           createMany: jest.fn(),
         },
       };
 
-      mockPrisma.$transaction.mockImplementation(async (callback) => {
+      mockPrisma.$transaction.mockImplementation(async (callback, options) => {
+        // Verify Serializable isolation level is used
+        expect(options?.isolationLevel).toBe('Serializable');
+        expect(options?.timeout).toBe(5000); // 5 seconds for simple transactions
         return callback(mockTx);
       });
 
       const { POST } = await import('@/app/api/auction/buy/route');
-      
+
       const request = new NextRequest('http://localhost/api/auction/buy', {
         method: 'POST',
         headers: { authorization: 'Bearer valid-token' },
@@ -302,26 +310,41 @@ describe('Critical Database Transactions', () => {
 
       expect(mockTx.listing.update).toHaveBeenCalledWith({
         where: { id: 'listing-123' },
-        data: { 
+        data: {
           status: 'sold',
           closedAt: expect.any(Date)
         }
       });
 
-      // Verify gold transfer
-      expect(mockTx.wallet.update).toHaveBeenCalledWith({
-        where: { id: 'buyer-wallet' },
-        data: { gold: 500 } // 1000 - 500
-      });
-
-      expect(mockTx.wallet.update).toHaveBeenCalledWith({
-        where: { id: 'seller-wallet' },
-        data: { gold: 2500 } // 2000 + 500
-      });
-
-      // Verify inventory creation
-      expect(mockTx.inventory.create).toHaveBeenCalledWith({
+      // Verify atomic buyer gold deduction with insufficient funds check
+      expect(mockTx.wallet.updateMany).toHaveBeenCalledWith({
+        where: {
+          userId: 'buyer-123',
+          gold: { gte: 500 }  // Atomic check
+        },
         data: {
+          gold: { decrement: 500 }  // Atomic decrement
+        }
+      });
+
+      // Verify seller wallet upsert (race condition safe)
+      expect(mockTx.wallet.upsert).toHaveBeenCalledWith({
+        where: { userId: 'seller-456' },
+        update: { gold: { increment: 500 } },
+        create: { userId: 'seller-456', gold: 500 }
+      });
+
+      // Verify inventory upsert (race condition safe)
+      expect(mockTx.inventory.upsert).toHaveBeenCalledWith({
+        where: {
+          userId_itemId_location: {
+            userId: 'buyer-123',
+            itemId: 'item-789',
+            location: 'warehouse'
+          }
+        },
+        update: { qty: { increment: 5 } },
+        create: {
           userId: 'buyer-123',
           itemId: 'item-789',
           qty: 5,
@@ -349,25 +372,18 @@ describe('Critical Database Transactions', () => {
     });
 
     it('should handle inventory update when buyer already has the item', async () => {
-      const existingInventory = {
-        id: 'inventory-123',
-        qty: 10
-      };
-
       const mockTx = {
         listing: {
           findUnique: jest.fn().mockResolvedValue(mockListing),
           update: jest.fn(),
         },
         wallet: {
-          findFirst: jest.fn()
-            .mockResolvedValueOnce({ id: 'buyer-wallet', gold: 1000 })
-            .mockResolvedValueOnce({ id: 'seller-wallet', gold: 2000 }),
-          update: jest.fn(),
+          findUnique: jest.fn().mockResolvedValue({ gold: 1000 }),
+          updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+          upsert: jest.fn().mockResolvedValue({ id: 'seller-wallet', gold: 2500 }),
         },
         inventory: {
-          findFirst: jest.fn().mockResolvedValue(existingInventory),
-          update: jest.fn(),
+          upsert: jest.fn().mockResolvedValue({ id: 'inventory-123', userId: 'buyer-123', itemId: 'item-789', qty: 15 }),
         },
         ledgerTx: {
           createMany: jest.fn(),
@@ -379,7 +395,7 @@ describe('Critical Database Transactions', () => {
       });
 
       const { POST } = await import('@/app/api/auction/buy/route');
-      
+
       const request = new NextRequest('http://localhost/api/auction/buy', {
         method: 'POST',
         headers: { authorization: 'Bearer valid-token' },
@@ -388,29 +404,38 @@ describe('Critical Database Transactions', () => {
 
       await POST(request);
 
-      // Should update existing inventory instead of creating new
-      expect(mockTx.inventory.update).toHaveBeenCalledWith({
-        where: { id: 'inventory-123' },
-        data: { qty: 15 } // 10 + 5
+      // Should use upsert which handles both create and update atomically
+      expect(mockTx.inventory.upsert).toHaveBeenCalledWith({
+        where: {
+          userId_itemId_location: {
+            userId: 'buyer-123',
+            itemId: 'item-789',
+            location: 'warehouse'
+          }
+        },
+        update: { qty: { increment: 5 } },
+        create: {
+          userId: 'buyer-123',
+          itemId: 'item-789',
+          qty: 5,
+          location: 'warehouse'
+        }
       });
     });
 
-    it('should handle seller without wallet by creating one', async () => {
+    it('should handle seller without wallet using upsert', async () => {
       const mockTx = {
         listing: {
           findUnique: jest.fn().mockResolvedValue(mockListing),
           update: jest.fn(),
         },
         wallet: {
-          findFirst: jest.fn()
-            .mockResolvedValueOnce({ id: 'buyer-wallet', gold: 1000 }) // Buyer wallet
-            .mockResolvedValueOnce(null), // No seller wallet
-          update: jest.fn(),
-          create: jest.fn(),
+          findUnique: jest.fn().mockResolvedValue({ gold: 1000 }),
+          updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+          upsert: jest.fn().mockResolvedValue({ id: 'seller-wallet', userId: 'seller-456', gold: 500 }),
         },
         inventory: {
-          findFirst: jest.fn().mockResolvedValue(null),
-          create: jest.fn(),
+          upsert: jest.fn().mockResolvedValue({ id: 'inv-1', userId: 'buyer-123', itemId: 'item-789', qty: 5 }),
         },
         ledgerTx: {
           createMany: jest.fn(),
@@ -422,7 +447,7 @@ describe('Critical Database Transactions', () => {
       });
 
       const { POST } = await import('@/app/api/auction/buy/route');
-      
+
       const request = new NextRequest('http://localhost/api/auction/buy', {
         method: 'POST',
         headers: { authorization: 'Bearer valid-token' },
@@ -431,12 +456,11 @@ describe('Critical Database Transactions', () => {
 
       await POST(request);
 
-      // Should create wallet for seller
-      expect(mockTx.wallet.create).toHaveBeenCalledWith({
-        data: {
-          userId: 'seller-456',
-          gold: 500 // Total cost
-        }
+      // Should upsert wallet for seller (handles race conditions)
+      expect(mockTx.wallet.upsert).toHaveBeenCalledWith({
+        where: { userId: 'seller-456' },
+        update: { gold: { increment: 500 } },
+        create: { userId: 'seller-456', gold: 500 }
       });
     });
 
@@ -452,15 +476,18 @@ describe('Critical Database Transactions', () => {
       });
 
       const { POST } = await import('@/app/api/auction/buy/route');
-      
+
       const request = new NextRequest('http://localhost/api/auction/buy', {
         method: 'POST',
         headers: { authorization: 'Bearer valid-token' },
         body: JSON.stringify({ listingId: 'listing-123' }),
       });
 
-      await POST(request);
+      const response = await POST(request);
+      const data = await response.json();
 
+      expect(data.error).toBe('NOT_FOUND');
+      expect(data.message).toBe('Listing not found');
       expect(mockTx.listing.findUnique).toHaveBeenCalled();
     });
 
@@ -481,25 +508,28 @@ describe('Critical Database Transactions', () => {
       });
 
       const { POST } = await import('@/app/api/auction/buy/route');
-      
+
       const request = new NextRequest('http://localhost/api/auction/buy', {
         method: 'POST',
         headers: { authorization: 'Bearer valid-token' },
         body: JSON.stringify({ listingId: 'listing-123' }),
       });
 
-      await POST(request);
+      const response = await POST(request);
+      const data = await response.json();
 
+      expect(data.error).toBe('INVALID_OPERATION');
+      expect(data.message).toBe('You cannot purchase your own listing');
       expect(mockTx.listing.findUnique).toHaveBeenCalled();
     });
 
-    it('should handle insufficient funds', async () => {
+    it('should handle missing buyer wallet', async () => {
       const mockTx = {
         listing: {
           findUnique: jest.fn().mockResolvedValue(mockListing),
         },
         wallet: {
-          findFirst: jest.fn().mockResolvedValue({ id: 'buyer-wallet', gold: 100 }), // Not enough
+          findUnique: jest.fn().mockResolvedValue(null), // Wallet doesn't exist
         },
       };
 
@@ -508,17 +538,174 @@ describe('Critical Database Transactions', () => {
       });
 
       const { POST } = await import('@/app/api/auction/buy/route');
-      
+
       const request = new NextRequest('http://localhost/api/auction/buy', {
         method: 'POST',
         headers: { authorization: 'Bearer valid-token' },
         body: JSON.stringify({ listingId: 'listing-123' }),
       });
 
-      await POST(request);
+      const response = await POST(request);
+      const data = await response.json();
 
+      expect(data.error).toBe('WALLET_NOT_FOUND');
+      expect(data.message).toBe('Your wallet was not found. Please contact support.');
       expect(mockTx.listing.findUnique).toHaveBeenCalled();
-      expect(mockTx.wallet.findFirst).toHaveBeenCalled();
+      expect(mockTx.wallet.findUnique).toHaveBeenCalledWith({
+        where: { userId: 'buyer-123' },
+        select: { gold: true }
+      });
+    });
+
+    it('should handle insufficient funds', async () => {
+      const mockTx = {
+        listing: {
+          findUnique: jest.fn().mockResolvedValue(mockListing),
+          update: jest.fn(),
+        },
+        wallet: {
+          findUnique: jest.fn().mockResolvedValue({ gold: 100 }), // Not enough gold
+          updateMany: jest.fn().mockResolvedValue({ count: 0 }), // Atomic check failed - insufficient gold
+        },
+      };
+
+      mockPrisma.$transaction.mockImplementation(async (callback) => {
+        return callback(mockTx);
+      });
+
+      const { POST } = await import('@/app/api/auction/buy/route');
+
+      const request = new NextRequest('http://localhost/api/auction/buy', {
+        method: 'POST',
+        headers: { authorization: 'Bearer valid-token' },
+        body: JSON.stringify({ listingId: 'listing-123' }),
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(data.error).toBe('INSUFFICIENT_FUNDS');
+      expect(data.message).toBe('You do not have enough gold for this purchase');
+      expect(mockTx.listing.findUnique).toHaveBeenCalled();
+
+      // Verify wallet check happens first
+      expect(mockTx.wallet.updateMany).toHaveBeenCalledWith({
+        where: {
+          userId: 'buyer-123',
+          gold: { gte: 500 }  // Atomic check that fails
+        },
+        data: {
+          gold: { decrement: 500 }
+        }
+      });
+
+      // Listing should NOT be updated since payment failed
+      expect(mockTx.listing.update).not.toHaveBeenCalled();
+    });
+
+    it('should rollback transaction if ledger creation fails', async () => {
+      const mockTx = {
+        listing: {
+          findUnique: jest.fn().mockResolvedValue(mockListing),
+          update: jest.fn(),
+        },
+        wallet: {
+          findUnique: jest.fn().mockResolvedValue({ gold: 1000 }),
+          updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+          upsert: jest.fn(),
+        },
+        inventory: {
+          upsert: jest.fn(),
+        },
+        ledgerTx: {
+          createMany: jest.fn().mockRejectedValue(new Error('Ledger write failed')),
+        },
+      };
+
+      mockPrisma.$transaction.mockImplementation(async (callback) => {
+        return callback(mockTx);
+      });
+
+      const { POST } = await import('@/app/api/auction/buy/route');
+
+      const request = new NextRequest('http://localhost/api/auction/buy', {
+        method: 'POST',
+        headers: { authorization: 'Bearer valid-token' },
+        body: JSON.stringify({ listingId: 'listing-123' }),
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(data.error).toBe('INTERNAL_ERROR');
+      expect(data.message).toBe('An error occurred while processing your purchase');
+
+      // Verify ledger was attempted
+      expect(mockTx.ledgerTx.createMany).toHaveBeenCalled();
+
+      // In a real scenario, the transaction would rollback all previous operations
+    });
+
+    it('should handle concurrent purchases of the same listing', async () => {
+      // Simulate two buyers trying to purchase the same listing simultaneously
+      // First buyer should succeed, second should fail with "Listing is no longer available"
+
+      let callCount = 0;
+      const mockTx = {
+        listing: {
+          findUnique: jest.fn().mockImplementation(() => {
+            callCount++;
+            // First call: listing is active
+            // Second call: listing already sold
+            return callCount === 1
+              ? { ...mockListing, status: 'active' }
+              : { ...mockListing, status: 'sold' };
+          }),
+          update: jest.fn(),
+        },
+        wallet: {
+          findUnique: jest.fn().mockResolvedValue({ gold: 1000 }),
+          updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+          upsert: jest.fn(),
+        },
+        inventory: {
+          upsert: jest.fn(),
+        },
+        ledgerTx: {
+          createMany: jest.fn(),
+        },
+      };
+
+      mockPrisma.$transaction.mockImplementation(async (callback) => {
+        return callback(mockTx);
+      });
+
+      const { POST } = await import('@/app/api/auction/buy/route');
+
+      // First buyer's request
+      const request1 = new NextRequest('http://localhost/api/auction/buy', {
+        method: 'POST',
+        headers: { authorization: 'Bearer valid-token' },
+        body: JSON.stringify({ listingId: 'listing-123' }),
+      });
+
+      // Second buyer's request (simulated)
+      const request2 = new NextRequest('http://localhost/api/auction/buy', {
+        method: 'POST',
+        headers: { authorization: 'Bearer valid-token' },
+        body: JSON.stringify({ listingId: 'listing-123' }),
+      });
+
+      // First purchase succeeds
+      const response1 = await POST(request1);
+      const data1 = await response1.json();
+      expect(data1.message).toContain('Purchased');
+
+      // Second purchase fails - listing already sold
+      const response2 = await POST(request2);
+      const data2 = await response2.json();
+      expect(data2.error).toBe('LISTING_UNAVAILABLE');
+      expect(data2.message).toBe('This listing is no longer available');
     });
   });
 });

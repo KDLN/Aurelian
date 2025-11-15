@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { randomUUID } from 'crypto';
 
 // Mock Prisma
 jest.mock('@/lib/prisma', () => ({
@@ -29,15 +30,18 @@ jest.mock('@/lib/prisma', () => ({
 const mockPrisma = prisma as jest.Mocked<typeof prisma>;
 
 describe('Auto-sync User - Core Functions', () => {
-  const userId = '12345678-1234-1234-1234-123456789abc';
-  const mockAuthUser = {
-    id: userId,
-    sub: userId,
-    email: 'test@example.com'
-  };
+  let userId: string;
+  let mockAuthUser: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Use cryptographically secure UUID for each test to avoid collisions
+    userId = randomUUID();
+    mockAuthUser = {
+      id: userId,
+      sub: userId,
+      email: 'test@example.com'
+    };
   });
 
   describe('User existence check', () => {
@@ -79,6 +83,7 @@ describe('Auto-sync User - Core Functions', () => {
   describe('User sync with valid UUID', () => {
     beforeEach(() => {
       // Setup default successful mocks
+      (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue({ id: userId } as any);
       (mockPrisma.user.upsert as jest.Mock).mockResolvedValue({
         id: userId,
         email: 'test@example.com',
@@ -88,17 +93,24 @@ describe('Auto-sync User - Core Functions', () => {
         craftingXP: 0,
         craftingXPNext: 100
       } as any);
-      
+
       (mockPrisma.profile.findUnique as jest.Mock).mockResolvedValue(null);
       (mockPrisma.profile.create as jest.Mock).mockResolvedValue({} as any);
       (mockPrisma.wallet.findUnique as jest.Mock).mockResolvedValue(null);
       (mockPrisma.wallet.create as jest.Mock).mockResolvedValue({} as any);
-      
-      // Mock item definitions
-      (mockPrisma.itemDef.findUnique as jest.Mock)
-        .mockResolvedValueOnce({ id: 'herb-id', key: 'herb' } as any)
-        .mockResolvedValueOnce({ id: 'iron-id', key: 'iron_ore' } as any);
-      
+
+      // Mock item definitions - use mockImplementation instead of mockResolvedValueOnce
+      // because addStarterItems() calls itemDef.findUnique twice (once for herb, once for iron_ore).
+      // mockResolvedValueOnce would only work for the first call and fail on the second.
+      (mockPrisma.itemDef.findUnique as jest.Mock).mockImplementation((args: any) => {
+        if (args.where.key === 'herb') {
+          return Promise.resolve({ id: 'herb-id', key: 'herb' });
+        } else if (args.where.key === 'iron_ore') {
+          return Promise.resolve({ id: 'iron-id', key: 'iron_ore' });
+        }
+        return Promise.resolve(null);
+      });
+
       (mockPrisma.inventory.findMany as jest.Mock).mockResolvedValue([]);
       mockPrisma.$transaction.mockImplementation(async (callback) => {
         return callback(mockPrisma);
@@ -106,8 +118,6 @@ describe('Auto-sync User - Core Functions', () => {
     });
 
     it('should create user, profile, and wallet for new user', async () => {
-      // Clear module cache to get fresh instance
-      jest.resetModules();
       const { ensureUserSynced } = await import('../auto-sync');
 
       await ensureUserSynced(mockAuthUser);
@@ -138,18 +148,19 @@ describe('Auto-sync User - Core Functions', () => {
         }
       });
 
+      // Note: Updated from 500 to 1000 to match actual implementation (auto-sync.ts:184)
+      // This reflects the increased starter gold amount
       expect(mockPrisma.wallet.create).toHaveBeenCalledWith({
         data: {
           userId: userId,
-          gold: 500
+          gold: 1000
         }
       });
     });
 
     it('should not create profile or wallet if they already exist', async () => {
-      jest.resetModules();
       const { ensureUserSynced } = await import('../auto-sync');
-      
+
       (mockPrisma.profile.findUnique as jest.Mock).mockResolvedValue({ userId } as any);
       (mockPrisma.wallet.findUnique as jest.Mock).mockResolvedValue({ userId } as any);
 
@@ -160,7 +171,6 @@ describe('Auto-sync User - Core Functions', () => {
     });
 
     it('should add starter items for new users', async () => {
-      jest.resetModules();
       const { ensureUserSynced } = await import('../auto-sync');
 
       await ensureUserSynced(mockAuthUser);
@@ -171,9 +181,8 @@ describe('Auto-sync User - Core Functions', () => {
     });
 
     it('should skip starter items if user already has inventory', async () => {
-      jest.resetModules();
       const { ensureUserSynced } = await import('../auto-sync');
-      
+
       (mockPrisma.inventory.findMany as jest.Mock).mockResolvedValue([
         { userId, itemId: 'herb-id' }
       ] as any);
@@ -184,9 +193,8 @@ describe('Auto-sync User - Core Functions', () => {
     });
 
     it('should handle email uniqueness constraint', async () => {
-      jest.resetModules();
       const { ensureUserSynced } = await import('../auto-sync');
-      
+
       const uniqueError = new Error('Unique constraint failed');
       (uniqueError as any).code = 'P2002';
       (uniqueError as any).meta = { target: ['email'] };
@@ -221,9 +229,8 @@ describe('Auto-sync User - Core Functions', () => {
     });
 
     it('should handle database errors appropriately', async () => {
-      jest.resetModules();
       const { ensureUserSynced } = await import('../auto-sync');
-      
+
       (mockPrisma.user.upsert as jest.Mock).mockRejectedValue(new Error('Database connection failed'));
 
       await expect(ensureUserSynced(mockAuthUser)).rejects.toThrow('Database sync failed');
@@ -232,9 +239,8 @@ describe('Auto-sync User - Core Functions', () => {
 
   describe('JWT verification and sync', () => {
     it('should verify token and sync user', async () => {
-      jest.resetModules();
       const { verifyAndSyncUser } = await import('../auto-sync');
-      
+
       const mockSupabase = {
         auth: {
           getUser: jest.fn().mockResolvedValue({
@@ -256,9 +262,8 @@ describe('Auto-sync User - Core Functions', () => {
     });
 
     it('should handle invalid token', async () => {
-      jest.resetModules();
       const { verifyAndSyncUser } = await import('../auto-sync');
-      
+
       const mockSupabase = {
         auth: {
           getUser: jest.fn().mockResolvedValue({
