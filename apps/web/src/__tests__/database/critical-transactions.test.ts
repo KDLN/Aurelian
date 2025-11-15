@@ -75,6 +75,10 @@ describe('Critical Database Transactions', () => {
     jest.clearAllMocks();
   });
 
+  afterEach(() => {
+    jest.clearAllMocks(); // Prevent mock pollution between tests
+  });
+
   describe('Guild Treasury Deposit Transaction', () => {
     const mockUser = { id: 'user-123', email: 'test@example.com' };
     const mockMembership = { 
@@ -284,7 +288,7 @@ describe('Critical Database Transactions', () => {
       mockPrisma.$transaction.mockImplementation(async (callback, options) => {
         // Verify Serializable isolation level is used
         expect(options?.isolationLevel).toBe('Serializable');
-        expect(options?.timeout).toBe(10000);
+        expect(options?.timeout).toBe(5000); // 5 seconds for simple transactions
         return callback(mockTx);
       });
 

@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
         };
       }, {
         isolationLevel: 'Serializable',
-        timeout: 10000
+        timeout: 5000 // 5 seconds - sufficient for simple purchase transaction
       });
 
       // Non-critical analytics logging (outside transaction)

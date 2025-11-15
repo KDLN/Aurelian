@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { randomUUID } from 'crypto';
 
 // Mock Prisma
 jest.mock('@/lib/prisma', () => ({
@@ -32,19 +33,10 @@ describe('Auto-sync User - Core Functions', () => {
   let userId: string;
   let mockAuthUser: any;
 
-  // Helper to generate valid UUID v4
-  const generateUUID = () => {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-      const r = Math.random() * 16 | 0;
-      const v = c === 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
-  };
-
   beforeEach(() => {
     jest.clearAllMocks();
-    // Use a unique UUID for each test to avoid cache issues
-    userId = generateUUID();
+    // Use cryptographically secure UUID for each test to avoid collisions
+    userId = randomUUID();
     mockAuthUser = {
       id: userId,
       sub: userId,
@@ -107,7 +99,9 @@ describe('Auto-sync User - Core Functions', () => {
       (mockPrisma.wallet.findUnique as jest.Mock).mockResolvedValue(null);
       (mockPrisma.wallet.create as jest.Mock).mockResolvedValue({} as any);
 
-      // Mock item definitions - use mockImplementation to handle multiple calls
+      // Mock item definitions - use mockImplementation instead of mockResolvedValueOnce
+      // because addStarterItems() calls itemDef.findUnique twice (once for herb, once for iron_ore).
+      // mockResolvedValueOnce would only work for the first call and fail on the second.
       (mockPrisma.itemDef.findUnique as jest.Mock).mockImplementation((args: any) => {
         if (args.where.key === 'herb') {
           return Promise.resolve({ id: 'herb-id', key: 'herb' });

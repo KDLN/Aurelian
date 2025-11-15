@@ -35,6 +35,7 @@ describe('Crafting System Tests', () => {
 
   afterEach(() => {
     jest.useRealTimers();
+    jest.clearAllMocks(); // Prevent mock pollution between tests
   });
 
   describe('Crafting Job Creation', () => {
