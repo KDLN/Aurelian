@@ -267,14 +267,12 @@ describe('Critical Database Transactions', () => {
           update: jest.fn(),
         },
         wallet: {
-          findFirst: jest.fn()
-            .mockResolvedValueOnce({ id: 'buyer-wallet', gold: 1000 }) // Buyer wallet
-            .mockResolvedValueOnce({ id: 'seller-wallet', gold: 2000 }), // Seller wallet
+          findFirst: jest.fn().mockResolvedValue({ id: 'buyer-wallet', gold: 1000 }), // Buyer wallet
           update: jest.fn(),
+          upsert: jest.fn().mockResolvedValue({ id: 'seller-wallet', gold: 2500 }),
         },
         inventory: {
-          findFirst: jest.fn().mockResolvedValue(null),
-          create: jest.fn(),
+          upsert: jest.fn().mockResolvedValue({ id: 'inv-1', userId: 'buyer-123', itemId: 'item-789', qty: 5 }),
         },
         ledgerTx: {
           createMany: jest.fn(),
@@ -286,7 +284,7 @@ describe('Critical Database Transactions', () => {
       });
 
       const { POST } = await import('@/app/api/auction/buy/route');
-      
+
       const request = new NextRequest('http://localhost/api/auction/buy', {
         method: 'POST',
         headers: { authorization: 'Bearer valid-token' },
@@ -303,26 +301,36 @@ describe('Critical Database Transactions', () => {
 
       expect(mockTx.listing.update).toHaveBeenCalledWith({
         where: { id: 'listing-123' },
-        data: { 
+        data: {
           status: 'sold',
           closedAt: expect.any(Date)
         }
       });
 
-      // Verify gold transfer
+      // Verify buyer gold deduction
       expect(mockTx.wallet.update).toHaveBeenCalledWith({
         where: { id: 'buyer-wallet' },
         data: { gold: 500 } // 1000 - 500
       });
 
-      expect(mockTx.wallet.update).toHaveBeenCalledWith({
-        where: { id: 'seller-wallet' },
-        data: { gold: 2500 } // 2000 + 500
+      // Verify seller wallet upsert (race condition safe)
+      expect(mockTx.wallet.upsert).toHaveBeenCalledWith({
+        where: { userId: 'seller-456' },
+        update: { gold: { increment: 500 } },
+        create: { userId: 'seller-456', gold: 500 }
       });
 
-      // Verify inventory creation
-      expect(mockTx.inventory.create).toHaveBeenCalledWith({
-        data: {
+      // Verify inventory upsert (race condition safe)
+      expect(mockTx.inventory.upsert).toHaveBeenCalledWith({
+        where: {
+          userId_itemId_location: {
+            userId: 'buyer-123',
+            itemId: 'item-789',
+            location: 'warehouse'
+          }
+        },
+        update: { qty: { increment: 5 } },
+        create: {
           userId: 'buyer-123',
           itemId: 'item-789',
           qty: 5,
@@ -350,25 +358,18 @@ describe('Critical Database Transactions', () => {
     });
 
     it('should handle inventory update when buyer already has the item', async () => {
-      const existingInventory = {
-        id: 'inventory-123',
-        qty: 10
-      };
-
       const mockTx = {
         listing: {
           findUnique: jest.fn().mockResolvedValue(mockListing),
           update: jest.fn(),
         },
         wallet: {
-          findFirst: jest.fn()
-            .mockResolvedValueOnce({ id: 'buyer-wallet', gold: 1000 })
-            .mockResolvedValueOnce({ id: 'seller-wallet', gold: 2000 }),
+          findFirst: jest.fn().mockResolvedValue({ id: 'buyer-wallet', gold: 1000 }),
           update: jest.fn(),
+          upsert: jest.fn().mockResolvedValue({ id: 'seller-wallet', gold: 2500 }),
         },
         inventory: {
-          findFirst: jest.fn().mockResolvedValue(existingInventory),
-          update: jest.fn(),
+          upsert: jest.fn().mockResolvedValue({ id: 'inventory-123', userId: 'buyer-123', itemId: 'item-789', qty: 15 }),
         },
         ledgerTx: {
           createMany: jest.fn(),
@@ -380,7 +381,7 @@ describe('Critical Database Transactions', () => {
       });
 
       const { POST } = await import('@/app/api/auction/buy/route');
-      
+
       const request = new NextRequest('http://localhost/api/auction/buy', {
         method: 'POST',
         headers: { authorization: 'Bearer valid-token' },
@@ -389,29 +390,38 @@ describe('Critical Database Transactions', () => {
 
       await POST(request);
 
-      // Should update existing inventory instead of creating new
-      expect(mockTx.inventory.update).toHaveBeenCalledWith({
-        where: { id: 'inventory-123' },
-        data: { qty: 15 } // 10 + 5
+      // Should use upsert which handles both create and update atomically
+      expect(mockTx.inventory.upsert).toHaveBeenCalledWith({
+        where: {
+          userId_itemId_location: {
+            userId: 'buyer-123',
+            itemId: 'item-789',
+            location: 'warehouse'
+          }
+        },
+        update: { qty: { increment: 5 } },
+        create: {
+          userId: 'buyer-123',
+          itemId: 'item-789',
+          qty: 5,
+          location: 'warehouse'
+        }
       });
     });
 
-    it('should handle seller without wallet by creating one', async () => {
+    it('should handle seller without wallet using upsert', async () => {
       const mockTx = {
         listing: {
           findUnique: jest.fn().mockResolvedValue(mockListing),
           update: jest.fn(),
         },
         wallet: {
-          findFirst: jest.fn()
-            .mockResolvedValueOnce({ id: 'buyer-wallet', gold: 1000 }) // Buyer wallet
-            .mockResolvedValueOnce(null), // No seller wallet
+          findFirst: jest.fn().mockResolvedValue({ id: 'buyer-wallet', gold: 1000 }), // Buyer wallet
           update: jest.fn(),
-          create: jest.fn(),
+          upsert: jest.fn().mockResolvedValue({ id: 'seller-wallet', userId: 'seller-456', gold: 500 }),
         },
         inventory: {
-          findFirst: jest.fn().mockResolvedValue(null),
-          create: jest.fn(),
+          upsert: jest.fn().mockResolvedValue({ id: 'inv-1', userId: 'buyer-123', itemId: 'item-789', qty: 5 }),
         },
         ledgerTx: {
           createMany: jest.fn(),
@@ -423,7 +433,7 @@ describe('Critical Database Transactions', () => {
       });
 
       const { POST } = await import('@/app/api/auction/buy/route');
-      
+
       const request = new NextRequest('http://localhost/api/auction/buy', {
         method: 'POST',
         headers: { authorization: 'Bearer valid-token' },
@@ -432,12 +442,11 @@ describe('Critical Database Transactions', () => {
 
       await POST(request);
 
-      // Should create wallet for seller
-      expect(mockTx.wallet.create).toHaveBeenCalledWith({
-        data: {
-          userId: 'seller-456',
-          gold: 500 // Total cost
-        }
+      // Should upsert wallet for seller (handles race conditions)
+      expect(mockTx.wallet.upsert).toHaveBeenCalledWith({
+        where: { userId: 'seller-456' },
+        update: { gold: { increment: 500 } },
+        create: { userId: 'seller-456', gold: 500 }
       });
     });
 

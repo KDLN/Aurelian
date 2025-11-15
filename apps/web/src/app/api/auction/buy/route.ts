@@ -62,49 +62,41 @@ export async function POST(request: NextRequest) {
           data: { gold: buyerWallet.gold - totalCost }
         });
 
-        const sellerWallet = await tx.wallet.findFirst({
-          where: { userId: listing.sellerId }
-        });
-
-        if (sellerWallet) {
-          await tx.wallet.update({
-            where: { id: sellerWallet.id },
-            data: { gold: sellerWallet.gold + totalCost }
-          });
-        } else {
-          // Create wallet for seller if doesn't exist
-          await tx.wallet.create({
-            data: {
-              userId: listing.sellerId,
-              gold: totalCost
-            }
-          });
-        }
-
-        // Add item to buyer's inventory
-        const buyerInventory = await tx.inventory.findFirst({
-          where: {
-            userId: user.id,
-            itemId: listing.itemId,
-            location: 'warehouse'
+        // Use upsert for seller wallet to handle race conditions
+        // If multiple purchases happen simultaneously for a new seller,
+        // upsert ensures only one wallet is created
+        await tx.wallet.upsert({
+          where: { userId: listing.sellerId },
+          update: {
+            gold: { increment: totalCost }
+          },
+          create: {
+            userId: listing.sellerId,
+            gold: totalCost
           }
         });
 
-        if (buyerInventory) {
-          await tx.inventory.update({
-            where: { id: buyerInventory.id },
-            data: { qty: buyerInventory.qty + listing.qty }
-          });
-        } else {
-          await tx.inventory.create({
-            data: {
+        // Use upsert for buyer inventory to handle race conditions
+        // If buyer purchases same item from multiple listings simultaneously,
+        // upsert ensures qty is correctly incremented
+        await tx.inventory.upsert({
+          where: {
+            userId_itemId_location: {
               userId: user.id,
               itemId: listing.itemId,
-              qty: listing.qty,
               location: 'warehouse'
             }
-          });
-        }
+          },
+          update: {
+            qty: { increment: listing.qty }
+          },
+          create: {
+            userId: user.id,
+            itemId: listing.itemId,
+            qty: listing.qty,
+            location: 'warehouse'
+          }
+        });
 
         // Record transaction in ledger
         await tx.ledgerTx.createMany({
