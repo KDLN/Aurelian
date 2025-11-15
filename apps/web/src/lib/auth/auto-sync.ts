@@ -4,10 +4,15 @@ import { prisma } from '@/lib/prisma';
 const syncedUsers = new Set<string>();
 const SYNC_CACHE_TTL = 300000; // 5 minutes
 
+// Starter resources for new users
+export const STARTER_GOLD = 1000;
+export const STARTER_HERB_QTY = 5;
+export const STARTER_IRON_QTY = 2;
+
 /**
  * Add starter items to new user's inventory
- * - 5 herbs
- * - 2 iron ore
+ * - STARTER_HERB_QTY herbs
+ * - STARTER_IRON_QTY iron ore
  */
 async function addStarterItems(userId: string) {
   try {
@@ -63,23 +68,23 @@ async function addStarterItems(userId: string) {
         data: {
           userId: userId,
           itemId: herbItem.id,
-          qty: 5,
+          qty: STARTER_HERB_QTY,
           location: 'warehouse'
         }
       });
 
-      // Create iron ore inventory  
+      // Create iron ore inventory
       await tx.inventory.create({
         data: {
           userId: userId,
           itemId: ironItem.id,
-          qty: 2,
+          qty: STARTER_IRON_QTY,
           location: 'warehouse'
         }
       });
     });
 
-    console.log(`✅ Added starter items to user ${userId}: 5 herbs, 2 iron ore`);
+    console.log(`✅ Added starter items to user ${userId}: ${STARTER_HERB_QTY} herbs, ${STARTER_IRON_QTY} iron ore`);
   } catch (error) {
     console.error('Error adding starter items:', error);
     // Don't throw - we want signup to succeed even if starter items fail
@@ -181,10 +186,10 @@ export async function ensureUserSynced(authUser: any) {
         await prisma.wallet.create({
           data: {
             userId: userId,
-            gold: 1000  // Increased starter gold
+            gold: STARTER_GOLD
           }
         });
-        console.log(`✅ Created wallet for user ${userId} with 1000 gold`);
+        console.log(`✅ Created wallet for user ${userId} with ${STARTER_GOLD} gold`);
 
         // Add starter items for new users only
         await addStarterItems(userId);

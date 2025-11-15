@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { randomUUID } from 'crypto';
+import { STARTER_GOLD } from '../auto-sync';
 
 // Mock Prisma
 jest.mock('@/lib/prisma', () => ({
@@ -148,12 +149,11 @@ describe('Auto-sync User - Core Functions', () => {
         }
       });
 
-      // Note: Updated from 500 to 1000 to match actual implementation (auto-sync.ts:184)
-      // This reflects the increased starter gold amount
+      // Using exported STARTER_GOLD constant to ensure consistency
       expect(mockPrisma.wallet.create).toHaveBeenCalledWith({
         data: {
           userId: userId,
-          gold: 1000
+          gold: STARTER_GOLD
         }
       });
     });
