@@ -38,17 +38,9 @@ export async function POST(request: NextRequest) {
 
         const totalCost = listing.qty * listing.price;
 
-        // Update listing status
-        await tx.listing.update({
-          where: { id: listingId },
-          data: {
-            status: 'sold',
-            closedAt: new Date()
-          }
-        });
-
-        // Atomically deduct gold from buyer's wallet with insufficient funds check
-        // This prevents race conditions and ensures the gold check + update happen atomically
+        // CRITICAL: Deduct gold BEFORE marking listing as sold
+        // This ensures we fail fast if buyer has insufficient funds,
+        // preventing unnecessary listing status changes that would rollback
         const buyerWalletUpdate = await tx.wallet.updateMany({
           where: {
             userId: user.id,
@@ -63,6 +55,15 @@ export async function POST(request: NextRequest) {
         if (buyerWalletUpdate.count === 0) {
           throw new Error('Insufficient gold');
         }
+
+        // Only mark listing as sold after buyer's payment succeeds
+        await tx.listing.update({
+          where: { id: listingId },
+          data: {
+            status: 'sold',
+            closedAt: new Date()
+          }
+        });
 
         // Use upsert for seller wallet to handle race conditions
         // If multiple purchases happen simultaneously for a new seller,

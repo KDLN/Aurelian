@@ -542,7 +542,8 @@ describe('Critical Database Transactions', () => {
       expect(data.error).toBe('INSUFFICIENT_FUNDS');
       expect(data.message).toBe('You do not have enough gold for this purchase');
       expect(mockTx.listing.findUnique).toHaveBeenCalled();
-      expect(mockTx.listing.update).toHaveBeenCalled();  // Listing gets marked sold first
+
+      // Verify wallet check happens first
       expect(mockTx.wallet.updateMany).toHaveBeenCalledWith({
         where: {
           userId: 'buyer-123',
@@ -552,6 +553,70 @@ describe('Critical Database Transactions', () => {
           gold: { decrement: 500 }
         }
       });
+
+      // Listing should NOT be updated since payment failed
+      expect(mockTx.listing.update).not.toHaveBeenCalled();
+    });
+
+    it('should handle concurrent purchases of the same listing', async () => {
+      // Simulate two buyers trying to purchase the same listing simultaneously
+      // First buyer should succeed, second should fail with "Listing is no longer available"
+
+      let callCount = 0;
+      const mockTx = {
+        listing: {
+          findUnique: jest.fn().mockImplementation(() => {
+            callCount++;
+            // First call: listing is active
+            // Second call: listing already sold
+            return callCount === 1
+              ? { ...mockListing, status: 'active' }
+              : { ...mockListing, status: 'sold' };
+          }),
+          update: jest.fn(),
+        },
+        wallet: {
+          updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+          upsert: jest.fn(),
+        },
+        inventory: {
+          upsert: jest.fn(),
+        },
+        ledgerTx: {
+          createMany: jest.fn(),
+        },
+      };
+
+      mockPrisma.$transaction.mockImplementation(async (callback) => {
+        return callback(mockTx);
+      });
+
+      const { POST } = await import('@/app/api/auction/buy/route');
+
+      // First buyer's request
+      const request1 = new NextRequest('http://localhost/api/auction/buy', {
+        method: 'POST',
+        headers: { authorization: 'Bearer valid-token' },
+        body: JSON.stringify({ listingId: 'listing-123' }),
+      });
+
+      // Second buyer's request (simulated)
+      const request2 = new NextRequest('http://localhost/api/auction/buy', {
+        method: 'POST',
+        headers: { authorization: 'Bearer valid-token' },
+        body: JSON.stringify({ listingId: 'listing-123' }),
+      });
+
+      // First purchase succeeds
+      const response1 = await POST(request1);
+      const data1 = await response1.json();
+      expect(data1.message).toContain('Purchased');
+
+      // Second purchase fails - listing already sold
+      const response2 = await POST(request2);
+      const data2 = await response2.json();
+      expect(data2.error).toBe('LISTING_UNAVAILABLE');
+      expect(data2.message).toBe('This listing is no longer available');
     });
   });
 });
