@@ -31,11 +31,10 @@ const mockPrisma = prisma as jest.Mocked<typeof prisma>;
 describe('Crafting System Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Fake timers are already enabled globally
   });
 
   afterEach(() => {
-    // Timers are cleared globally
+    jest.useRealTimers();
   });
 
   describe('Crafting Job Creation', () => {
@@ -70,10 +69,11 @@ describe('Crafting System Tests', () => {
       const quantity = 3;
       const expectedBaseTime = mockBlueprint.timeMin * quantity; // 90 minutes
       const expectedBatchTime = Math.ceil(expectedBaseTime * 0.9); // 81 minutes with batch bonus
-      
+
       const startTime = new Date('2023-01-01T10:00:00Z');
       const expectedETA = new Date(startTime.getTime() + expectedBatchTime * 60 * 1000);
-      
+
+      jest.useFakeTimers();
       jest.setSystemTime(startTime);
 
       const mockTx = {
@@ -333,6 +333,7 @@ describe('Crafting System Tests', () => {
 
     it('should complete job and award items and XP correctly', async () => {
       const completionTime = new Date('2023-01-01T11:30:00Z'); // 30 min after ETA
+      jest.useFakeTimers();
       jest.setSystemTime(completionTime);
 
       const expectedTotalItems = mockCraftJob.qty * mockCraftJob.blueprint.outputQty; // 2 * 3 = 6
@@ -644,7 +645,8 @@ describe('Crafting System Tests', () => {
     it('should prevent early completion attempts', async () => {
       const currentTime = new Date('2023-01-01T10:30:00Z');
       const jobETA = new Date('2023-01-01T11:00:00Z'); // 30 minutes in future
-      
+
+      jest.useFakeTimers();
       jest.setSystemTime(currentTime);
 
       const mockTx = {
@@ -682,7 +684,8 @@ describe('Crafting System Tests', () => {
     it('should allow completion after ETA', async () => {
       const currentTime = new Date('2023-01-01T11:30:00Z');
       const jobETA = new Date('2023-01-01T11:00:00Z'); // 30 minutes ago
-      
+
+      jest.useFakeTimers();
       jest.setSystemTime(currentTime);
 
       const mockTx = {

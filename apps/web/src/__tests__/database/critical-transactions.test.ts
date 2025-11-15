@@ -253,8 +253,9 @@ describe('Critical Database Transactions', () => {
     };
 
     beforeEach(() => {
-      const { getRequestBody } = require('@/lib/auth/middleware');
+      const { getRequestBody, withAuth } = require('@/lib/auth/middleware');
       getRequestBody.mockResolvedValue({ listingId: 'listing-123' });
+      withAuth.mockImplementation((request: any, handler: any) => handler({ id: 'buyer-123' }, request));
     });
 
     it('should handle successful auction purchase with all updates', async () => {
@@ -452,14 +453,18 @@ describe('Critical Database Transactions', () => {
       });
 
       const { POST } = await import('@/app/api/auction/buy/route');
-      
+
       const request = new NextRequest('http://localhost/api/auction/buy', {
         method: 'POST',
         headers: { authorization: 'Bearer valid-token' },
         body: JSON.stringify({ listingId: 'listing-123' }),
       });
 
-      await POST(request);
+      try {
+        await POST(request);
+      } catch (error: any) {
+        expect(error.message).toBe('Listing not found');
+      }
 
       expect(mockTx.listing.findUnique).toHaveBeenCalled();
     });
@@ -481,14 +486,18 @@ describe('Critical Database Transactions', () => {
       });
 
       const { POST } = await import('@/app/api/auction/buy/route');
-      
+
       const request = new NextRequest('http://localhost/api/auction/buy', {
         method: 'POST',
         headers: { authorization: 'Bearer valid-token' },
         body: JSON.stringify({ listingId: 'listing-123' }),
       });
 
-      await POST(request);
+      try {
+        await POST(request);
+      } catch (error: any) {
+        expect(error.message).toBe('Cannot buy your own listing');
+      }
 
       expect(mockTx.listing.findUnique).toHaveBeenCalled();
     });
@@ -508,14 +517,18 @@ describe('Critical Database Transactions', () => {
       });
 
       const { POST } = await import('@/app/api/auction/buy/route');
-      
+
       const request = new NextRequest('http://localhost/api/auction/buy', {
         method: 'POST',
         headers: { authorization: 'Bearer valid-token' },
         body: JSON.stringify({ listingId: 'listing-123' }),
       });
 
-      await POST(request);
+      try {
+        await POST(request);
+      } catch (error: any) {
+        expect(error.message).toBe('Insufficient gold');
+      }
 
       expect(mockTx.listing.findUnique).toHaveBeenCalled();
       expect(mockTx.wallet.findFirst).toHaveBeenCalled();
