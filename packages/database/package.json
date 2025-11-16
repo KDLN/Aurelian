@@ -7,11 +7,11 @@
   "scripts": {
     "build": "npm run generate && tsc",
     "dev": "tsc --watch",
-    "generate": "prisma generate",
-    "migrate": "prisma migrate dev",
-    "migrate:deploy": "prisma migrate deploy",
-    "migrate:status": "prisma migrate status",
-    "studio": "prisma studio",
+    "generate": "npx prisma generate",
+    "migrate": "npx prisma migrate dev",
+    "migrate:deploy": "npx prisma migrate deploy",
+    "migrate:status": "npx prisma migrate status",
+    "studio": "npx prisma studio",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {

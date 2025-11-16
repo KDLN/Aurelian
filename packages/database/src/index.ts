@@ -1,5 +1,6 @@
 export * from '@prisma/client';
 export * from './env';
+export * from './services';
 import { PrismaClient } from '@prisma/client';
 import { validateDatabaseEnv } from './env';
 

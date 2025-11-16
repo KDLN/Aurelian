@@ -27,7 +27,19 @@ npx prisma migrate dev --name <name>  # Create new migration
 npx prisma migrate status  # Check migration status (prevent drift)
 ```
 
-⚠️ **IMPORTANT**: Always check `npx prisma migrate status` before making schema changes to prevent drift. See `prisma/MIGRATION_GUIDE.md` for detailed migration procedures.
+⚠️ **IMPORTANT**: Always check `npx prisma migrate status` before making schema changes to prevent drift. See `prisma/MIGRATION_GUIDE.md` for detailed migration procedures and `MIGRATION_SETUP.md` for automated migration workflow.
+
+### Service Layer
+The project uses a service layer pattern for database operations:
+```typescript
+import { services } from '@aurelian/database';
+
+// Use services instead of direct Prisma calls
+const wallet = await services.wallet.getOrCreateWallet(userId);
+const missions = await services.mission.getUserActiveMissions(userId);
+```
+
+See `packages/database/README.md` for full service layer documentation.
 
 ### Build & Production
 ```bash
@@ -48,7 +60,7 @@ npm --prefix apps/worker run build    # Type check worker service
 ### Tech Stack
 - **Frontend**: Next.js 14, React 18, TypeScript, Supabase Auth, Colyseus.js client
 - **Backend**: Colyseus WebSocket server, Express, JWT auth via `jose`
-- **Database**: PostgreSQL with Prisma ORM (v6.13)
+- **Database**: PostgreSQL with Prisma ORM (v6.13), Service Layer pattern
 - **Deployment**: Docker containers, Google Cloud Run via GitHub Actions
 
 ### Key Architectural Patterns
@@ -95,6 +107,11 @@ apps/
       rooms/         # Colyseus room logic
       schemas/       # Colyseus state schemas
   worker/            # Background tasks
+packages/
+  database/          # Shared database package
+    src/
+      services/      # Service layer (NEW)
+      index.ts       # Exports Prisma client and services
 prisma/              # Database schema and migrations
 .github/workflows/   # CI/CD pipelines for Cloud Run
 ```
@@ -120,6 +137,8 @@ Required environment variables:
 
 1. **Monorepo Structure**: Use npm workspaces, prefix commands with `npm --prefix apps/<app>`
 2. **TypeScript**: All apps use TypeScript with ESM modules and strict configuration
-3. **Real-time Updates**: Server broadcasts state at 1-second intervals
-4. **Canvas Rendering**: Custom 2D rendering using HTML5 Canvas API
-5. **Retro Aesthetic**: Dark brown/gold color scheme (`#231913` background, `#f1e5c8` text), monospace fonts
+3. **Service Layer**: Use service layer for database operations instead of direct Prisma calls
+4. **Real-time Updates**: Server broadcasts state at 1-second intervals
+5. **Canvas Rendering**: Custom 2D rendering using HTML5 Canvas API
+6. **Retro Aesthetic**: Dark brown/gold color scheme (`#231913` background, `#f1e5c8` text), monospace fonts
+7. **Database Migrations**: Always create migrations for schema changes, never modify database directly
