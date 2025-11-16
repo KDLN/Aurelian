@@ -4,6 +4,7 @@ import {
   InsufficientFundsError,
   ValidationError,
 } from '../errors';
+import { GOLD_LIMITS } from '../constants';
 
 /**
  * Wallet service for gold/currency management
@@ -46,14 +47,17 @@ export class WalletService extends BaseService {
 
   /**
    * Add gold to wallet
+   * @param userId - User ID
+   * @param amount - Amount to add (1 - 10,000,000)
+   * @param reason - Transaction reason for ledger
    */
   async addGold(userId: string, amount: number, reason?: string): Promise<Wallet> {
     // Input validation
-    if (amount <= 0) {
-      throw new ValidationError('amount', 'Amount must be positive');
+    if (amount < GOLD_LIMITS.MIN_AMOUNT) {
+      throw new ValidationError('amount', 'Amount must be at least 1');
     }
-    if (amount > 10_000_000) {
-      throw new ValidationError('amount', 'Amount exceeds maximum (10M)');
+    if (amount > GOLD_LIMITS.MAX_ADD_AMOUNT) {
+      throw new ValidationError('amount', `Amount exceeds maximum (${GOLD_LIMITS.MAX_ADD_AMOUNT.toLocaleString()})`);
     }
 
     return this.transaction(async (tx) => {
@@ -84,11 +88,14 @@ export class WalletService extends BaseService {
 
   /**
    * Subtract gold from wallet
+   * @param userId - User ID
+   * @param amount - Amount to subtract (must be positive)
+   * @param reason - Transaction reason for ledger
    */
   async subtractGold(userId: string, amount: number, reason?: string): Promise<Wallet> {
     // Input validation
-    if (amount <= 0) {
-      throw new ValidationError('amount', 'Amount must be positive');
+    if (amount < GOLD_LIMITS.MIN_AMOUNT) {
+      throw new ValidationError('amount', 'Amount must be at least 1');
     }
 
     return this.transaction(async (tx) => {
@@ -140,6 +147,11 @@ export class WalletService extends BaseService {
 
   /**
    * Transfer gold between users
+   * @param fromUserId - User sending gold
+   * @param toUserId - User receiving gold
+   * @param amount - Amount to transfer (1 - 1,000,000)
+   * @param reason - Transaction description for ledger
+   * @returns Updated wallet states for both users
    */
   async transfer(
     fromUserId: string,
@@ -148,11 +160,11 @@ export class WalletService extends BaseService {
     reason: string
   ): Promise<{ from: Wallet; to: Wallet }> {
     // Input validation
-    if (amount <= 0) {
-      throw new ValidationError('amount', 'Amount must be positive');
+    if (amount < GOLD_LIMITS.MIN_AMOUNT) {
+      throw new ValidationError('amount', 'Amount must be at least 1');
     }
-    if (amount > 1_000_000) {
-      throw new ValidationError('amount', 'Transfer amount exceeds maximum (1M)');
+    if (amount > GOLD_LIMITS.MAX_TRANSFER_AMOUNT) {
+      throw new ValidationError('amount', `Transfer amount exceeds maximum (${GOLD_LIMITS.MAX_TRANSFER_AMOUNT.toLocaleString()})`);
     }
     if (fromUserId === toUserId) {
       throw new ValidationError('toUserId', 'Cannot transfer to yourself');

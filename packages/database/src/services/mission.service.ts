@@ -179,31 +179,33 @@ export class MissionService extends BaseService {
         });
         const itemDefMap = new Map(itemDefs.map((i) => [i.key, i]));
 
-        // Upsert inventory for each item
-        for (const item of rewards.items) {
+        // Execute all upserts in parallel within the transaction
+        const upsertPromises = rewards.items.map((item) => {
           const itemDef = itemDefMap.get(item.itemKey);
+          if (!itemDef) return null;
 
-          if (itemDef) {
-            await tx.inventory.upsert({
-              where: {
-                userId_itemId_location: {
-                  userId: missionInstance.userId,
-                  itemId: itemDef.id,
-                  location: 'warehouse',
-                },
-              },
-              create: {
+          return tx.inventory.upsert({
+            where: {
+              userId_itemId_location: {
                 userId: missionInstance.userId,
                 itemId: itemDef.id,
-                qty: item.qty,
                 location: 'warehouse',
               },
-              update: {
-                qty: { increment: item.qty },
-              },
-            });
-          }
-        }
+            },
+            create: {
+              userId: missionInstance.userId,
+              itemId: itemDef.id,
+              qty: item.qty,
+              location: 'warehouse',
+            },
+            update: {
+              qty: { increment: item.qty },
+            },
+          });
+        });
+
+        // Wait for all upserts to complete
+        await Promise.all(upsertPromises.filter(Boolean));
       }
 
       // Log transaction
@@ -236,8 +238,22 @@ export class MissionService extends BaseService {
 
   /**
    * Cancel a mission
+   * @param missionInstanceId - The mission instance ID
+   * @param userId - The user who owns the mission (for authorization)
    */
-  async cancelMission(missionInstanceId: string): Promise<MissionInstance> {
+  async cancelMission(missionInstanceId: string, userId: string): Promise<MissionInstance> {
+    // Verify mission ownership BEFORE cancelling
+    const existingMission = await this.db.missionInstance.findFirst({
+      where: {
+        id: missionInstanceId,
+        userId, // Must match the requesting user
+      },
+    });
+
+    if (!existingMission) {
+      throw new ResourceNotFoundError('MissionInstance', missionInstanceId);
+    }
+
     return this.db.missionInstance.update({
       where: { id: missionInstanceId },
       data: {

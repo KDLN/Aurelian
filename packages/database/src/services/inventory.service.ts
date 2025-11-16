@@ -5,6 +5,7 @@ import {
   ResourceNotFoundError,
   ValidationError,
 } from '../errors';
+import { INVENTORY_LIMITS } from '../constants';
 
 /**
  * Inventory service for item management
@@ -54,6 +55,10 @@ export class InventoryService extends BaseService {
 
   /**
    * Add items to inventory
+   * @param userId - User ID
+   * @param itemKey - Item key
+   * @param quantity - Quantity to add (1 - 999,999)
+   * @param location - Inventory location (default: warehouse)
    */
   async addItem(
     userId: string,
@@ -62,8 +67,11 @@ export class InventoryService extends BaseService {
     location: string = 'warehouse'
   ): Promise<Inventory> {
     // Input validation
-    if (quantity <= 0) {
-      throw new ValidationError('quantity', 'Quantity must be positive');
+    if (quantity < INVENTORY_LIMITS.MIN_QUANTITY) {
+      throw new ValidationError('quantity', 'Quantity must be at least 1');
+    }
+    if (quantity > INVENTORY_LIMITS.MAX_QUANTITY) {
+      throw new ValidationError('quantity', `Quantity exceeds maximum (${INVENTORY_LIMITS.MAX_QUANTITY.toLocaleString()})`);
     }
 
     const itemDef = await this.db.itemDef.findUnique({
@@ -96,6 +104,10 @@ export class InventoryService extends BaseService {
 
   /**
    * Remove items from inventory
+   * @param userId - User ID
+   * @param itemKey - Item key
+   * @param quantity - Quantity to remove (must be positive)
+   * @param location - Inventory location (default: warehouse)
    */
   async removeItem(
     userId: string,
@@ -104,8 +116,8 @@ export class InventoryService extends BaseService {
     location: string = 'warehouse'
   ): Promise<Inventory> {
     // Input validation
-    if (quantity <= 0) {
-      throw new ValidationError('quantity', 'Quantity must be positive');
+    if (quantity < INVENTORY_LIMITS.MIN_QUANTITY) {
+      throw new ValidationError('quantity', 'Quantity must be at least 1');
     }
 
     const itemDef = await this.db.itemDef.findUnique({
@@ -151,6 +163,11 @@ export class InventoryService extends BaseService {
 
   /**
    * Transfer items between locations
+   * @param userId - User ID
+   * @param itemKey - Item key
+   * @param quantity - Quantity to transfer (must be positive)
+   * @param fromLocation - Source location
+   * @param toLocation - Destination location
    */
   async transferItems(
     userId: string,
@@ -160,8 +177,8 @@ export class InventoryService extends BaseService {
     toLocation: string
   ): Promise<{ from: Inventory; to: Inventory }> {
     // Input validation
-    if (quantity <= 0) {
-      throw new ValidationError('quantity', 'Quantity must be positive');
+    if (quantity < INVENTORY_LIMITS.MIN_QUANTITY) {
+      throw new ValidationError('quantity', 'Quantity must be at least 1');
     }
     if (fromLocation === toLocation) {
       throw new ValidationError('toLocation', 'Cannot transfer to same location');
