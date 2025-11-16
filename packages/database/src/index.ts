@@ -1,5 +1,9 @@
 export * from '@prisma/client';
 export * from './env';
+export * from './constants/index.js';
+export * from './validation/index.js';
+export * from './services/wallet.service.js';
+
 import { PrismaClient } from '@prisma/client';
 import { validateDatabaseEnv } from './env';
 
@@ -32,39 +36,114 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 // Connection management and optimization utilities
 export class DatabaseOptimizer {
-  private static queryCache = new Map<string, any>();
+  private static queryCache = new Map<string, unknown>();
   private static cacheExpiry = new Map<string, number>();
+  private static cacheInsertionOrder: string[] = []; // Track insertion order for LRU
   private static readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+  private static readonly MAX_CACHE_SIZE = 1000; // LRU eviction threshold
 
   /**
-   * Cached query execution with TTL
+   * Cached query execution with TTL and LRU eviction
+   *
+   * @template T - Type of the query result
+   * @param key - Unique cache key for the query
+   * @param queryFn - Function that executes the query
+   * @returns Cached result or fresh query result
+   *
+   * @example
+   * ```typescript
+   * const users = await DatabaseOptimizer.cachedQuery(
+   *   'users:active',
+   *   () => prisma.user.findMany({ where: { active: true } })
+   * );
+   * ```
    */
   static async cachedQuery<T>(key: string, queryFn: () => Promise<T>): Promise<T> {
     const now = Date.now();
     const expiry = this.cacheExpiry.get(key);
-    
+
+    // Return cached result if not expired
     if (expiry && now < expiry && this.queryCache.has(key)) {
-      return this.queryCache.get(key);
+      // Move to end of insertion order (most recently used)
+      this.updateLRU(key);
+      return this.queryCache.get(key) as T;
     }
 
+    // Execute query
     const result = await queryFn();
+
+    // Evict oldest entry if cache is full (LRU eviction)
+    if (this.queryCache.size >= this.MAX_CACHE_SIZE && !this.queryCache.has(key)) {
+      this.evictOldest();
+    }
+
+    // Store result with expiry
     this.queryCache.set(key, result);
     this.cacheExpiry.set(key, now + this.CACHE_TTL);
-    
+    this.cacheInsertionOrder.push(key);
+
     return result;
   }
 
   /**
-   * Clear cache for specific keys or all cache
+   * Update LRU order - move key to end (most recently used)
+   * @private
    */
-  static clearCache(key?: string) {
+  private static updateLRU(key: string): void {
+    const index = this.cacheInsertionOrder.indexOf(key);
+    if (index > -1) {
+      this.cacheInsertionOrder.splice(index, 1);
+      this.cacheInsertionOrder.push(key);
+    }
+  }
+
+  /**
+   * Evict the oldest cache entry (LRU policy)
+   * @private
+   */
+  private static evictOldest(): void {
+    if (this.cacheInsertionOrder.length === 0) return;
+
+    const oldestKey = this.cacheInsertionOrder.shift();
+    if (oldestKey) {
+      this.queryCache.delete(oldestKey);
+      this.cacheExpiry.delete(oldestKey);
+    }
+  }
+
+  /**
+   * Clear cache for specific keys or all cache
+   *
+   * @param key - Optional cache key to clear. If omitted, clears entire cache
+   */
+  static clearCache(key?: string): void {
     if (key) {
       this.queryCache.delete(key);
       this.cacheExpiry.delete(key);
+      const index = this.cacheInsertionOrder.indexOf(key);
+      if (index > -1) {
+        this.cacheInsertionOrder.splice(index, 1);
+      }
     } else {
       this.queryCache.clear();
       this.cacheExpiry.clear();
+      this.cacheInsertionOrder = [];
     }
+  }
+
+  /**
+   * Get current cache statistics
+   *
+   * @returns Cache size, hit rate, and memory usage info
+   */
+  static getCacheStats() {
+    return {
+      size: this.queryCache.size,
+      maxSize: this.MAX_CACHE_SIZE,
+      utilizationPercent: Math.round((this.queryCache.size / this.MAX_CACHE_SIZE) * 100),
+      oldestKey: this.cacheInsertionOrder[0] || null,
+      newestKey: this.cacheInsertionOrder[this.cacheInsertionOrder.length - 1] || null,
+    };
   }
 
   /**
@@ -125,15 +204,18 @@ export class DatabaseOptimizer {
 
 // Graceful shutdown handling
 process.on('beforeExit', async () => {
+  DatabaseOptimizer.clearCache(); // Clear cache before disconnect
   await prisma.$disconnect();
 });
 
 process.on('SIGINT', async () => {
+  DatabaseOptimizer.clearCache(); // Clear cache before disconnect
   await prisma.$disconnect();
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
+  DatabaseOptimizer.clearCache(); // Clear cache before disconnect
   await prisma.$disconnect();
   process.exit(0);
 });
