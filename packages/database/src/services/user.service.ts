@@ -28,10 +28,13 @@ export class UserService extends BaseService {
    */
   async create(data: {
     id: string;
-    email?: string;
+    email?: string | null;
   }): Promise<User> {
     return this.db.user.create({
-      data,
+      data: {
+        id: data.id,
+        email: data.email ?? null,
+      },
     });
   }
 
@@ -97,12 +100,12 @@ export class UserService extends BaseService {
   /**
    * Get or create user (upsert)
    */
-  async getOrCreate(userId: string, email?: string): Promise<User> {
+  async getOrCreate(userId: string, email?: string | null): Promise<User> {
     return this.db.user.upsert({
       where: { id: userId },
       create: {
         id: userId,
-        email,
+        email: email ?? null,
       },
       update: {},
     });

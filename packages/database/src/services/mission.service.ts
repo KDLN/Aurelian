@@ -1,5 +1,5 @@
 import { BaseService } from './base.service';
-import { MissionDef, MissionInstance, Prisma } from '@prisma/client';
+import { MissionDef, MissionInstance } from '@prisma/client';
 
 /**
  * Mission service for mission-related operations

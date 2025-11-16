@@ -16,7 +16,7 @@ export abstract class BaseService {
    * Execute operations within a transaction
    */
   async transaction<T>(
-    fn: (tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use'>) => Promise<T>
+    fn: (tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$extends'>) => Promise<T>
   ): Promise<T> {
     return this.db.$transaction(fn);
   }
