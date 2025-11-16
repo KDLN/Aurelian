@@ -37,14 +37,55 @@ export class DatabaseOptimizer {
   private static queryCache = new Map<string, any>();
   private static cacheExpiry = new Map<string, number>();
   private static readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+  private static cleanupTimer: NodeJS.Timeout | null = null;
+
+  /**
+   * Start automatic cache cleanup timer
+   */
+  private static startCleanupTimer() {
+    if (this.cleanupTimer) return; // Already running
+
+    this.cleanupTimer = setInterval(() => {
+      const now = Date.now();
+      let cleaned = 0;
+
+      for (const [key, expiry] of this.cacheExpiry.entries()) {
+        if (now >= expiry) {
+          this.queryCache.delete(key);
+          this.cacheExpiry.delete(key);
+          cleaned++;
+        }
+      }
+
+      if (cleaned > 0) {
+        console.log(`[DatabaseOptimizer] Cleaned up ${cleaned} expired cache entries`);
+      }
+    }, 60000); // Cleanup every minute
+
+    // Prevent the timer from keeping the process alive
+    this.cleanupTimer.unref();
+  }
+
+  /**
+   * Stop automatic cache cleanup timer
+   */
+  static stopCleanupTimer() {
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = null;
+    }
+  }
 
   /**
    * Cached query execution with TTL
    */
   static async cachedQuery<T>(key: string, queryFn: () => Promise<T>): Promise<T> {
+    // Start cleanup timer on first use
+    this.startCleanupTimer();
+
     const now = Date.now();
     const expiry = this.cacheExpiry.get(key);
-    
+
     if (expiry && now < expiry && this.queryCache.has(key)) {
       return this.queryCache.get(key);
     }
@@ -52,7 +93,7 @@ export class DatabaseOptimizer {
     const result = await queryFn();
     this.queryCache.set(key, result);
     this.cacheExpiry.set(key, now + this.CACHE_TTL);
-    
+
     return result;
   }
 
@@ -73,12 +114,12 @@ export class DatabaseOptimizer {
    * Batch operations for better performance
    */
   static async batchCreate<T>(
-    model: any, 
-    data: any[], 
+    model: any,
+    data: any[],
     batchSize: number = 100
   ): Promise<T[]> {
     const results: T[] = [];
-    
+
     for (let i = 0; i < data.length; i += batchSize) {
       const batch = data.slice(i, i + batchSize);
       const batchResults = await model.createMany({
@@ -87,7 +128,7 @@ export class DatabaseOptimizer {
       });
       results.push(batchResults);
     }
-    
+
     return results;
   }
 
@@ -108,15 +149,18 @@ export class DatabaseOptimizer {
 
 // Graceful shutdown handling
 process.on('beforeExit', async () => {
+  DatabaseOptimizer.stopCleanupTimer();
   await prisma.$disconnect();
 });
 
 process.on('SIGINT', async () => {
+  DatabaseOptimizer.stopCleanupTimer();
   await prisma.$disconnect();
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
+  DatabaseOptimizer.stopCleanupTimer();
   await prisma.$disconnect();
   process.exit(0);
 });

@@ -1,5 +1,9 @@
 import { BaseService } from './base.service';
 import { Agent, AgentType } from '@prisma/client';
+import {
+  ResourceNotFoundError,
+  OperationNotAllowedError,
+} from '../errors';
 
 /**
  * Agent service for agent management
@@ -68,23 +72,24 @@ export class AgentService extends BaseService {
   }
 
   /**
-   * Get available agents (not on mission)
+   * Get available agents (not on mission) - optimized single query
    */
   async getAvailableAgents(userId: string) {
-    const allAgents = await this.getUserAgents(userId);
-    const activeMissions = await this.db.missionInstance.findMany({
+    return this.db.agent.findMany({
       where: {
         userId,
-        status: 'active',
+        isActive: true,
+        // Use Prisma's relation filter to exclude agents with active missions
+        missionInstances: {
+          none: {
+            status: 'active',
+          },
+        },
       },
-      select: {
-        agentId: true,
+      orderBy: {
+        hiredAt: 'asc',
       },
     });
-
-    const busyAgentIds = new Set(activeMissions.map((m) => m.agentId).filter(Boolean));
-
-    return allAgents.filter((agent) => !busyAgentIds.has(agent.id));
   }
 
   /**
@@ -114,7 +119,7 @@ export class AgentService extends BaseService {
     });
 
     if (!agent) {
-      throw new Error('Agent not found');
+      throw new ResourceNotFoundError('Agent', agentId);
     }
 
     const newXP = agent.experience + xp;
@@ -133,16 +138,27 @@ export class AgentService extends BaseService {
    * Dismiss an agent
    */
   async dismissAgent(agentId: string, userId: string): Promise<Agent> {
+    // Verify agent exists and belongs to user
+    const agent = await this.db.agent.findFirst({
+      where: {
+        id: agentId,
+        userId,
+      },
+    });
+
+    if (!agent) {
+      throw new ResourceNotFoundError('Agent', agentId);
+    }
+
     // Check if agent is on a mission
     const onMission = await this.isAgentOnMission(agentId);
     if (onMission) {
-      throw new Error('Cannot dismiss agent while on mission');
+      throw new OperationNotAllowedError('Cannot dismiss agent while on mission');
     }
 
     return this.db.agent.update({
       where: {
         id: agentId,
-        userId, // Ensure user owns the agent
       },
       data: {
         isActive: false,

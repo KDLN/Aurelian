@@ -1,5 +1,6 @@
 import { BaseService } from './base.service';
 import { MissionDef, MissionInstance } from '@prisma/client';
+import { ResourceNotFoundError } from '../errors';
 
 /**
  * Mission service for mission-related operations
@@ -121,15 +122,31 @@ export class MissionService extends BaseService {
 
   /**
    * Complete a mission and award rewards
+   * @param missionInstanceId - The mission instance ID
+   * @param userId - The user who owns the mission (for authorization)
+   * @param rewards - Gold and items to award
    */
   async completeMission(
     missionInstanceId: string,
+    userId: string,
     rewards: {
       gold: number;
       items?: Array<{ itemKey: string; qty: number }>;
     }
   ) {
     return this.transaction(async (tx) => {
+      // Verify mission ownership BEFORE updating (prevents unauthorized completion)
+      const existingMission = await tx.missionInstance.findFirst({
+        where: {
+          id: missionInstanceId,
+          userId, // Must match the requesting user
+        },
+      });
+
+      if (!existingMission) {
+        throw new ResourceNotFoundError('MissionInstance', missionInstanceId);
+      }
+
       // Update mission status
       const missionInstance = await tx.missionInstance.update({
         where: { id: missionInstanceId },

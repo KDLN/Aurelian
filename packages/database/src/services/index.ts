@@ -27,14 +27,21 @@ export { MissionService } from './mission.service';
 export { InventoryService } from './inventory.service';
 export { AgentService } from './agent.service';
 
+// Import service classes using ES6 imports
+import { UserService } from './user.service';
+import { WalletService } from './wallet.service';
+import { MissionService } from './mission.service';
+import { InventoryService } from './inventory.service';
+import { AgentService } from './agent.service';
+
 /**
  * Service factory - singleton instances of all services
  * Use this for convenient access to all services
  */
 export const services = {
-  user: new (require('./user.service').UserService)(),
-  wallet: new (require('./wallet.service').WalletService)(),
-  mission: new (require('./mission.service').MissionService)(),
-  inventory: new (require('./inventory.service').InventoryService)(),
-  agent: new (require('./agent.service').AgentService)(),
+  user: new UserService(),
+  wallet: new WalletService(),
+  mission: new MissionService(),
+  inventory: new InventoryService(),
+  agent: new AgentService(),
 } as const;

@@ -746,6 +746,7 @@ model MissionInstance {
   @@index([endTime])
   @@index([userId, caravanSlot, status])
   @@index([agentId])
+  @@index([agentId, status])
 }
 
 model Agent {
