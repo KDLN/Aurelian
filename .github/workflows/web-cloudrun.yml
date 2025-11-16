@@ -41,7 +41,16 @@ jobs:
         run: |
           npm install
           npx prisma generate
-          
+
+      - name: Run database migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        run: |
+          echo "Running Prisma migrations..."
+          npx prisma migrate deploy
+          echo "✓ Migrations completed successfully"
+
       - name: Build & push optimized web image
         env:
           REGION: ${{ secrets.GCP_REGION }}
