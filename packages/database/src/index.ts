@@ -2,6 +2,7 @@ export * from '@prisma/client';
 export * from './env';
 export * from './services';
 export * from './errors';
+export * from './constants';
 import { PrismaClient } from '@prisma/client';
 import { validateDatabaseEnv } from './env';
 
