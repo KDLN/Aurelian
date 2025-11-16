@@ -1,6 +1,7 @@
 export * from '@prisma/client';
 export * from './env';
 export * from './services';
+export * from './errors';
 import { PrismaClient } from '@prisma/client';
 import { validateDatabaseEnv } from './env';
 
@@ -103,25 +104,6 @@ export class DatabaseOptimizer {
     }
   }
 
-  /**
-   * Get connection pool stats (mock implementation for now)
-   */
-  static async getPoolStats() {
-    try {
-      // Mock connection stats since $metrics is not available in all Prisma versions
-      const activeConnections = Math.floor(Math.random() * 10) + 1;
-      const poolSize = env.DATABASE_POOL_SIZE || 20;
-      const idleConnections = poolSize - activeConnections;
-      
-      return {
-        connectionsOpen: poolSize,
-        connectionsIdle: Math.max(0, idleConnections),
-        connectionsUsed: activeConnections,
-      };
-    } catch (error) {
-      return { connectionsOpen: 0, connectionsIdle: 0, connectionsUsed: 0 };
-    }
-  }
 }
 
 // Graceful shutdown handling

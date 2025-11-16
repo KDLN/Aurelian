@@ -1,5 +1,10 @@
 import { BaseService } from './base.service';
 import { Inventory, ItemDef } from '@prisma/client';
+import {
+  InsufficientItemsError,
+  ResourceNotFoundError,
+  ValidationError,
+} from '../errors';
 
 /**
  * Inventory service for item management
@@ -56,12 +61,17 @@ export class InventoryService extends BaseService {
     quantity: number,
     location: string = 'warehouse'
   ): Promise<Inventory> {
+    // Input validation
+    if (quantity <= 0) {
+      throw new ValidationError('quantity', 'Quantity must be positive');
+    }
+
     const itemDef = await this.db.itemDef.findUnique({
       where: { key: itemKey },
     });
 
     if (!itemDef) {
-      throw new Error(`Item ${itemKey} not found`);
+      throw new ResourceNotFoundError('ItemDef', itemKey);
     }
 
     return this.db.inventory.upsert({
@@ -93,12 +103,17 @@ export class InventoryService extends BaseService {
     quantity: number,
     location: string = 'warehouse'
   ): Promise<Inventory> {
+    // Input validation
+    if (quantity <= 0) {
+      throw new ValidationError('quantity', 'Quantity must be positive');
+    }
+
     const itemDef = await this.db.itemDef.findUnique({
       where: { key: itemKey },
     });
 
     if (!itemDef) {
-      throw new Error(`Item ${itemKey} not found`);
+      throw new ResourceNotFoundError('ItemDef', itemKey);
     }
 
     const currentInventory = await this.db.inventory.findUnique({
@@ -112,7 +127,12 @@ export class InventoryService extends BaseService {
     });
 
     if (!currentInventory || currentInventory.qty < quantity) {
-      throw new Error('Insufficient items in inventory');
+      throw new InsufficientItemsError(
+        userId,
+        itemKey,
+        quantity,
+        currentInventory?.qty ?? 0
+      );
     }
 
     return this.db.inventory.update({
@@ -139,13 +159,21 @@ export class InventoryService extends BaseService {
     fromLocation: string,
     toLocation: string
   ): Promise<{ from: Inventory; to: Inventory }> {
+    // Input validation
+    if (quantity <= 0) {
+      throw new ValidationError('quantity', 'Quantity must be positive');
+    }
+    if (fromLocation === toLocation) {
+      throw new ValidationError('toLocation', 'Cannot transfer to same location');
+    }
+
     return this.transaction(async (tx) => {
       const itemDef = await tx.itemDef.findUnique({
         where: { key: itemKey },
       });
 
       if (!itemDef) {
-        throw new Error(`Item ${itemKey} not found`);
+        throw new ResourceNotFoundError('ItemDef', itemKey);
       }
 
       // Check source has enough items
@@ -160,7 +188,12 @@ export class InventoryService extends BaseService {
       });
 
       if (!sourceInventory || sourceInventory.qty < quantity) {
-        throw new Error('Insufficient items in source location');
+        throw new InsufficientItemsError(
+          userId,
+          itemKey,
+          quantity,
+          sourceInventory?.qty ?? 0
+        );
       }
 
       // Remove from source

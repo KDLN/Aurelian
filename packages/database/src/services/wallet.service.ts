@@ -1,5 +1,9 @@
 import { BaseService } from './base.service';
 import { Wallet } from '@prisma/client';
+import {
+  InsufficientFundsError,
+  ValidationError,
+} from '../errors';
 
 /**
  * Wallet service for gold/currency management
@@ -27,18 +31,31 @@ export class WalletService extends BaseService {
   }
 
   /**
-   * Get or create wallet
+   * Get or create wallet (race-condition safe)
    */
   async getOrCreateWallet(userId: string, initialGold: number = 1000): Promise<Wallet> {
-    const wallet = await this.getWallet(userId);
-    if (wallet) return wallet;
-    return this.createWallet(userId, initialGold);
+    return this.db.wallet.upsert({
+      where: { userId },
+      update: {},
+      create: {
+        userId,
+        gold: initialGold,
+      },
+    });
   }
 
   /**
    * Add gold to wallet
    */
   async addGold(userId: string, amount: number, reason?: string): Promise<Wallet> {
+    // Input validation
+    if (amount <= 0) {
+      throw new ValidationError('amount', 'Amount must be positive');
+    }
+    if (amount > 10_000_000) {
+      throw new ValidationError('amount', 'Amount exceeds maximum (10M)');
+    }
+
     return this.transaction(async (tx) => {
       const wallet = await tx.wallet.update({
         where: { userId },
@@ -69,6 +86,11 @@ export class WalletService extends BaseService {
    * Subtract gold from wallet
    */
   async subtractGold(userId: string, amount: number, reason?: string): Promise<Wallet> {
+    // Input validation
+    if (amount <= 0) {
+      throw new ValidationError('amount', 'Amount must be positive');
+    }
+
     return this.transaction(async (tx) => {
       // Check if user has enough gold
       const currentWallet = await tx.wallet.findUnique({
@@ -76,7 +98,11 @@ export class WalletService extends BaseService {
       });
 
       if (!currentWallet || currentWallet.gold < amount) {
-        throw new Error('Insufficient gold');
+        throw new InsufficientFundsError(
+          userId,
+          amount,
+          currentWallet?.gold ?? 0
+        );
       }
 
       const wallet = await tx.wallet.update({
@@ -121,6 +147,17 @@ export class WalletService extends BaseService {
     amount: number,
     reason: string
   ): Promise<{ from: Wallet; to: Wallet }> {
+    // Input validation
+    if (amount <= 0) {
+      throw new ValidationError('amount', 'Amount must be positive');
+    }
+    if (amount > 1_000_000) {
+      throw new ValidationError('amount', 'Transfer amount exceeds maximum (1M)');
+    }
+    if (fromUserId === toUserId) {
+      throw new ValidationError('toUserId', 'Cannot transfer to yourself');
+    }
+
     return this.transaction(async (tx) => {
       // Check sender has enough gold
       const fromWallet = await tx.wallet.findUnique({
@@ -128,7 +165,11 @@ export class WalletService extends BaseService {
       });
 
       if (!fromWallet || fromWallet.gold < amount) {
-        throw new Error('Insufficient gold');
+        throw new InsufficientFundsError(
+          fromUserId,
+          amount,
+          fromWallet?.gold ?? 0
+        );
       }
 
       // Deduct from sender

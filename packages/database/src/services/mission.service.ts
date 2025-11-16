@@ -153,12 +153,18 @@ export class MissionService extends BaseService {
         },
       });
 
-      // Award items if any
+      // Award items if any (batch fetch to avoid N+1 query)
       if (rewards.items && rewards.items.length > 0) {
+        // Batch fetch all item definitions
+        const itemKeys = rewards.items.map((i) => i.itemKey);
+        const itemDefs = await tx.itemDef.findMany({
+          where: { key: { in: itemKeys } },
+        });
+        const itemDefMap = new Map(itemDefs.map((i) => [i.key, i]));
+
+        // Upsert inventory for each item
         for (const item of rewards.items) {
-          const itemDef = await tx.itemDef.findUnique({
-            where: { key: item.itemKey },
-          });
+          const itemDef = itemDefMap.get(item.itemKey);
 
           if (itemDef) {
             await tx.inventory.upsert({

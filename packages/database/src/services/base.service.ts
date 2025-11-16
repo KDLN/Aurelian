@@ -20,18 +20,4 @@ export abstract class BaseService {
   ): Promise<T> {
     return this.db.$transaction(fn);
   }
-
-  /**
-   * Execute raw SQL query
-   */
-  async executeRaw(query: string, ...values: any[]) {
-    return this.db.$executeRawUnsafe(query, ...values);
-  }
-
-  /**
-   * Query raw SQL
-   */
-  async queryRaw<T = any>(query: string, ...values: any[]): Promise<T> {
-    return this.db.$queryRawUnsafe(query, ...values);
-  }
 }
