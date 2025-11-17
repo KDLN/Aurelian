@@ -14,8 +14,8 @@
 
   /* Base Colors */
   --ds-bg: #231913;           /* Primary background - deep brown */
-  --ds-bg-panel: #32241d;     /* Panel/card background - medium brown */
-  --ds-bg-input: #2e231d;     /* Input/nested card background */
+  --ds-bg-panel: #2e231d;     /* Panel/card background - medium brown (matches game-card) */
+  --ds-bg-input: #2e231d;     /* Input/nested card background (same as panel) */
   --ds-bg-elevated: #3a2e25;  /* Hover states, elevated surfaces */
 
   /* Border Colors */
