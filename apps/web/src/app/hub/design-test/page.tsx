@@ -365,9 +365,13 @@ export default function HubDesignTestPage() {
    ============================================================================ */
 
 function ColorSwatch({ name, var: cssVar }: { name: string; var: string }) {
-  const value = typeof window !== 'undefined'
-    ? getComputedStyle(document.documentElement).getPropertyValue(cssVar).trim()
-    : '';
+  const [value, setValue] = React.useState('');
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setValue(getComputedStyle(document.documentElement).getPropertyValue(cssVar).trim());
+    }
+  }, [cssVar]);
 
   return (
     <div className="ds-card ds-card--nested">
