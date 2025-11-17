@@ -299,101 +299,46 @@ export default function HubGameplayPage() {
   return (
     <GameLayout title="Trading Hub" sidebar={sidebar}>
       <div className="ds">
-        {/* Welcome Message - Compact */}
+        {/* Welcome + Summary (Horizontal) - Matches Original Hub */}
         <div className="ds-card ds-mb-md">
-          <h2 className="ds-heading-3 ds-mb-xs">Welcome back, {displayName}!</h2>
-          <p className="ds-text-sm ds-text-muted">Manage your empire, review activity, and plan your next moves.</p>
-        </div>
-
-        {/* Summary Stats - Full Width */}
-        <div className="ds-mb-md">
-          <HubSummaryStats stats={summaryStats} title="Today's Summary" />
-        </div>
-
-        {/* Two Column Layout - Activity & Warehouse */}
-        <div className="ds-grid-2 ds-gap-md ds-mb-md">
-          <ActivityFeed activities={activities.slice(0, 4)} title="Recent Activity" limit={4} />
-          <WarehouseSnapshot items={warehouseItems.slice(0, 4)} title="Top Items" limit={4} />
-        </div>
-
-        {/* Two Column Layout - Agents & Guild/Crafting */}
-        {(agentRoster.length > 0 || guildInfo || (craftingInfo?.activeJobs && craftingInfo.activeJobs.length > 0)) && (
-          <div className="ds-grid-2 ds-gap-md ds-mb-md">
-            {/* Agent Roster - Left Column */}
-            {agentRoster.length > 0 && (
-              <AgentRoster agents={agentRoster} title="Agent Roster" />
-            )}
-
-            {/* Right Column - Guild or Crafting */}
-            <div className="ds-stack ds-stack--md">
-              {/* Guild Info */}
-              {guildInfo && (
-                <div className="ds-card">
-                  <div className="ds-card__header">
-                    <h3 className="ds-card__title">Guild</h3>
-                    <Link href="/guild" className="ds-btn ds-btn--sm">View</Link>
-                  </div>
-                  <div className="ds-grid-3">
-                    <div className="ds-stack ds-stack--xs">
-                      <div className="ds-text-xs ds-text-muted">Name</div>
-                      <div className="ds-text-sm ds-text-bold">[{guildInfo.tag}] {guildInfo.name}</div>
-                    </div>
-                    <div className="ds-stack ds-stack--xs">
-                      <div className="ds-text-xs ds-text-muted">Members</div>
-                      <div className="ds-text-sm">{guildInfo.memberCount || 0}</div>
-                    </div>
-                    <div className="ds-stack ds-stack--xs">
-                      <div className="ds-text-xs ds-text-muted">Level</div>
-                      <div className="ds-text-sm">{guildInfo.level || 1}</div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Crafting Status - Compact */}
-              {craftingInfo?.activeJobs && craftingInfo.activeJobs.length > 0 && (
-                <div className="ds-card">
-                  <div className="ds-card__header">
-                    <h3 className="ds-card__title">Crafting ({craftingInfo.activeJobs.length})</h3>
-                    <Link href="/crafting" className="ds-btn ds-btn--sm">View All</Link>
-                  </div>
-                  <div className="ds-stack ds-stack--sm">
-                    {craftingInfo.activeJobs.slice(0, 2).map((job: any, index: number) => (
-                      <div key={index} className="ds-card--nested">
-                        <div className="ds-split ds-mb-xs">
-                          <div className="ds-text-sm ds-text-bold">{job.blueprint?.name || 'Crafting Item'}</div>
-                          <div className="ds-text-xs ds-text-muted">ETA: {job.eta || 'Unknown'}</div>
-                        </div>
-                        <div className="ds-progress">
-                          <div className="ds-progress__fill" style={{ width: `${job.progress || 0}%` }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+          <div className="ds-grid-2 ds-gap-lg">
+            <div>
+              <h2 className="ds-heading-2 ds-mb-sm">Welcome back, {displayName}!</h2>
+              <p className="ds-text-muted">
+                Manage your trading empire from the central hub. Check your progress,
+                review recent activity, and plan your next moves.
+              </p>
+            </div>
+            <div>
+              <HubSummaryStats stats={summaryStats} title="Today's Summary" />
             </div>
           </div>
-        )}
+        </div>
 
-        {/* Active Missions - Full Width, Compact */}
+        {/* Activity + Warehouse (Horizontal) */}
+        <div className="ds-grid-2 ds-gap-md ds-mb-md">
+          <ActivityFeed activities={activities.slice(0, 5)} title="Recent Activity" limit={5} />
+          <WarehouseSnapshot items={warehouseItems.slice(0, 5)} title="Top Warehouse Items" limit={5} />
+        </div>
+
+        {/* Active Missions - Full Width */}
         {missions.length > 0 && (
           <div className="ds-mb-md">
-            <ActiveMissionsGrid missions={missions.slice(0, 3)} title={`Active Missions (${activeMissions.length})`} />
+            <ActiveMissionsGrid missions={missions.slice(0, 6)} title={`Active Missions (${activeMissions.length})`} />
           </div>
         )}
 
-        {/* Bottom Row - Server Events & News */}
+        {/* Server Events + News (Horizontal) */}
         <div className="ds-grid-2 ds-gap-md">
           {/* Server Events */}
-          {serverMissions.length > 0 && (
+          {serverMissions.length > 0 ? (
             <div className="ds-card">
               <div className="ds-card__header">
                 <h3 className="ds-card__title">Server Events</h3>
                 <Link href="/missions" className="ds-btn ds-btn--sm">View All</Link>
               </div>
               <div className="ds-stack ds-stack--sm">
-                {serverMissions.slice(0, 2).map((mission, index) => (
+                {serverMissions.slice(0, 3).map((mission, index) => (
                   <div key={index} className="ds-card--nested">
                     <div className="ds-split ds-mb-xs">
                       <h4 className="ds-text-sm ds-text-bold ds-m-0">{mission.name}</h4>
@@ -401,19 +346,33 @@ export default function HubGameplayPage() {
                         {mission.status}
                       </span>
                     </div>
+                    {mission.description && (
+                      <p className="ds-text-xs ds-text-muted ds-mb-xs">{mission.description}</p>
+                    )}
                     {mission.progress !== undefined && (
-                      <div className="ds-progress">
-                        <div className="ds-progress__fill" style={{ width: `${mission.progress}%` }} />
+                      <div className="ds-progress-group">
+                        <div className="ds-progress-label">
+                          <span className="ds-text-xs">Progress</span>
+                          <span className="ds-text-xs ds-text-bold">{mission.current}/{mission.target}</span>
+                        </div>
+                        <div className="ds-progress">
+                          <div className="ds-progress__fill" style={{ width: `${mission.progress}%` }} />
+                        </div>
                       </div>
                     )}
                   </div>
                 ))}
               </div>
             </div>
+          ) : (
+            <div className="ds-card">
+              <h3 className="ds-card__title ds-mb-sm">Server Events</h3>
+              <p className="ds-text-sm ds-text-muted">No active server events</p>
+            </div>
           )}
 
-          {/* World News - Compact */}
-          <NewsFeed news={news.slice(0, 4)} title="World News" limit={4} />
+          {/* World News */}
+          <NewsFeed news={news.slice(0, 5)} title="World News" limit={5} />
         </div>
       </div>
     </GameLayout>
