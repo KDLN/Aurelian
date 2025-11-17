@@ -190,12 +190,12 @@ export default function HubGameplayPage() {
   ];
 
   // Transform activities
-  const activities: ActivityItem[] = recentActivity.map(activity => ({
-    icon: getActivityIcon(activity.type),
-    message: activity.message,
-    time: formatTimeAgo(activity.timestamp),
-    value: activity.reward ? `+${activity.reward}g` : undefined,
-    valueType: activity.reward ? 'gold' : undefined,
+  const activities: ActivityItem[] = (recentActivity || []).map(activity => ({
+    icon: getActivityIcon(activity?.type),
+    message: activity?.message || 'Unknown activity',
+    time: formatTimeAgo(activity?.timestamp),
+    value: activity?.reward ? `+${activity.reward}g` : undefined,
+    valueType: activity?.reward ? 'gold' : undefined,
   }));
 
   // Transform warehouse items
@@ -211,27 +211,27 @@ export default function HubGameplayPage() {
     }));
 
   // Transform agents
-  const agentRoster: Agent[] = agents.map(agent => ({
-    name: agent.name,
-    condition: agent._count?.missions > 0 ? 'on_mission' : 'ready',
-    role: agent.role || 'Agent',
-    focus: agent.focus || undefined,
+  const agentRoster: Agent[] = (agents || []).map(agent => ({
+    name: agent?.name || 'Unknown Agent',
+    condition: agent?._count?.missions > 0 ? 'on_mission' : 'ready',
+    role: agent?.role || 'Agent',
+    focus: agent?.focus || undefined,
   }));
 
   // Transform news
-  const news: NewsItem[] = gameNews.map(item => ({
-    title: item.title,
-    timestamp: formatTimeAgo(item.createdAt),
-    readUrl: item.link || '#',
+  const news: NewsItem[] = (gameNews || []).map(item => ({
+    title: item?.title || 'News Update',
+    timestamp: formatTimeAgo(item?.createdAt),
+    readUrl: item?.link || '#',
   }));
 
   // Transform missions
-  const missions: MissionData[] = activeMissions.slice(0, 6).map(mission => ({
-    name: mission.template?.name || 'Unknown Mission',
-    risk: (mission.template?.risk?.toLowerCase() || 'low') as 'low' | 'medium' | 'high',
-    agentName: mission.agent?.name,
-    eta: mission.eta || 'Unknown',
-    progress: calculateProgress(mission.startedAt, mission.eta),
+  const missions: MissionData[] = (activeMissions || []).slice(0, 6).map(mission => ({
+    name: mission?.template?.name || 'Unknown Mission',
+    risk: (mission?.template?.risk?.toLowerCase() || 'low') as 'low' | 'medium' | 'high',
+    agentName: mission?.agent?.name,
+    eta: mission?.eta || 'Unknown',
+    progress: calculateProgress(mission?.startedAt, mission?.eta),
   }));
 
   if (loading) {
@@ -294,7 +294,7 @@ export default function HubGameplayPage() {
               📦 Warehouse
             </Link>
             <Link href="/agents" className="ds-btn ds-btn--secondary">
-              👥 Agents ({availableAgents.length} free)
+              👥 Agents ({(availableAgents || []).length} free)
             </Link>
             {guildInfo ? (
               <Link href="/guild" className="ds-btn ds-btn--secondary">
@@ -459,19 +459,28 @@ function getActivityIcon(type: string): string {
   return icons[type] || '📝';
 }
 
-function formatTimeAgo(timestamp: Date | string): string {
-  const now = new Date();
-  const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
-  const diff = now.getTime() - date.getTime();
+function formatTimeAgo(timestamp: Date | string | undefined): string {
+  if (!timestamp) return 'Unknown';
 
-  const minutes = Math.floor(diff / 60000);
-  const hours = Math.floor(diff / 3600000);
-  const days = Math.floor(diff / 86400000);
+  try {
+    const now = new Date();
+    const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
 
-  if (days > 0) return `${days}d ago`;
-  if (hours > 0) return `${hours}h ago`;
-  if (minutes > 0) return `${minutes}m ago`;
-  return 'Just now';
+    if (isNaN(date.getTime())) return 'Unknown';
+
+    const diff = now.getTime() - date.getTime();
+
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (days > 0) return `${days}d ago`;
+    if (hours > 0) return `${hours}h ago`;
+    if (minutes > 0) return `${minutes}m ago`;
+    return 'Just now';
+  } catch {
+    return 'Unknown';
+  }
 }
 
 function getDemandLevel(itemName?: string): 'high' | 'medium' | 'low' {
