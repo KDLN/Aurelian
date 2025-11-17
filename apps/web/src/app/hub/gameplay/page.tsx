@@ -298,9 +298,9 @@ export default function HubGameplayPage() {
 
   return (
     <GameLayout title="Trading Hub" sidebar={sidebar}>
-      <div className="ds">
+      <div className="ds ds-stack ds-stack--md">
         {/* Welcome + Summary (Horizontal) - Matches Original Hub */}
-        <div className="ds-card ds-mb-md">
+        <div className="ds-card">
           <div className="ds-grid-2 ds-gap-lg">
             <div>
               <h2 className="ds-heading-2 ds-mb-sm">Welcome back, {displayName}!</h2>
@@ -316,64 +316,64 @@ export default function HubGameplayPage() {
         </div>
 
         {/* Activity + Warehouse (Horizontal) */}
-        <div className="ds-grid-2 ds-gap-md ds-mb-md">
+        <div className="ds-grid-2 ds-gap-md">
           <ActivityFeed activities={activities.slice(0, 5)} title="Recent Activity" limit={5} />
           <WarehouseSnapshot items={warehouseItems.slice(0, 5)} title="Top Warehouse Items" limit={5} />
         </div>
 
         {/* Active Missions - Full Width */}
         {missions.length > 0 && (
-          <div className="ds-mb-md">
-            <ActiveMissionsGrid missions={missions.slice(0, 6)} title={`Active Missions (${activeMissions.length})`} />
+          <ActiveMissionsGrid missions={missions.slice(0, 3)} title={`Active Missions (${activeMissions.length})`} />
+        )}
+
+        {/* Server Events - Full Width */}
+        {serverMissions.length > 0 && (
+          <div className="ds-card">
+            <div className="ds-card__header">
+              <h3 className="ds-card__title">🌍 Active Server Events</h3>
+              <Link href="/missions" className="ds-btn ds-btn--sm">View All</Link>
+            </div>
+            <div className="ds-stack ds-stack--md">
+              {serverMissions.slice(0, 2).map((mission, index) => (
+                <div key={index} className="ds-card--nested">
+                  <div className="ds-split ds-mb-xs">
+                    <h4 className="ds-heading-4 ds-text-good ds-m-0">{mission.name}</h4>
+                    <span className={`ds-pill ${mission.status === 'active' ? 'ds-pill--good' : 'ds-pill--neutral'}`}>
+                      {mission.status}
+                    </span>
+                  </div>
+                  {mission.description && (
+                    <p className="ds-text-sm ds-text-muted ds-mb-sm">{mission.description}</p>
+                  )}
+                  {mission.progress !== undefined && (
+                    <div>
+                      <div className="ds-split ds-mb-xs">
+                        <span className="ds-text-sm">Progress: <span className="ds-text-good">{mission.progress}%</span></span>
+                        {mission.hoursLeft && (
+                          <span className="ds-text-sm ds-text-muted">{mission.hoursLeft}h remaining</span>
+                        )}
+                      </div>
+                      <div className="ds-progress">
+                        <div className="ds-progress__fill" style={{ width: `${Math.min(100, mission.progress)}%` }} />
+                      </div>
+                      {mission.status === 'active' && (
+                        <Link
+                          href={`/missions?server=${mission.id}`}
+                          className="ds-btn ds-btn--primary ds-btn--sm ds-w-full ds-mt-sm"
+                        >
+                          🎯 Contribute Resources
+                        </Link>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
-        {/* Server Events + News (Horizontal) */}
-        <div className="ds-grid-2 ds-gap-md">
-          {/* Server Events */}
-          {serverMissions.length > 0 ? (
-            <div className="ds-card">
-              <div className="ds-card__header">
-                <h3 className="ds-card__title">Server Events</h3>
-                <Link href="/missions" className="ds-btn ds-btn--sm">View All</Link>
-              </div>
-              <div className="ds-stack ds-stack--sm">
-                {serverMissions.slice(0, 3).map((mission, index) => (
-                  <div key={index} className="ds-card--nested">
-                    <div className="ds-split ds-mb-xs">
-                      <h4 className="ds-text-sm ds-text-bold ds-m-0">{mission.name}</h4>
-                      <span className={`ds-pill ${mission.status === 'active' ? 'ds-pill--good' : 'ds-pill--neutral'}`}>
-                        {mission.status}
-                      </span>
-                    </div>
-                    {mission.description && (
-                      <p className="ds-text-xs ds-text-muted ds-mb-xs">{mission.description}</p>
-                    )}
-                    {mission.progress !== undefined && (
-                      <div className="ds-progress-group">
-                        <div className="ds-progress-label">
-                          <span className="ds-text-xs">Progress</span>
-                          <span className="ds-text-xs ds-text-bold">{mission.current}/{mission.target}</span>
-                        </div>
-                        <div className="ds-progress">
-                          <div className="ds-progress__fill" style={{ width: `${mission.progress}%` }} />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="ds-card">
-              <h3 className="ds-card__title ds-mb-sm">Server Events</h3>
-              <p className="ds-text-sm ds-text-muted">No active server events</p>
-            </div>
-          )}
-
-          {/* World News */}
-          <NewsFeed news={news.slice(0, 5)} title="World News" limit={5} />
-        </div>
+        {/* World News - Full Width with Scrollable Container */}
+        <NewsFeed news={news} title="📢 Game Updates & News" limit={6} />
       </div>
     </GameLayout>
   );
