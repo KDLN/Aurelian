@@ -230,7 +230,7 @@ export default function HubGameplayPage() {
     >
       <div className="ds ds-stack ds-stack--md">
         <div className="ds-card">
-          <div className="ds-grid-2">
+          <div className="ds-grid ds-grid-2">
             <div>
               <h2 className="ds-heading-2">Welcome back, {profile?.display || user?.email?.split('@')[0] || 'Trader'}!</h2>
               <p className="ds-text-muted">
@@ -240,7 +240,7 @@ export default function HubGameplayPage() {
             </div>
             <div className="ds-card--nested">
               <h4 className="ds-heading-4">Today's Summary</h4>
-              <div className="ds-grid-2 ds-text-sm">
+              <div className="ds-grid ds-grid-2 ds-text-sm">
                 <div className="ds-split">
                   <span>Gold Earned:</span>
                   <span className="ds-text-good">+{dailyStats?.todaysStats?.goldEarned || 0}g</span>
@@ -272,7 +272,7 @@ export default function HubGameplayPage() {
           </div>
         </div>
 
-        <div className="ds-grid-2">
+        <div className="ds-grid ds-grid-2">
           <div className="ds-card">
             <h3 className="ds-heading-3">Recent Activity</h3>
             {recentActivity.length > 0 ? (
@@ -322,7 +322,7 @@ export default function HubGameplayPage() {
         {activeMissions.length > 0 && (
           <div className="ds-card">
             <h3 className="ds-heading-3">Active Missions ({activeMissions.length})</h3>
-            <div className="ds-grid-3">
+            <div className="ds-grid ds-grid-3">
               {activeMissions.slice(0, 3).map(mission => (
                 <div key={mission.id} className="ds-card ds-card--sm ds-p-md">
                   <div className="ds-split ds-mb-xs">
