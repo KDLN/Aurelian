@@ -299,97 +299,111 @@ export default function HubGameplayPage() {
   return (
     <GameLayout title="Trading Hub" sidebar={sidebar}>
       <div className="ds">
-        {/* Hero Section - Welcome + Summary */}
-        <div className="ds-card ds-mb-lg">
-          <div className="ds-grid-2">
-            <div>
-              <h2 className="ds-heading-2 ds-mb-sm">Welcome back, {displayName}!</h2>
-              <p className="ds-text-muted">
-                Manage your trading empire from the central hub. Check your progress,
-                review recent activity, and plan your next moves.
-              </p>
-            </div>
-            <div>
-              <HubSummaryStats stats={summaryStats} title="Today's Summary" />
+        {/* Welcome Message - Compact */}
+        <div className="ds-card ds-mb-md">
+          <h2 className="ds-heading-3 ds-mb-xs">Welcome back, {displayName}!</h2>
+          <p className="ds-text-sm ds-text-muted">Manage your empire, review activity, and plan your next moves.</p>
+        </div>
+
+        {/* Summary Stats - Full Width */}
+        <div className="ds-mb-md">
+          <HubSummaryStats stats={summaryStats} title="Today's Summary" />
+        </div>
+
+        {/* Two Column Layout - Activity & Warehouse */}
+        <div className="ds-grid-2 ds-gap-md ds-mb-md">
+          <ActivityFeed activities={activities.slice(0, 4)} title="Recent Activity" limit={4} />
+          <WarehouseSnapshot items={warehouseItems.slice(0, 4)} title="Top Items" limit={4} />
+        </div>
+
+        {/* Two Column Layout - Agents & Guild/Crafting */}
+        {(agentRoster.length > 0 || guildInfo || (craftingInfo?.activeJobs && craftingInfo.activeJobs.length > 0)) && (
+          <div className="ds-grid-2 ds-gap-md ds-mb-md">
+            {/* Agent Roster - Left Column */}
+            {agentRoster.length > 0 && (
+              <AgentRoster agents={agentRoster} title="Agent Roster" />
+            )}
+
+            {/* Right Column - Guild or Crafting */}
+            <div className="ds-stack ds-stack--md">
+              {/* Guild Info */}
+              {guildInfo && (
+                <div className="ds-card">
+                  <div className="ds-card__header">
+                    <h3 className="ds-card__title">Guild</h3>
+                    <Link href="/guild" className="ds-btn ds-btn--sm">View</Link>
+                  </div>
+                  <div className="ds-grid-3">
+                    <div className="ds-stack ds-stack--xs">
+                      <div className="ds-text-xs ds-text-muted">Name</div>
+                      <div className="ds-text-sm ds-text-bold">[{guildInfo.tag}] {guildInfo.name}</div>
+                    </div>
+                    <div className="ds-stack ds-stack--xs">
+                      <div className="ds-text-xs ds-text-muted">Members</div>
+                      <div className="ds-text-sm">{guildInfo.memberCount || 0}</div>
+                    </div>
+                    <div className="ds-stack ds-stack--xs">
+                      <div className="ds-text-xs ds-text-muted">Level</div>
+                      <div className="ds-text-sm">{guildInfo.level || 1}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Crafting Status - Compact */}
+              {craftingInfo?.activeJobs && craftingInfo.activeJobs.length > 0 && (
+                <div className="ds-card">
+                  <div className="ds-card__header">
+                    <h3 className="ds-card__title">Crafting ({craftingInfo.activeJobs.length})</h3>
+                    <Link href="/crafting" className="ds-btn ds-btn--sm">View All</Link>
+                  </div>
+                  <div className="ds-stack ds-stack--sm">
+                    {craftingInfo.activeJobs.slice(0, 2).map((job: any, index: number) => (
+                      <div key={index} className="ds-card--nested">
+                        <div className="ds-split ds-mb-xs">
+                          <div className="ds-text-sm ds-text-bold">{job.blueprint?.name || 'Crafting Item'}</div>
+                          <div className="ds-text-xs ds-text-muted">ETA: {job.eta || 'Unknown'}</div>
+                        </div>
+                        <div className="ds-progress">
+                          <div className="ds-progress__fill" style={{ width: `${job.progress || 0}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Main Content - 2 Column Grid */}
-        <div className="ds-grid-2 ds-mb-xl">
-          <ActivityFeed activities={activities} title="Recent Activity" limit={6} />
-          <WarehouseSnapshot items={warehouseItems} title="Top Warehouse Items" limit={6} />
-        </div>
+        {/* Active Missions - Full Width, Compact */}
+        {missions.length > 0 && (
+          <div className="ds-mb-md">
+            <ActiveMissionsGrid missions={missions.slice(0, 3)} title={`Active Missions (${activeMissions.length})`} />
+          </div>
+        )}
 
-        {/* Full Width Sections */}
-        <div className="ds-stack ds-stack--xl">
-          {/* Agent Roster */}
-          {agentRoster.length > 0 && (
-            <AgentRoster agents={agentRoster} title="Agent Roster" />
-          )}
-
-          {/* Guild Info */}
-          {guildInfo && (
-            <div className="ds-card">
-              <div className="ds-card__header">
-                <h3 className="ds-card__title">Guild</h3>
-                <Link href="/guild" className="ds-btn ds-btn--sm">
-                  View
-                </Link>
-              </div>
-              <div className="ds-grid-3">
-                <div className="ds-stack ds-stack--xs">
-                  <div className="ds-text-xs ds-text-muted">Name</div>
-                  <div className="ds-text-sm ds-text-bold">[{guildInfo.tag}] {guildInfo.name}</div>
-                </div>
-                <div className="ds-stack ds-stack--xs">
-                  <div className="ds-text-xs ds-text-muted">Members</div>
-                  <div className="ds-text-sm">{guildInfo.memberCount || 0}</div>
-                </div>
-                <div className="ds-stack ds-stack--xs">
-                  <div className="ds-text-xs ds-text-muted">Level</div>
-                  <div className="ds-text-sm">{guildInfo.level || 1}</div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Active Missions */}
-          {missions.length > 0 && (
-            <ActiveMissionsGrid missions={missions} title={`Active Missions (${activeMissions.length})`} />
-          )}
-
+        {/* Bottom Row - Server Events & News */}
+        <div className="ds-grid-2 ds-gap-md">
           {/* Server Events */}
           {serverMissions.length > 0 && (
             <div className="ds-card">
               <div className="ds-card__header">
                 <h3 className="ds-card__title">Server Events</h3>
-                <Link href="/missions" className="ds-btn ds-btn--sm">
-                  View All
-                </Link>
+                <Link href="/missions" className="ds-btn ds-btn--sm">View All</Link>
               </div>
-
-              <div className="ds-stack">
-                {serverMissions.slice(0, 3).map((mission, index) => (
+              <div className="ds-stack ds-stack--sm">
+                {serverMissions.slice(0, 2).map((mission, index) => (
                   <div key={index} className="ds-card--nested">
                     <div className="ds-split ds-mb-xs">
-                      <h4 className="ds-heading-4 ds-m-0">{mission.name}</h4>
+                      <h4 className="ds-text-sm ds-text-bold ds-m-0">{mission.name}</h4>
                       <span className={`ds-pill ${mission.status === 'active' ? 'ds-pill--good' : 'ds-pill--neutral'}`}>
                         {mission.status}
                       </span>
                     </div>
-                    {mission.description && (
-                      <p className="ds-text-sm ds-text-muted ds-mb-sm">{mission.description}</p>
-                    )}
                     {mission.progress !== undefined && (
-                      <div className="ds-progress-group">
-                        <div className="ds-progress-label">
-                          <span>Progress</span>
-                          <span className="ds-text-bold">{mission.current}/{mission.target}</span>
-                        </div>
-                        <div className="ds-progress">
-                          <div className="ds-progress__fill" style={{ width: `${mission.progress}%` }} />
-                        </div>
+                      <div className="ds-progress">
+                        <div className="ds-progress__fill" style={{ width: `${mission.progress}%` }} />
                       </div>
                     )}
                   </div>
@@ -398,38 +412,8 @@ export default function HubGameplayPage() {
             </div>
           )}
 
-          {/* World News */}
-          <NewsFeed news={news} title="World News" limit={6} />
-
-          {/* Crafting Status */}
-          {craftingInfo?.activeJobs && craftingInfo.activeJobs.length > 0 && (
-            <div className="ds-card">
-              <div className="ds-card__header">
-                <h3 className="ds-card__title">Active Crafting ({craftingInfo.activeJobs.length})</h3>
-                <Link href="/crafting" className="ds-btn ds-btn--sm">
-                  View All
-                </Link>
-              </div>
-
-              <div className="ds-grid-3">
-                {craftingInfo.activeJobs.slice(0, 3).map((job: any, index: number) => (
-                  <div key={index} className="ds-card--nested">
-                    <div className="ds-stack ds-stack--xs">
-                      <div className="ds-text-sm ds-text-bold">{job.blueprint?.name || 'Crafting Item'}</div>
-                      <div className="ds-text-xs ds-text-muted">
-                        ETA: {job.eta || 'Unknown'}
-                      </div>
-                      <div className="ds-progress-group ds-mt-xs">
-                        <div className="ds-progress">
-                          <div className="ds-progress__fill" style={{ width: `${job.progress || 0}%` }} />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* World News - Compact */}
+          <NewsFeed news={news.slice(0, 4)} title="World News" limit={4} />
         </div>
       </div>
     </GameLayout>
