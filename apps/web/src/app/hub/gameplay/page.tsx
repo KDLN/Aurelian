@@ -162,31 +162,37 @@ export default function HubGameplayPage() {
   const activeMissions = missionData?.activeMissions || [];
   const availableAgents = agents.filter(agent => agent._count?.missions === 0);
 
-  // Transform daily stats for HubSummaryStats component
+  // Transform daily stats for HubSummaryStats component (matches original hub 2x3 grid)
   const summaryStats = [
     {
       label: 'Gold Earned',
       value: `+${dailyStats?.todaysStats?.goldEarned?.toLocaleString() || 0}g`,
       tone: 'good' as const,
-      icon: '💰',
     },
     {
       label: 'Missions Done',
       value: dailyStats?.todaysStats?.missionsCompleted || 0,
       tone: 'good' as const,
-      icon: '🎯',
     },
     {
       label: 'Items Traded',
       value: dailyStats?.todaysStats?.itemsTraded || 0,
-      tone: 'neutral' as const,
-      icon: '📦',
+      tone: 'good' as const,
     },
     {
-      label: 'Gold Spent',
-      value: `${dailyStats?.todaysStats?.goldSpent?.toLocaleString() || 0}g`,
-      tone: 'warn' as const,
-      icon: '💸',
+      label: 'Items Crafted',
+      value: dailyStats?.todaysStats?.itemsCrafted || 0,
+      tone: 'good' as const,
+    },
+    {
+      label: 'Net Gold',
+      value: `${dailyStats?.performance?.netGoldWeek >= 0 ? '+' : ''}${dailyStats?.performance?.netGoldWeek?.toLocaleString() || 0}g`,
+      tone: (dailyStats?.performance?.netGoldWeek >= 0 ? 'good' : 'bad') as const,
+    },
+    {
+      label: 'Success Rate',
+      value: `${dailyStats?.performance?.missionSuccessRate || 0}%`,
+      tone: 'good' as const,
     },
   ];
 

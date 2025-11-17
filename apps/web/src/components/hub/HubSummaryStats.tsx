@@ -21,23 +21,19 @@ interface HubSummaryStatsProps {
 
 export function HubSummaryStats({ stats, title = "Today's Summary" }: HubSummaryStatsProps) {
   return (
-    <div className="ds-card">
+    <div className="ds-card--nested">
       {title && (
-        <h3 className="ds-heading-4 ds-mb-md">{title}</h3>
+        <h4 className="ds-heading-4 ds-mb-sm">{title}</h4>
       )}
 
-      <div className="ds-grid-4">
+      <div className="ds-grid-2 ds-gap-sm ds-text-sm">
         {stats.map((stat, index) => (
-          <div key={index} className="ds-card--nested">
-            <div className="ds-stack ds-stack--xs">
-              <div className="ds-text-xs ds-text-muted ds-text-uppercase">
-                {stat.label}
-              </div>
-              <div className={`ds-text-lg ds-text-bold ${getToneClass(stat.tone)}`}>
-                {stat.icon && <span className="ds-mr-xs">{stat.icon}</span>}
-                {stat.value}
-              </div>
-            </div>
+          <div key={index} className="ds-split">
+            <span className="ds-text-muted">{stat.label}:</span>
+            <span className={`${getToneClass(stat.tone)}`}>
+              {stat.icon && <span className="ds-mr-xs">{stat.icon}</span>}
+              {stat.value}
+            </span>
           </div>
         ))}
       </div>
