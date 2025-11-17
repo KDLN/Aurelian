@@ -1,0 +1,783 @@
+/**
+ * Aurelian Design System - Utility Classes
+ *
+ * Single-purpose utility classes for rapid layout development.
+ * Mobile-first responsive utilities with breakpoint modifiers.
+ *
+ * Breakpoint suffix pattern:
+ * - Default (no suffix): applies to all screens
+ * - @sm: 640px and up
+ * - @md: 768px and up
+ * - @lg: 1024px and up
+ * - @xl: 1440px and up
+ */
+
+/* ========================================================================
+   LAYOUT - Display & Positioning
+   ======================================================================== */
+
+.ds-block {
+  display: block;
+}
+
+.ds-inline-block {
+  display: inline-block;
+}
+
+.ds-inline {
+  display: inline;
+}
+
+.ds-flex {
+  display: flex;
+}
+
+.ds-inline-flex {
+  display: inline-flex;
+}
+
+.ds-grid {
+  display: grid;
+}
+
+.ds-hidden {
+  display: none;
+}
+
+/* Responsive display */
+@media (max-width: 640px) {
+  .ds-hide-mobile {
+    display: none;
+  }
+}
+
+@media (min-width: 640px) {
+  .ds-show-mobile {
+    display: none;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .ds-show-tablet {
+    display: block;
+  }
+  .ds-hide-tablet {
+    display: none;
+  }
+}
+
+@media (min-width: 1024px) {
+  .ds-show-desktop {
+    display: block;
+  }
+  .ds-hide-desktop {
+    display: none;
+  }
+}
+
+/* ========================================================================
+   FLEXBOX UTILITIES
+   ======================================================================== */
+
+.ds-flex-row {
+  flex-direction: row;
+}
+
+.ds-flex-col {
+  flex-direction: column;
+}
+
+.ds-flex-wrap {
+  flex-wrap: wrap;
+}
+
+.ds-flex-nowrap {
+  flex-wrap: nowrap;
+}
+
+/* Justify content */
+.ds-justify-start {
+  justify-content: flex-start;
+}
+
+.ds-justify-center {
+  justify-content: center;
+}
+
+.ds-justify-end {
+  justify-content: flex-end;
+}
+
+.ds-justify-between {
+  justify-content: space-between;
+}
+
+.ds-justify-around {
+  justify-content: space-around;
+}
+
+/* Align items */
+.ds-items-start {
+  align-items: flex-start;
+}
+
+.ds-items-center {
+  align-items: center;
+}
+
+.ds-items-end {
+  align-items: flex-end;
+}
+
+.ds-items-stretch {
+  align-items: stretch;
+}
+
+/* Flex grow/shrink */
+.ds-flex-1 {
+  flex: 1;
+}
+
+.ds-flex-auto {
+  flex: auto;
+}
+
+.ds-flex-none {
+  flex: none;
+}
+
+/* ========================================================================
+   GRID UTILITIES
+   ======================================================================== */
+
+/* Grid columns - responsive auto-fit */
+.ds-grid-auto {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--ds-gap-lg);
+}
+
+.ds-grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ds-gap-lg);
+}
+
+.ds-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--ds-gap-lg);
+}
+
+.ds-grid-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--ds-gap-lg);
+}
+
+/* Responsive grid - collapse to single column on mobile */
+@media (max-width: 640px) {
+  .ds-grid-2,
+  .ds-grid-3,
+  .ds-grid-4 {
+    grid-template-columns: 1fr;
+    gap: var(--ds-gap-md);
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  .ds-grid-3,
+  .ds-grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Gap utilities */
+.ds-gap-0 {
+  gap: 0;
+}
+
+.ds-gap-xs {
+  gap: var(--ds-gap-xs);
+}
+
+.ds-gap-sm {
+  gap: var(--ds-gap-sm);
+}
+
+.ds-gap-md {
+  gap: var(--ds-gap-md);
+}
+
+.ds-gap-lg {
+  gap: var(--ds-gap-lg);
+}
+
+.ds-gap-xl {
+  gap: var(--ds-gap-xl);
+}
+
+/* ========================================================================
+   SPACING - Margin & Padding
+   ======================================================================== */
+
+/* Padding - all sides */
+.ds-p-0 {
+  padding: 0;
+}
+
+.ds-p-xs {
+  padding: var(--ds-space-xs);
+}
+
+.ds-p-sm {
+  padding: var(--ds-space-sm);
+}
+
+.ds-p-md {
+  padding: var(--ds-space-md);
+}
+
+.ds-p-lg {
+  padding: var(--ds-space-lg);
+}
+
+.ds-p-xl {
+  padding: var(--ds-space-xl);
+}
+
+.ds-p-2xl {
+  padding: var(--ds-space-2xl);
+}
+
+/* Padding - horizontal */
+.ds-px-xs {
+  padding-left: var(--ds-space-xs);
+  padding-right: var(--ds-space-xs);
+}
+
+.ds-px-sm {
+  padding-left: var(--ds-space-sm);
+  padding-right: var(--ds-space-sm);
+}
+
+.ds-px-md {
+  padding-left: var(--ds-space-md);
+  padding-right: var(--ds-space-md);
+}
+
+.ds-px-lg {
+  padding-left: var(--ds-space-lg);
+  padding-right: var(--ds-space-lg);
+}
+
+.ds-px-xl {
+  padding-left: var(--ds-space-xl);
+  padding-right: var(--ds-space-xl);
+}
+
+/* Padding - vertical */
+.ds-py-xs {
+  padding-top: var(--ds-space-xs);
+  padding-bottom: var(--ds-space-xs);
+}
+
+.ds-py-sm {
+  padding-top: var(--ds-space-sm);
+  padding-bottom: var(--ds-space-sm);
+}
+
+.ds-py-md {
+  padding-top: var(--ds-space-md);
+  padding-bottom: var(--ds-space-md);
+}
+
+.ds-py-lg {
+  padding-top: var(--ds-space-lg);
+  padding-bottom: var(--ds-space-lg);
+}
+
+.ds-py-xl {
+  padding-top: var(--ds-space-xl);
+  padding-bottom: var(--ds-space-xl);
+}
+
+/* Padding - top */
+.ds-pt-xs {
+  padding-top: var(--ds-space-xs);
+}
+
+.ds-pt-sm {
+  padding-top: var(--ds-space-sm);
+}
+
+.ds-pt-md {
+  padding-top: var(--ds-space-md);
+}
+
+.ds-pt-lg {
+  padding-top: var(--ds-space-lg);
+}
+
+.ds-pt-xl {
+  padding-top: var(--ds-space-xl);
+}
+
+/* Padding - bottom */
+.ds-pb-xs {
+  padding-bottom: var(--ds-space-xs);
+}
+
+.ds-pb-sm {
+  padding-bottom: var(--ds-space-sm);
+}
+
+.ds-pb-md {
+  padding-bottom: var(--ds-space-md);
+}
+
+.ds-pb-lg {
+  padding-bottom: var(--ds-space-lg);
+}
+
+.ds-pb-xl {
+  padding-bottom: var(--ds-space-xl);
+}
+
+/* Margin - all sides */
+.ds-m-0 {
+  margin: 0;
+}
+
+.ds-m-xs {
+  margin: var(--ds-space-xs);
+}
+
+.ds-m-sm {
+  margin: var(--ds-space-sm);
+}
+
+.ds-m-md {
+  margin: var(--ds-space-md);
+}
+
+.ds-m-lg {
+  margin: var(--ds-space-lg);
+}
+
+.ds-m-xl {
+  margin: var(--ds-space-xl);
+}
+
+/* Margin - horizontal */
+.ds-mx-auto {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.ds-mx-xs {
+  margin-left: var(--ds-space-xs);
+  margin-right: var(--ds-space-xs);
+}
+
+.ds-mx-sm {
+  margin-left: var(--ds-space-sm);
+  margin-right: var(--ds-space-sm);
+}
+
+.ds-mx-md {
+  margin-left: var(--ds-space-md);
+  margin-right: var(--ds-space-md);
+}
+
+.ds-mx-lg {
+  margin-left: var(--ds-space-lg);
+  margin-right: var(--ds-space-lg);
+}
+
+/* Margin - vertical */
+.ds-my-xs {
+  margin-top: var(--ds-space-xs);
+  margin-bottom: var(--ds-space-xs);
+}
+
+.ds-my-sm {
+  margin-top: var(--ds-space-sm);
+  margin-bottom: var(--ds-space-sm);
+}
+
+.ds-my-md {
+  margin-top: var(--ds-space-md);
+  margin-bottom: var(--ds-space-md);
+}
+
+.ds-my-lg {
+  margin-top: var(--ds-space-lg);
+  margin-bottom: var(--ds-space-lg);
+}
+
+/* Margin - top */
+.ds-mt-xs {
+  margin-top: var(--ds-space-xs);
+}
+
+.ds-mt-sm {
+  margin-top: var(--ds-space-sm);
+}
+
+.ds-mt-md {
+  margin-top: var(--ds-space-md);
+}
+
+.ds-mt-lg {
+  margin-top: var(--ds-space-lg);
+}
+
+.ds-mt-xl {
+  margin-top: var(--ds-space-xl);
+}
+
+/* Margin - bottom */
+.ds-mb-xs {
+  margin-bottom: var(--ds-space-xs);
+}
+
+.ds-mb-sm {
+  margin-bottom: var(--ds-space-sm);
+}
+
+.ds-mb-md {
+  margin-bottom: var(--ds-space-md);
+}
+
+.ds-mb-lg {
+  margin-bottom: var(--ds-space-lg);
+}
+
+.ds-mb-xl {
+  margin-bottom: var(--ds-space-xl);
+}
+
+/* ========================================================================
+   WIDTH & HEIGHT
+   ======================================================================== */
+
+.ds-w-full {
+  width: 100%;
+}
+
+.ds-w-auto {
+  width: auto;
+}
+
+.ds-h-full {
+  height: 100%;
+}
+
+.ds-h-auto {
+  height: auto;
+}
+
+.ds-h-screen {
+  height: 100vh;
+}
+
+/* ========================================================================
+   CONTAINERS
+   ======================================================================== */
+
+.ds-container {
+  width: 100%;
+  max-width: var(--ds-container-xl);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--ds-space-lg);
+  padding-right: var(--ds-space-lg);
+}
+
+.ds-container--sm {
+  max-width: var(--ds-container-sm);
+}
+
+.ds-container--md {
+  max-width: var(--ds-container-md);
+}
+
+.ds-container--lg {
+  max-width: var(--ds-container-lg);
+}
+
+.ds-container--xl {
+  max-width: var(--ds-container-xl);
+}
+
+/* Mobile container padding */
+@media (max-width: 640px) {
+  .ds-container {
+    padding-left: var(--ds-space-md);
+    padding-right: var(--ds-space-md);
+  }
+}
+
+/* ========================================================================
+   LAYOUT PATTERNS - Common compositions
+   ======================================================================== */
+
+/* Stack - vertical spacing between children */
+.ds-stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.ds-stack > * + * {
+  margin-top: var(--ds-space-md);
+}
+
+.ds-stack--xs > * + * {
+  margin-top: var(--ds-space-xs);
+}
+
+.ds-stack--sm > * + * {
+  margin-top: var(--ds-space-sm);
+}
+
+.ds-stack--lg > * + * {
+  margin-top: var(--ds-space-lg);
+}
+
+.ds-stack--xl > * + * {
+  margin-top: var(--ds-space-xl);
+}
+
+/* Cluster - horizontal grouping with wrapping */
+.ds-cluster {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ds-space-md);
+  align-items: center;
+}
+
+.ds-cluster--xs {
+  gap: var(--ds-space-xs);
+}
+
+.ds-cluster--sm {
+  gap: var(--ds-space-sm);
+}
+
+.ds-cluster--lg {
+  gap: var(--ds-space-lg);
+}
+
+/* Split - push items to edges */
+.ds-split {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--ds-space-md);
+}
+
+/* Center - center content vertically and horizontally */
+.ds-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Sidebar - sidebar + main content layout */
+.ds-sidebar {
+  display: grid;
+  gap: var(--ds-gap-lg);
+  grid-template-columns: 340px 1fr;
+}
+
+@media (max-width: 768px) {
+  .ds-sidebar {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ========================================================================
+   BORDERS
+   ======================================================================== */
+
+.ds-border {
+  border: var(--ds-border-width-thin) solid var(--ds-border-input);
+}
+
+.ds-border-thick {
+  border: var(--ds-border-width) solid var(--ds-border);
+}
+
+.ds-border-t {
+  border-top: var(--ds-border-width-thin) solid var(--ds-border-input);
+}
+
+.ds-border-b {
+  border-bottom: var(--ds-border-width-thin) solid var(--ds-border-input);
+}
+
+.ds-border-l {
+  border-left: var(--ds-border-width-thin) solid var(--ds-border-input);
+}
+
+.ds-border-r {
+  border-right: var(--ds-border-width-thin) solid var(--ds-border-input);
+}
+
+/* Border radius */
+.ds-rounded-none {
+  border-radius: 0;
+}
+
+.ds-rounded-sm {
+  border-radius: var(--ds-radius-sm);
+}
+
+.ds-rounded-md {
+  border-radius: var(--ds-radius-md);
+}
+
+.ds-rounded-lg {
+  border-radius: var(--ds-radius-lg);
+}
+
+.ds-rounded-full {
+  border-radius: var(--ds-radius-full);
+}
+
+/* ========================================================================
+   OVERFLOW
+   ======================================================================== */
+
+.ds-overflow-auto {
+  overflow: auto;
+}
+
+.ds-overflow-hidden {
+  overflow: hidden;
+}
+
+.ds-overflow-scroll {
+  overflow: scroll;
+}
+
+.ds-overflow-x-auto {
+  overflow-x: auto;
+}
+
+.ds-overflow-y-auto {
+  overflow-y: auto;
+}
+
+/* ========================================================================
+   TEXT ALIGNMENT
+   ======================================================================== */
+
+.ds-text-left {
+  text-align: left;
+}
+
+.ds-text-center {
+  text-align: center;
+}
+
+.ds-text-right {
+  text-align: right;
+}
+
+/* ========================================================================
+   WHITESPACE
+   ======================================================================== */
+
+.ds-whitespace-normal {
+  white-space: normal;
+}
+
+.ds-whitespace-nowrap {
+  white-space: nowrap;
+}
+
+.ds-whitespace-pre {
+  white-space: pre;
+}
+
+.ds-whitespace-pre-wrap {
+  white-space: pre-wrap;
+}
+
+/* ========================================================================
+   CURSOR
+   ======================================================================== */
+
+.ds-cursor-pointer {
+  cursor: pointer;
+}
+
+.ds-cursor-default {
+  cursor: default;
+}
+
+.ds-cursor-not-allowed {
+  cursor: not-allowed;
+}
+
+/* ========================================================================
+   USER SELECT
+   ======================================================================== */
+
+.ds-select-none {
+  user-select: none;
+}
+
+.ds-select-text {
+  user-select: text;
+}
+
+.ds-select-all {
+  user-select: all;
+}
+
+/* ========================================================================
+   VISIBILITY
+   ======================================================================== */
+
+.ds-visible {
+  visibility: visible;
+}
+
+.ds-invisible {
+  visibility: hidden;
+}
+
+/* ========================================================================
+   OPACITY
+   ======================================================================== */
+
+.ds-opacity-0 {
+  opacity: 0;
+}
+
+.ds-opacity-50 {
+  opacity: 0.5;
+}
+
+.ds-opacity-75 {
+  opacity: 0.75;
+}
+
+.ds-opacity-100 {
+  opacity: 1;
+}
+
+/* ========================================================================
+   ACCESSIBILITY - Screen reader only
+   ======================================================================== */
+
+.ds-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
