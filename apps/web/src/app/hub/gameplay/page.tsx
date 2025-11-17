@@ -12,6 +12,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { useUserDataQuery } from '@/hooks/useUserDataQuery';
 import { useAgents } from '@/hooks/useAgents';
 import { useMissions } from '@/hooks/useMissionsQuery';
+import GameLayout from '@/components/GameLayout';
 import Link from 'next/link';
 import {
   HubSummaryStats,
@@ -234,132 +235,125 @@ export default function HubGameplayPage() {
     progress: calculateProgress(mission?.startedAt, mission?.eta),
   }));
 
+  // Sidebar content matching original hub
+  const sidebar = (
+    <div className="ds">
+      <h3 className="ds-heading-4 ds-mb-md">Account Status</h3>
+      <div className="ds-stack ds-stack--sm">
+        <div className="ds-split">
+          <span className="ds-text-sm ds-text-muted">Gold:</span>
+          <span className="ds-text-sm ds-text-gold ds-text-bold">{wallet?.gold?.toLocaleString() || 0}g</span>
+        </div>
+        <div className="ds-split">
+          <span className="ds-text-sm ds-text-muted">Agents:</span>
+          <span className="ds-text-sm ds-text-good ds-text-bold">{agents.length}/4</span>
+        </div>
+        <div className="ds-split">
+          <span className="ds-text-sm ds-text-muted">Active Missions:</span>
+          <span className="ds-text-sm ds-text-warn ds-text-bold">{activeMissions.length}</span>
+        </div>
+        <div className="ds-split">
+          <span className="ds-text-sm ds-text-muted">Crafting Jobs:</span>
+          <span className="ds-text-sm ds-text-good ds-text-bold">{craftingInfo?.activeJobs?.length || 0}</span>
+        </div>
+        {guildInfo && (
+          <div className="ds-split">
+            <span className="ds-text-sm ds-text-muted">Guild:</span>
+            <span className="ds-text-sm ds-text-good ds-text-bold">[{guildInfo.tag}] {guildInfo.name}</span>
+          </div>
+        )}
+      </div>
+
+      <div className="ds-stack ds-stack--sm ds-mt-lg">
+        <Link href="/profile" className="ds-btn ds-btn--secondary ds-w-full">
+          👤 Profile
+        </Link>
+        {guildInfo ? (
+          <Link href="/guild" className="ds-btn ds-btn--secondary ds-w-full">
+            🏰 {guildInfo.tag}
+          </Link>
+        ) : (
+          <Link href="/guild" className="ds-btn ds-btn--secondary ds-w-full">
+            🏰 Join Guild
+          </Link>
+        )}
+        <Link href="/crafting" className="ds-btn ds-btn--secondary ds-w-full">
+          ⚒️ Crafting {craftingInfo?.activeJobs?.length > 0 ? `(${craftingInfo.activeJobs.length})` : ''}
+        </Link>
+      </div>
+    </div>
+  );
+
   if (loading) {
     return (
-      <div className="ds">
-        <div className="ds-container ds-py-xl">
+      <GameLayout title="Trading Hub" sidebar={sidebar}>
+        <div className="ds">
           <div className="ds-card ds-text-center ds-py-xl">
             <div className="ds-text-lg ds-text-muted">Loading hub data...</div>
           </div>
         </div>
-      </div>
+      </GameLayout>
     );
   }
 
   return (
-    <div className="ds">
-      {/* Header Bar */}
-      <header className="ds-bg-panel" style={{ borderBottom: '2px solid var(--ds-border)' }}>
-        <div className="ds-container ds-py-md">
-          <div className="ds-split">
+    <GameLayout title="Trading Hub" sidebar={sidebar}>
+      <div className="ds">
+        {/* Hero Section - Welcome + Summary */}
+        <div className="ds-card ds-mb-lg">
+          <div className="ds-grid-2">
             <div>
-              <h1 className="ds-heading-2 ds-m-0">Trading Hub</h1>
-              <p className="ds-text-sm ds-text-muted ds-m-0">Welcome back, {displayName}</p>
-            </div>
-
-            {/* Quick Stats */}
-            <div className="ds-cluster ds-cluster--lg ds-hide-mobile">
-              <div className="ds-text-sm ds-text-center">
-                <div className="ds-text-xs ds-text-muted ds-text-uppercase">Gold</div>
-                <div className="ds-text-gold ds-text-bold">{wallet?.gold?.toLocaleString() || 0}g</div>
-              </div>
-              <div className="ds-text-sm ds-text-center">
-                <div className="ds-text-xs ds-text-muted ds-text-uppercase">Agents</div>
-                <div className="ds-text-bold">{agents.length}/4</div>
-              </div>
-              <div className="ds-text-sm ds-text-center">
-                <div className="ds-text-xs ds-text-muted ds-text-uppercase">Missions</div>
-                <div className="ds-text-warn ds-text-bold">{activeMissions.length}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <div className="ds-container ds-py-xl">
-        {/* Quick Navigation */}
-        <nav className="ds-mb-xl">
-          <div className="ds-cluster ds-cluster--sm">
-            <Link href="/auction" className="ds-btn ds-btn--primary">
-              🏪 Auction House
-            </Link>
-            <Link href="/missions" className="ds-btn ds-btn--secondary">
-              🎯 Missions
-            </Link>
-            <Link href="/crafting" className="ds-btn ds-btn--secondary">
-              ⚒️ Crafting {craftingInfo?.activeJobs?.length > 0 ? `(${craftingInfo.activeJobs.length})` : ''}
-            </Link>
-            <Link href="/warehouse" className="ds-btn ds-btn--secondary">
-              📦 Warehouse
-            </Link>
-            <Link href="/agents" className="ds-btn ds-btn--secondary">
-              👥 Agents ({(availableAgents || []).length} free)
-            </Link>
-            {guildInfo ? (
-              <Link href="/guild" className="ds-btn ds-btn--secondary">
-                🏰 [{guildInfo.tag}]
-              </Link>
-            ) : (
-              <Link href="/guild" className="ds-btn ds-btn--ghost">
-                🏰 Join Guild
-              </Link>
-            )}
-          </div>
-        </nav>
-
-        {/* Hero Section - 2 Column Grid */}
-        <div className="ds-grid-2 ds-mb-xl">
-          {/* Left Column */}
-          <div className="ds-stack">
-            <div className="ds-card">
-              <h2 className="ds-heading-3 ds-mb-sm">Your Empire Today</h2>
-              <p className="ds-text-muted ds-mb-lg">
+              <h2 className="ds-heading-2 ds-mb-sm">Welcome back, {displayName}!</h2>
+              <p className="ds-text-muted">
                 Manage your trading empire from the central hub. Check your progress,
                 review recent activity, and plan your next moves.
               </p>
-
+            </div>
+            <div>
               <HubSummaryStats stats={summaryStats} title="Today's Summary" />
             </div>
-
-            <ActivityFeed activities={activities} title="Recent Activity" limit={6} />
           </div>
+        </div>
 
-          {/* Right Column */}
-          <div className="ds-stack">
-            <WarehouseSnapshot items={warehouseItems} title="Top Warehouse Items" limit={6} />
-
-            <AgentRoster agents={agentRoster} title={`Your Agents (${agents.length}/4)`} />
-
-            {guildInfo && (
-              <div className="ds-card">
-                <div className="ds-card__header">
-                  <h3 className="ds-card__title">Guild</h3>
-                  <Link href="/guild" className="ds-btn ds-btn--sm">
-                    View
-                  </Link>
-                </div>
-                <div className="ds-stack ds-stack--xs">
-                  <div className="ds-split">
-                    <span className="ds-text-sm ds-text-muted">Name</span>
-                    <span className="ds-text-sm ds-text-bold">[{guildInfo.tag}] {guildInfo.name}</span>
-                  </div>
-                  <div className="ds-split">
-                    <span className="ds-text-sm ds-text-muted">Members</span>
-                    <span className="ds-text-sm">{guildInfo.memberCount || 0}</span>
-                  </div>
-                  <div className="ds-split">
-                    <span className="ds-text-sm ds-text-muted">Level</span>
-                    <span className="ds-text-sm">{guildInfo.level || 1}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+        {/* Main Content - 2 Column Grid */}
+        <div className="ds-grid-2 ds-mb-xl">
+          <ActivityFeed activities={activities} title="Recent Activity" limit={6} />
+          <WarehouseSnapshot items={warehouseItems} title="Top Warehouse Items" limit={6} />
         </div>
 
         {/* Full Width Sections */}
         <div className="ds-stack ds-stack--xl">
+          {/* Agent Roster */}
+          {agentRoster.length > 0 && (
+            <AgentRoster agents={agentRoster} title="Agent Roster" />
+          )}
+
+          {/* Guild Info */}
+          {guildInfo && (
+            <div className="ds-card">
+              <div className="ds-card__header">
+                <h3 className="ds-card__title">Guild</h3>
+                <Link href="/guild" className="ds-btn ds-btn--sm">
+                  View
+                </Link>
+              </div>
+              <div className="ds-grid-3">
+                <div className="ds-stack ds-stack--xs">
+                  <div className="ds-text-xs ds-text-muted">Name</div>
+                  <div className="ds-text-sm ds-text-bold">[{guildInfo.tag}] {guildInfo.name}</div>
+                </div>
+                <div className="ds-stack ds-stack--xs">
+                  <div className="ds-text-xs ds-text-muted">Members</div>
+                  <div className="ds-text-sm">{guildInfo.memberCount || 0}</div>
+                </div>
+                <div className="ds-stack ds-stack--xs">
+                  <div className="ds-text-xs ds-text-muted">Level</div>
+                  <div className="ds-text-sm">{guildInfo.level || 1}</div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Active Missions */}
           {missions.length > 0 && (
             <ActiveMissionsGrid missions={missions} title={`Active Missions (${activeMissions.length})`} />
@@ -438,7 +432,7 @@ export default function HubGameplayPage() {
           )}
         </div>
       </div>
-    </div>
+    </GameLayout>
   );
 }
 
