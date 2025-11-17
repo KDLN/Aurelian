@@ -180,25 +180,37 @@ export default function HubGameplayPage() {
       <h3 className="ds-heading-3">Account Status</h3>
       <div className="ds-stack ds-stack--sm">
         <div className="ds-split">
-          <span className="ds-text-sm">Gold:</span>
-          <span className="ds-text-sm ds-text-good">{wallet?.gold?.toLocaleString() || 0}g</span>
+          <span className="ds-text-sm" style={{ flexShrink: 0 }}>Gold:</span>
+          <span className="ds-text-sm ds-text-good" style={{ textAlign: 'right' }}>{wallet?.gold?.toLocaleString() || 0}g</span>
         </div>
         <div className="ds-split">
-          <span className="ds-text-sm">Agents:</span>
-          <span className="ds-text-sm ds-text-good">{agents.length}/4</span>
+          <span className="ds-text-sm" style={{ flexShrink: 0 }}>Agents:</span>
+          <span className="ds-text-sm ds-text-good" style={{ textAlign: 'right' }}>{agents.length}/4</span>
         </div>
         <div className="ds-split">
-          <span className="ds-text-sm">Active Missions:</span>
-          <span className="ds-text-sm ds-text-warn">{activeMissions.length}</span>
+          <span className="ds-text-sm" style={{ flexShrink: 0 }}>Active Missions:</span>
+          <span className="ds-text-sm ds-text-warn" style={{ textAlign: 'right' }}>{activeMissions.length}</span>
         </div>
         <div className="ds-split">
-          <span className="ds-text-sm">Crafting Jobs:</span>
-          <span className="ds-text-sm ds-text-good">{craftingInfo?.activeJobs?.length || 0}</span>
+          <span className="ds-text-sm" style={{ flexShrink: 0 }}>Crafting Jobs:</span>
+          <span className="ds-text-sm ds-text-good" style={{ textAlign: 'right' }}>{craftingInfo?.activeJobs?.length || 0}</span>
         </div>
         {guildInfo && (
           <div className="ds-split">
-            <span className="ds-text-sm">Guild:</span>
-            <span className="ds-text-sm ds-text-good">[{guildInfo.tag}] {guildInfo.name}</span>
+            <span className="ds-text-sm" style={{ flexShrink: 0 }}>Guild:</span>
+            <span
+              className="ds-text-sm ds-text-good"
+              style={{
+                textAlign: 'right',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                minWidth: 0
+              }}
+              title={`[${guildInfo.tag}] ${guildInfo.name}`}
+            >
+              [{guildInfo.tag}] {guildInfo.name}
+            </span>
           </div>
         )}
       </div>
@@ -242,29 +254,29 @@ export default function HubGameplayPage() {
               <h4 className="ds-heading-4">Today's Summary</h4>
               <div className="ds-grid ds-grid-2 ds-text-sm">
                 <div className="ds-split">
-                  <span>Gold Earned:</span>
+                  <span className="ds-text-muted">Gold Earned:</span>
                   <span className="ds-text-good">+{dailyStats?.todaysStats?.goldEarned || 0}g</span>
                 </div>
                 <div className="ds-split">
-                  <span>Missions Done:</span>
+                  <span className="ds-text-muted">Missions Done:</span>
                   <span className="ds-text-good">{dailyStats?.todaysStats?.missionsCompleted || 0}</span>
                 </div>
                 <div className="ds-split">
-                  <span>Items Traded:</span>
+                  <span className="ds-text-muted">Items Traded:</span>
                   <span className="ds-text-good">{dailyStats?.todaysStats?.itemsTraded || 0}</span>
                 </div>
                 <div className="ds-split">
-                  <span>Items Crafted:</span>
+                  <span className="ds-text-muted">Items Crafted:</span>
                   <span className="ds-text-good">{dailyStats?.todaysStats?.itemsCrafted || 0}</span>
                 </div>
                 <div className="ds-split">
-                  <span>Net Gold:</span>
+                  <span className="ds-text-muted">Net Gold:</span>
                   <span className={dailyStats?.performance?.netGoldWeek >= 0 ? 'ds-text-good' : 'ds-text-bad'}>
                     {dailyStats?.performance?.netGoldWeek >= 0 ? '+' : ''}{dailyStats?.performance?.netGoldWeek || 0}g
                   </span>
                 </div>
                 <div className="ds-split">
-                  <span>Success Rate:</span>
+                  <span className="ds-text-muted">Success Rate:</span>
                   <span className="ds-text-good">{dailyStats?.performance?.missionSuccessRate || 0}%</span>
                 </div>
               </div>
